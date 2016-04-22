@@ -59,10 +59,10 @@ void ADPSCallback(uint8_t phase)
 
   // Monophasé
   if (phase == 0 ) {
-    Serial.println(F("ADPS"));
+    DebuglnF("ADPS");
   } else {
-    Serial.print(F("ADPS Phase "));
-    Serial.println('0' + phase);
+    DebugF("ADPS Phase ");
+    Debugln("0" + phase);
   }
 
   // nous avons une téléinfo fonctionelle
@@ -81,18 +81,18 @@ Comments: -
 void DataCallback(ValueList * me, uint8_t flags)
 {
   // Do whatever you want there
-  Serial.print(me->name);
-  Serial.print('=');
-  Serial.print(me->value);
+  Debug(me->name);
+  DebugF("=");
+  Debug(me->value);
 
   //Serial.print(" Flags=0x");
   //Serial.print(flags, HEX);
 
-  if ( flags & TINFO_FLAGS_NOTHING ) Serial.print(F(" Nothing"));
-  if ( flags & TINFO_FLAGS_ADDED )   Serial.print(F(" Added"));
-  if ( flags & TINFO_FLAGS_UPDATED ) Serial.print(F(" Updated"));
-  if ( flags & TINFO_FLAGS_EXIST )   Serial.print(F(" Exist"));
-  if ( flags & TINFO_FLAGS_ALERT )   Serial.print(F(" Alert"));
+  if ( flags & TINFO_FLAGS_NOTHING ) DebugF(" Nothing");
+  else if ( flags & TINFO_FLAGS_UPDATED ) DebugF(" Updated");
+  else if ( flags & TINFO_FLAGS_ADDED )   DebugF(" Added");
+  else if ( flags & TINFO_FLAGS_EXIST )   DebugF(" Exist");
+  else if ( flags & TINFO_FLAGS_ALERT )   DebugF(" Alert");
 
   // Nous venons de recevoir la puissance tarifaire en cours
   // To DO : gérer les autres types de contrat
@@ -104,6 +104,7 @@ void DataCallback(ValueList * me, uint8_t flags)
     // To DO : gérer les autres types de contrat
     if (!strcmp(me->value, "HP..")) ptec= PTEC_HP;
     if (!strcmp(me->value, "HC..")) ptec= PTEC_HC;
+    if (!strcmp(me->value, "TH..")) ptec= PTEC_HP;
   }
 
   // Mise à jour des variables "cloud"
@@ -111,6 +112,7 @@ void DataCallback(ValueList * me, uint8_t flags)
   if (!strcmp(me->name, "IINST"))  myiInst   = atoi(me->value);
   if (!strcmp(me->name, "HCHC"))   myindexHC = atol(me->value);
   if (!strcmp(me->name, "HCHP"))   myindexHP = atol(me->value);
+  if (ptec == PTEC_HP && !strcmp(me->name, "BASE"))  myindexHP = atol(me->value);
   if (!strcmp(me->name, "IMAX"))   myimax    = atoi(me->value);
 
   // Isousc permet de connaitre l'intensité max pour le delestage
@@ -209,8 +211,8 @@ bool tinfo_setup(bool wait_data)
 {
   bool ret = false;
 
-  Serial.print("Initializing Teleinfo...");
-  Serial.flush();
+  DebugF("Initializing Teleinfo...");
+  Debugflush();
 
   #ifdef SPARK
   Serial1.begin(1200);  // Port série RX/TX on serial1 for Spark
@@ -244,9 +246,7 @@ bool tinfo_setup(bool wait_data)
         }
       #else
         if (Serial.available()) {
-          c = Serial1.read();
-          //Serial.print(c);
-          //Serial.flush();
+          c = Serial.read();
           tinfo.process(c);
         }
       #endif
@@ -256,8 +256,8 @@ bool tinfo_setup(bool wait_data)
   }
 
   ret = (status & STATUS_TINFO)?true:false;
-  Serial.print("Init Teleinfo ");
-  Serial.println(ret?"OK!":"Erreur!");
+  DebugF("Init Teleinfo ");
+  Debugln(ret ? "OK!" : "Erreur!");
 
   return ret;
 }
@@ -283,7 +283,7 @@ void tinfo_loop(void)
     if ( millis()-tinfo_last_frame>TINFO_FRAME_TIMEOUT*1000) {
       // Indiquer qu'elle n'est pas présente
       status &= ~STATUS_TINFO;
-      Serial.println("Teleinfo absente/perdue!");
+      DebuglnF("Teleinfo absente/perdue!");
     }
 
   // Nous n'avions plus de téléinfo
@@ -295,7 +295,7 @@ void tinfo_loop(void)
       LedRGBON(COLOR_RED);
       tinfo_last_frame = millis();
       tinfo_led_timer = millis();
-      Serial.println("Teleinfo toujours absente!");
+      DebuglnF("Teleinfo toujours absente!");
     }
   }
 
