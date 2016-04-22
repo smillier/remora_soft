@@ -91,7 +91,7 @@
   #include <ESP8266WebServer.h>
   #include <Ticker.h>
   #include <NeoPixelBus.h>
-  
+
 extern "C" {
 #include "user_interface.h"
 }
@@ -108,28 +108,28 @@ extern "C" {
 
   #define _yield  yield
   #define _wdt_feed ESP.wdtFeed
-  #define DEBUG_SERIAL  Serial
+  #define DEBUG_SERIAL  Serial1
 #endif
 
 #define DEBUG
 
 // I prefix debug macro to be sure to use specific for THIS library
-// debugging, this should not interfere with main sketch or other 
+// debugging, this should not interfere with main sketch or other
 // libraries
 #ifdef DEBUG
-#define Debug(x)    DEBUG_SERIAL.print(x)
-#define Debugln(x)  DEBUG_SERIAL.println(x)
-#define DebugF(x)   DEBUG_SERIAL.print(F(x))
-#define DebuglnF(x) DEBUG_SERIAL.println(F(x))
-#define Debugf(...) DEBUG_SERIAL.printf(__VA_ARGS__)
-#define Debugflush  DEBUG_SERIAL.flush
+  #define Debug(x)    DEBUG_SERIAL.print(x)
+  #define Debugln(x)  DEBUG_SERIAL.println(x)
+  #define DebugF(x)   DEBUG_SERIAL.print(F(x))
+  #define DebuglnF(x) DEBUG_SERIAL.println(F(x))
+  #define Debugf(...) DEBUG_SERIAL.printf(__VA_ARGS__)
+  #define Debugflush  DEBUG_SERIAL.flush
 #else
-#define Debug(x)    {}
-#define Debugln(x)  {}
-#define DebugF(x)   {}
-#define DebuglnF(x) {}
-#define Debugf(...) {}
-#define Debugflush(){}
+  #define Debug(x)    {}
+  #define Debugln(x)  {}
+  #define DebugF(x)   {}
+  #define DebuglnF(x) {}
+  #define Debugf(...) {}
+  #define Debugflush(){}
 #endif
 
 // Includes du projets remora

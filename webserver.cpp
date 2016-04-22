@@ -116,7 +116,7 @@ bool handleFileRead(String path) {
 
   Debugln("");
 
-  server.send(404, "text/plain", "File Not Found");
+  //server.send(404, "text/plain", "File Not Found");
   return false;
 }
 
@@ -162,11 +162,11 @@ void formatNumberJSON( String &response, char * value)
       }
     } else {
       response += "\"Error Value too long\"" ;
-      Serial.println(F("formatNumberJSON Value too long!"));
+      DebuglnF("formatNumberJSON Value too long!");
     }
   } else {
     response += "\"Error Bad Value\"" ;
-    Serial.println(F("formatNumberJSON Bad Value!"));
+    DebuglnF("formatNumberJSON Bad Value!");
   }
 }
 
@@ -545,7 +545,7 @@ void wifiScanJSON(void)
   bool first = true;
 
   // Just to debug where we are
-  Debug(F("Serving /wifiscan page..."));
+  DebugF("Serving /wifiscan page...");
 
   int n = WiFi.scanNetworks();
 
@@ -578,9 +578,9 @@ void wifiScanJSON(void)
   // Json end
   response += FPSTR("]\r\n");
 
-  Debug(F("sending..."));
+  DebugF("sending...");
   server.send ( 200, "text/json", response );
-  Debugln(F("Ok!"));
+  DebuglnF("Ok!");
 }
 
 
@@ -704,12 +704,14 @@ Input   : -
 Output  : -
 Comments: -
 ====================================================================== */
-void relaisJSON(String & response)
+void relaisJSON(/*String & response*/)
 {
+  String response = "";
   response = FPSTR(FP_JSON_START);
   response+= "\"relais\": ";
   response+= String(etatrelais);
   response+= FPSTR(FP_JSON_END);
+  server.send ( 200, "text/json", response );
 }
 
 /* ======================================================================
@@ -719,14 +721,16 @@ Input   : -
 Output  : -
 Comments: -
 ====================================================================== */
-void delestageJSON(String & response)
+void delestageJSON(/*String & response*/)
 {
-    response = FPSTR(FP_JSON_START);
-    response += FPSTR("\"niveau\": ");
-    response += String(nivDelest);
-    response += FPSTR(", \"zone\": ");
-    response += String(plusAncienneZoneDelestee);
-    response += FPSTR(FP_JSON_END);
+  String response = "";
+  response = FPSTR(FP_JSON_START);
+  response += FPSTR("\"niveau\": ");
+  response += String(nivDelest);
+  response += FPSTR(", \"zone\": ");
+  response += String(plusAncienneZoneDelestee);
+  response += FPSTR(FP_JSON_END);
+  server.send ( 200, "text/json", response );
 }
 
 
@@ -879,11 +883,11 @@ void handleNotFound(void)
   // convert uri to char * for compare
   uri = server.uri().c_str();
 
-  Serial.print("URI[");
-  Serial.print(strlen(uri));
-  Serial.print("]='");
-  Serial.print(uri);
-  Serial.println("'");
+  DebugF("URI[");
+  Debug(strlen(uri));
+  DebugF("]='");
+  Debug(uri);
+  DebugF("'");
 
   // Got consistent URI, skip fisrt / ?
   // Attention si ? dans l'URL çà ne fait pas partie de l'URI 
@@ -924,7 +928,7 @@ void handleNotFound(void)
     // ========================
 
     // http://ip_remora/relais    
-    if (!stricmp("relais", uri)) {
+    /*if (!stricmp("relais", uri)) {
       relaisJSON(response);
       found = true;
     // http://ip_remora/delestage
@@ -932,7 +936,9 @@ void handleNotFound(void)
       delestageJSON(response);
       found = true;
     // http://ip_remora/fp ou http://ip_remora/fpx
-    } else if ( (len==2 || len==3) && (uri[0]=='f'||uri[0]=='F') && (uri[1]=='p'||uri[1]=='P') ) {
+    } else*/ 
+    
+    if ( (len==2 || len==3) && (uri[0]=='f'||uri[0]=='F') && (uri[1]=='p'||uri[1]=='P') ) {
       int8_t fp = -1;
 
       // http://ip_remora/fp

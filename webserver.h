@@ -42,5 +42,7 @@ void sysJSONTable(void);
 void confJSONTable(void);
 void spiffsJSONTable(void);
 void wifiScanJSON(void);
+void relaisJSON(void);
+void delestageJSON(void);
 
 #endif
