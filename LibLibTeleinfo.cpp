@@ -21,7 +21,7 @@
 //
 // **********************************************************************************
 
-#include "LibLibTeleinfo.h" 
+#include "LibLibTeleinfo.h"
 
 /* ======================================================================
 Class   : TInfo
@@ -40,17 +40,17 @@ TInfo::TInfo()
 
   // callback
   _fn_ADPS = NULL;
-  _fn_data = NULL;   
-  _fn_new_frame = NULL;   
-  _fn_updated_frame = NULL;   
+  _fn_data = NULL;
+  _fn_new_frame = NULL;
+  _fn_updated_frame = NULL;
 }
 
 /* ======================================================================
 Function: init
-Purpose : configure ULPNode I/O ports 
+Purpose : configure ULPNode I/O ports
 Input   : -
 Output  : -
-Comments: - 
+Comments: -
 ====================================================================== */
 void TInfo::init()
 {
@@ -65,56 +65,56 @@ void TInfo::init()
 }
 
 /* ======================================================================
-Function: attachADPS 
+Function: attachADPS
 Purpose : attach a callback when we detected a ADPS on any phase
 Input   : callback function
-Output  : - 
+Output  : -
 Comments: -
 ====================================================================== */
 void TInfo::attachADPS(void (*fn_ADPS)(uint8_t phase))
 {
   // indicate the user callback
-  _fn_ADPS = fn_ADPS;   
+  _fn_ADPS = fn_ADPS;
 }
 
 /* ======================================================================
-Function: attachNewData 
-Purpose : attach a callback when we detected a new/changed value 
+Function: attachNewData
+Purpose : attach a callback when we detected a new/changed value
 Input   : callback function
-Output  : - 
+Output  : -
 Comments: -
 ====================================================================== */
 void TInfo::attachData(void (*fn_data)(ValueList * valueslist, uint8_t  state))
 {
   // indicate the user callback
-  _fn_data = fn_data;   
+  _fn_data = fn_data;
 }
 
 /* ======================================================================
-Function: attachNewFrame 
+Function: attachNewFrame
 Purpose : attach a callback when we received a full frame
 Input   : callback function
-Output  : - 
+Output  : -
 Comments: -
 ====================================================================== */
 void TInfo::attachNewFrame(void (*fn_new_frame)(ValueList * valueslist))
 {
   // indicate the user callback
-  _fn_new_frame = fn_new_frame;   
+  _fn_new_frame = fn_new_frame;
 }
 
 /* ======================================================================
-Function: attachChangedFrame 
+Function: attachChangedFrame
 Purpose : attach a callback when we received a full frame where data
           has changed since the last frame (cool to update data)
 Input   : callback function
-Output  : - 
+Output  : -
 Comments: -
 ====================================================================== */
 void TInfo::attachUpdatedFrame(void (*fn_updated_frame)(ValueList * valueslist))
 {
   // indicate the user callback
-  _fn_updated_frame = fn_updated_frame;   
+  _fn_updated_frame = fn_updated_frame;
 }
 
 /* ======================================================================
@@ -122,7 +122,7 @@ Function: clearBuffer
 Purpose : clear and init the buffer
 Input   : -
 Output  : -
-Comments: - 
+Comments: -
 ====================================================================== */
 uint8_t TInfo::clearBuffer()
 {
@@ -137,7 +137,7 @@ Function: addCustomValue
 Purpose : let user add custom values (mainly for testing)
 Input   : Pointer to the label name
           pointer to the value
-          pointer on flag state of the label 
+          pointer on flag state of the label
 Output  : pointer to the new node (or founded one)
 Comments: checksum is calculated before adding, no need to bother with
 ====================================================================== */
@@ -177,21 +177,21 @@ Comments: - state of the label changed by the function
 ====================================================================== */
 ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t * flags)
 {
-  // Get our linked list 
+  // Get our linked list
   ValueList * me = &_valueslist;
 
   uint8_t lgname = strlen(name);
   uint8_t lgvalue = strlen(value);
-  uint8_t thischeck = calcChecksum(name,value);
+  uint8_t thischeck = calcChecksum(name, value);
   uint8_t thisflags = *flags;
-  
-  // just some paranoia 
-  if (thischeck != checksum ) {
+
+  // just some paranoia
+  if (thischeck != checksum) {
     TI_Debug(name);
     TI_Debug('=');
     TI_Debug(value);
     TI_Debug(F(" '"));
-    TI_Debug((char) cheksum);
+    TI_Debug((char) checksum);
     TI_Debug(F("' Not added bad checksum calulated '"));
     TI_Debug((char) thischeck);
     TI_Debugln(F("'"));
@@ -205,7 +205,7 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
       // Loop thru the node
       while (me->next) {
         // save parent node
-        parNode = me ;
+        parNode = me;
 
         // go to next node
         me = me->next;
@@ -222,10 +222,10 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
             *flags |= TINFO_FLAGS_UPDATED;
             me->flags = *flags ;
             // Do we have enought space to hold new value ?
-            if (strlen(me->value) >= lgvalue ) {
+            if (strlen(me->value) >= lgvalue) {
               // Copy it
-              strncpy(me->value, value , lgvalue );
-              me->checksum = checksum ;
+              strncpy(me->value, value , lgvalue);
+              me->checksum = checksum;
 
               // That's all
               return (me);
@@ -248,14 +248,15 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
       // Our linked list structure sizeof(ValueList)
       // + Name  + '\0'
       // + Value + '\0'
-      size_t size = sizeof(ValueList) + lgname + 1 + lgvalue + 1  ;
+      size_t size = sizeof(ValueList) + lgname + 1 + lgvalue + 1;
       // Create new node with size to store strings
-      if ((newNode = (ValueList  *) malloc(size) ) == NULL) 
+      if ((newNode = (ValueList  *) malloc(size)) == NULL) {
         return ( (ValueList *) NULL );
-      else 
+      } else {
         // get our buffer Safe
         memset(newNode, 0, size);
-      
+      }
+
       // Put the new node on the list
       me->next = newNode;
 
@@ -266,8 +267,8 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
       newNode->value = (char *) newNode->name + lgname + 1;
 
       // Copy the string data
-      strncpy(newNode->name , name  , lgname );
-      strncpy(newNode->value, value , lgvalue );
+      strncpy(newNode->name, name, lgname);
+      strncpy(newNode->value, value, lgvalue);
 
       // So we just created this node but was it new
       // or was matter of text size ?
@@ -279,7 +280,7 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
 
       // Here we double check adding value went fine, I've got some
       // issues on ESP8266 with corrupted linked list, I'm trying
-      // to investigate on problem checking and checking again to 
+      // to investigate on problem checking and checking again to
       // see where the problem's occurs
       thischeck = calcChecksum(newNode->name, newNode->value);
 
@@ -287,9 +288,9 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
       if ( thischeck != checksum ) {
         TI_Debug(newNode->name);
         TI_Debug('=');
-        TI_Debug(newNode->valu);
+        TI_Debug(newNode->value);
         TI_Debug(F(" '"));
-        TI_Debug((char) cheksum);
+        TI_Debug((char) checksum);
         TI_Debug(F("' added with error bad checksum after add '"));
         TI_Debug((char) thischeck);
         TI_Debugln(F("'"));
@@ -313,7 +314,7 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
 
 /* ======================================================================
 Function: valueRemoveFlagged
-Purpose : remove element to the Linked List of values where 
+Purpose : remove element to the Linked List of values where
 Input   : paramter flags
 Output  : true if found and removed
 Comments: -
@@ -322,7 +323,7 @@ boolean TInfo::valueRemoveFlagged(uint8_t flags)
 {
   boolean deleted = false;
 
-  // Get our linked list 
+  // Get our linked list
   ValueList * me = &_valueslist;
   ValueList *parNode = NULL ;
 
@@ -367,7 +368,7 @@ boolean TInfo::valueRemove(char * name)
 {
   boolean deleted = false;
 
-  // Get our linked list 
+  // Get our linked list
   ValueList * me = &_valueslist;
   ValueList *parNode = NULL ;
 
@@ -407,12 +408,12 @@ boolean TInfo::valueRemove(char * name)
 Function: valueGet
 Purpose : get value of one element
 Input   : Pointer to the label name
-          pointer to the value where we fill data 
+          pointer to the value where we fill data
 Output  : pointer to the value where we filled data NULL is not found
 ====================================================================== */
 char * TInfo::valueGet(char * name, char * value)
 {
-  // Get our linked list 
+  // Get our linked list
   ValueList * me = &_valueslist;
   uint8_t lgname = strlen(name);
 
@@ -445,11 +446,11 @@ char * TInfo::valueGet(char * name, char * value)
 Function: getTopList
 Purpose : return a pointer on the top of the linked list
 Input   : -
-Output  : Pointer 
+Output  : Pointer
 ====================================================================== */
 ValueList * TInfo::getList(void)
 {
-  // Get our linked list 
+  // Get our linked list
   return &_valueslist;
 }
 
@@ -461,7 +462,7 @@ Output  : total number of values
 ====================================================================== */
 uint8_t TInfo::valuesDump(void)
 {
-  // Get our linked list 
+  // Get our linked list
   ValueList * me = &_valueslist;
   uint8_t index = 0;
 
@@ -490,12 +491,12 @@ uint8_t TInfo::valuesDump(void)
 
       TI_Debug(F(" '")) ;
       TI_Debug(me->checksum) ;
-      TI_Debug(F("' ")); 
+      TI_Debug(F("' "));
 
       // Flags management
       if ( me->flags) {
-        TI_Debug(F("Flags:0x")); 
-        TI_Debugf("%02X =>", me->flags); 
+        TI_Debug(F("Flags:0x"));
+        TI_Debugf("%02X =>", me->flags);
         if ( me->flags & TINFO_FLAGS_EXIST)
           TI_Debug(F("Exist ")) ;
         if ( me->flags & TINFO_FLAGS_UPDATED)
@@ -521,7 +522,7 @@ int TInfo::labelCount()
 {
   int count = 0;
 
-  // Get our linked list 
+  // Get our linked list
   ValueList * me = &_valueslist;
 
   if (me)
@@ -539,7 +540,7 @@ Output  : True if Ok False Otherwise
 ====================================================================== */
 boolean TInfo::listDelete()
 {
-  // Get our linked list 
+  // Get our linked list
   ValueList * me = &_valueslist;
 
   // Got a pointer
@@ -568,26 +569,26 @@ boolean TInfo::listDelete()
 /* ======================================================================
 Function: checksum
 Purpose : calculate the checksum based on data/value fields
-Input   : label name 
-          label value 
+Input   : label name
+          label value
 Output  : checksum
 Comments: return '\0' in case of error
 ====================================================================== */
-unsigned char TInfo::calcChecksum(char *etiquette, char *valeur) 
+unsigned char TInfo::calcChecksum(char *etiquette, char *valeur)
 {
   uint8_t i ;
   uint8_t sum = ' ';  // Somme des codes ASCII du message + un espace
 
-  // avoid dead loop, always check all is fine 
+  // avoid dead loop, always check all is fine
   if (etiquette && valeur) {
     // this will not hurt and may save our life ;-)
     if (strlen(etiquette) && strlen(valeur)) {
       while (*etiquette)
         sum += *etiquette++ ;
-  
+
       while(*valeur)
         sum += *valeur++ ;
-        
+
       return ( (sum & 63) + ' ' ) ;
     }
   }
@@ -600,15 +601,15 @@ Purpose : do action when received a correct label / value + checksum line
 Input   : plabel : pointer to string containing the label
           pvalue : pointer to string containing the associated value
           pflags pointer in flags value if we need to cchange it
-Output  : 
-Comments: 
+Output  :
+Comments:
 ====================================================================== */
-void TInfo::customLabel( char * plabel, char * pvalue, uint8_t * pflags) 
+void TInfo::customLabel( char * plabel, char * pvalue, uint8_t * pflags)
 {
   int8_t phase = -1;
 
   // Monophasé
-  if (strcmp(plabel, "ADPS")==0 ) 
+  if (strcmp(plabel, "ADPS") == 0)
     phase=0;
 
   // For testing
@@ -622,12 +623,12 @@ void TInfo::customLabel( char * plabel, char * pvalue, uint8_t * pflags)
   }
 
   // Nous avons un ADPS ?
-  if (phase>=0 && phase <=3) {
+  if (phase >= 0 && phase <= 3) {
     // ne doit pas être sauvé définitivement
     *pflags |= TINFO_FLAGS_ALERT;
-  
+
     // Traitement de l'ADPS demandé par le sketch
-    if (_fn_ADPS) 
+    if (_fn_ADPS)
       _fn_ADPS(phase);
   }
 }
@@ -637,9 +638,9 @@ Function: checkLine
 Purpose : check one line of teleinfo received
 Input   : -
 Output  : pointer to the data object in the linked list if OK else NULL
-Comments: 
+Comments:
 ====================================================================== */
-ValueList * TInfo::checkLine(char * pline) 
+ValueList * TInfo::checkLine(char * pline)
 {
   char * p;
   char * ptok;
@@ -651,10 +652,10 @@ ValueList * TInfo::checkLine(char * pline)
   boolean err = true ;  // Assume  error
   int len ; // Group len
 
-  if (pline==NULL)
+  if (pline == NULL)
     return NULL;
 
-  len = strlen(pline); 
+  len = strlen(pline);
 
   // a line should be at least 7 Char
   // 2 Label + Space + 1 etiquette + space + checksum + \r
@@ -676,32 +677,33 @@ ValueList * TInfo::checkLine(char * pline)
   //TI_Debug(len);
   //TI_Debug("] ");
 
-  
-  // Loop in buffer 
+
+  // Loop in buffer
   while ( p < pend ) {
     // start of token value
-    if ( *p==' ' && ptok) {           
+    if ( (*p == 0x20 || *p == 0x09) && ptok) {
       // Isolate token name
       *p++ = '\0';
 
       // 1st space, it's the label value
-      if (!pvalue)
+      if (!pvalue) {
         pvalue = p;
-      else
+      } else {
         // 2nd space, so it's the checksum
         checksum = *p;
-    }           
+      }
+    }
     // new line ? ok we got all we need ?
-    
-    if ( *p=='\r' ) {           
-      *p='\0';
+
+    if ( *p == 0x0D ) {
+      *p = '\0';
 
       // Good format ?
       if ( ptok && pvalue && checksum ) {
-        // Always check to avoid bad behavior 
-        if(strlen(ptok) && strlen(pvalue)) {
+        // Always check to avoid bad behavior
+        if (strlen(ptok) && strlen(pvalue)) {
           // Is checksum is OK
-          if ( calcChecksum(ptok,pvalue) == checksum) {
+          if (calcChecksum(ptok, pvalue) == checksum) {
             // In case we need to do things on specific labels
             customLabel(ptok, pvalue, &flags);
 
@@ -723,7 +725,7 @@ ValueList * TInfo::checkLine(char * pline)
           }
         }
       }
-    }           
+    }
     // Next char
     p++;
 
@@ -736,7 +738,7 @@ ValueList * TInfo::checkLine(char * pline)
 Function: process
 Purpose : teleinfo serial char received processing, should be called
           my main loop, this will take care of managing all the other
-Input   : pointer to the serial used 
+Input   : pointer to the serial used
 Output  : teleinfo global state
 ====================================================================== */
 _State_e TInfo::process(char c)
@@ -759,17 +761,17 @@ _State_e TInfo::process(char c)
       if (_state == TINFO_INIT || _state == TINFO_WAIT_STX ) {
           TI_Debugln(F("TINFO_WAIT_ETX"));
          _state = TINFO_WAIT_ETX;
-      } 
+      }
     break;
-      
+
     // End of transmission ?
     case  TINFO_ETX:
 
       // Normal working mode ?
       if (_state == TINFO_READY) {
-        // Get on top of our linked list 
+        // Get on top of our linked list
         ValueList * me = &_valueslist;
-        
+
         // Call user callback if any
         if (_frame_updated && _fn_updated_frame)
           _fn_updated_frame(me);
@@ -790,11 +792,27 @@ _State_e TInfo::process(char c)
       if (_state == TINFO_WAIT_ETX) {
         TI_Debugln(F("TINFO_READY"));
         _state = TINFO_READY;
-      } 
+      }
       else if ( _state == TINFO_INIT) {
         TI_Debugln(F("TINFO_WAIT_STX"));
         _state = TINFO_WAIT_STX ;
-      } 
+      }
+
+    break;
+
+    // End Of Transmission
+    case  TINFO_EOT:
+
+      clearBuffer();
+      // We were waiting fo this one ?
+      if (_state == TINFO_WAIT_ETX) {
+        TI_Debugln(F("TINFO_READY"));
+        _state = TINFO_READY;
+      }
+      else if ( _state == TINFO_INIT) {
+        TI_Debugln(F("TINFO_WAIT_STX"));
+        _state = TINFO_WAIT_STX ;
+      }
 
     break;
 
@@ -822,13 +840,13 @@ _State_e TInfo::process(char c)
         clearBuffer();
       }
     break;
-    
+
     // other char ?
     default:
     {
       // Only in a ready state of course
       if (_state == TINFO_READY) {
-        // If buffer is not full, Store data 
+        // If buffer is not full, Store data
         if ( _recv_idx < TINFO_BUFSIZE)
           _recv_buff[_recv_idx++]=c;
         else

@@ -101,8 +101,9 @@ enum _State_e {
 // Teleinfo start and end of frame characters
 #define TINFO_STX 0x02
 #define TINFO_ETX 0x03 
-#define TINFO_SGR '\n' // start of group  
-#define TINFO_EGR '\r' // End of group    
+#define TINFO_EOT 0x04
+#define TINFO_SGR 0x0A // start of group  
+#define TINFO_EGR 0x0D // End of group    
 
 class TInfo
 {
