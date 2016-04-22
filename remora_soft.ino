@@ -1,4 +1,4 @@
-  // **********************************************************************************
+// **********************************************************************************
 // Programmateur Fil Pilote et Suivi Conso
 // **********************************************************************************
 // Copyright (C) 2014 Thibault Ducret
@@ -479,6 +479,12 @@ void mysetup()
     // Read Configuration from EEP
     if (readConfig()) {
         DebuglnF("Good CRC, not set!");
+        if (strlen(config.jeedom.host) > 0 && strlen(config.jeedom.url) > 0 
+          && strlen(config.jeedom.apikey) > 0 && (config.jeedom.freq > 0 && config.jeedom.freq < 86400)) {
+          // Emoncms Update if needed
+          Tick_jeedom.detach();
+          Tick_jeedom.attach(config.jeedom.freq, Task_jeedom);
+        }
     } else {
       // Reset Configuration
       resetConfig();
@@ -542,6 +548,8 @@ void mysetup()
     server.on("/factory_reset",handleFactoryReset );
     server.on("/reset", handleReset);
     server.on("/tinfo", tinfoJSON);
+    server.on("/relais", relaisJSON);
+    server.on("/delestage", delestageJSON);
     server.on("/tinfo.json", tinfoJSONTable);
     server.on("/system.json", sysJSONTable);
     server.on("/config.json", confJSONTable);
@@ -695,8 +703,8 @@ void mysetup()
   // Enclencher le relais 1 seconde
   // si dispo sur la carte
   #ifndef REMORA_BOARD_V10
-    Serial.print("Relais=ON   ");
-    Serial.flush();
+    DebugF("Relais=ON   ");
+    Debugflush();
     relais("1");
     for (uint8_t i=0; i<20; i++)
     {
@@ -710,8 +718,8 @@ void mysetup()
         tinfo_loop();
       #endif
     }
-    Serial.println("Relais=OFF");
-    Serial.flush();
+    DebuglnF("Relais=OFF");
+    Debugflush();
     relais("0");
   #endif
 
@@ -724,8 +732,8 @@ void mysetup()
   // On etteint la LED embarqué du core
   LedRGBOFF();
 
-  Serial.println("Starting main loop");
-  Serial.flush();
+  DebuglnF("Starting main loop");
+  Debugflush();
 }
 
 
