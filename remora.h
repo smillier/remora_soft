@@ -64,7 +64,7 @@
 
   #define _yield()  Particle.process()
   #define _wdt_feed {}
-  #define DEBUG_SERIAL  Serial
+  #define DEBUG_SERIAL  Serial1
 #endif
 
 // Librairies du projet remora Pour Particle
