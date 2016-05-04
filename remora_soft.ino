@@ -112,7 +112,7 @@ Comments: -
 #ifdef SPARK
 void spark_expose_cloud(void)
 {
-  Serial.println("spark_expose_cloud()");
+  Debugln("spark_expose_cloud()");
 
   #ifdef MOD_TELEINFO
     // Déclaration des variables "cloud" pour la téléinfo (10 variables au maximum)
@@ -161,7 +161,7 @@ void spark_expose_cloud(void)
 /* ======================================================================
 Function: Task_emoncms
 Purpose : callback of emoncms ticker
-Input   : 
+Input   :
 Output  : -
 Comments: Like an Interrupt, need to be short, we set flag for main loop
 ====================================================================== */
@@ -173,7 +173,7 @@ void Task_emoncms()
 /* ======================================================================
 Function: Task_jeedom
 Purpose : callback of jeedom ticker
-Input   : 
+Input   :
 Output  : -
 Comments: Like an Interrupt, need to be short, we set flag for main loop
 ====================================================================== */
@@ -189,7 +189,7 @@ Input   : setup true if we're called 1st Time from setup
 Output  : state of the wifi status
 Comments: -
 ====================================================================== */
-int WifiHandleConn(boolean setup = false) 
+int WifiHandleConn(boolean setup = false)
 {
   int ret = WiFi.status();
   uint8_t timeout ;
@@ -198,21 +198,21 @@ int WifiHandleConn(boolean setup = false)
     // Feed the dog
     _wdt_feed();
 
-    Serial.print(F("========== SDK Saved parameters Start")); 
+    DebugF("========== SDK Saved parameters Start");
     WiFi.printDiag(Serial);
-    Serial.println(F("========== SDK Saved parameters End")); 
+    DebuglnF("========== SDK Saved parameters End");
 
     #if defined (DEFAULT_WIFI_SSID) && defined (DEFAULT_WIFI_PASS)
-      Serial.print(F("Connection au Wifi : ")); 
-      Serial.print(DEFAULT_WIFI_SSID); 
-      Serial.print(F(" avec la clé '"));
-      Serial.print(DEFAULT_WIFI_PASS);
-      Serial.print(F("'..."));
-      Serial.flush();
+      DebugF("Connection au Wifi : ");
+      Debug(DEFAULT_WIFI_SSID);
+      DebugF(" avec la clé '");
+      Debug(DEFAULT_WIFI_PASS);
+      DebugF("'...");
+      Debugflush();
       WiFi.begin(DEFAULT_WIFI_SSID, DEFAULT_WIFI_PASS);
     #else
       if (*config.ssid) {
-        DebugF("Connection à: "); 
+        DebugF("Connection à: ");
         Debug(config.ssid);
         Debugflush();
 
@@ -243,57 +243,39 @@ int WifiHandleConn(boolean setup = false)
       delay(50);
       LedRGBOFF();
       delay(150);
+      DebugF(".");
       --timeout;
     }
 
     // connected ? disable AP, client mode only
     if (ret == WL_CONNECTED)
     {
-      Serial.println(F("connecte!"));
+      DebuglnF("connecte!");
       WiFi.mode(WIFI_STA);
 
-      Serial.print(F("IP address   : ")); Serial.println(WiFi.localIP());
-      Serial.print(F("MAC address  : ")); Serial.println(WiFi.macAddress());
-    
+      DebugF("IP address   : "); Debugln(WiFi.localIP());
+      DebugF("MAC address  : "); Debugln(WiFi.macAddress());
+
     // not connected ? start AP
     } else {
       char ap_ssid[32];
-      Serial.print(F("Erreur, passage en point d'acces "));
-      Serial.println(DEFAULT_HOSTNAME);
+      DebugF("Erreur, passage en point d'acces ");
+      Debugln(DEFAULT_HOSTNAME);
 
       // protected network
-      Serial.print(F(" avec la clé '"));
-      Serial.print(DEFAULT_WIFI_AP_PASS);
-      Serial.println("'");
-      Serial.flush();
+      DebugF(" avec la clé '");
+      Debug(DEFAULT_WIFI_AP_PASS);
+      Debugln("'");
+      Debugflush();
       WiFi.softAP(DEFAULT_HOSTNAME, DEFAULT_WIFI_AP_PASS);
       WiFi.mode(WIFI_AP_STA);
 
-      Serial.print(F("IP address   : ")); Serial.println(WiFi.softAPIP());
-      Serial.print(F("MAC address  : ")); Serial.println(WiFi.softAPmacAddress());
+      DebugF("IP address   : "); Debugln(WiFi.softAPIP());
+      DebugF("MAC address  : "); Debugln(WiFi.softAPmacAddress());
     }
 
     // Feed the dog
     _wdt_feed();
-
-    // Set OTA parameters
-    ArduinoOTA.setPort(DEFAULT_OTA_PORT);
-    ArduinoOTA.setHostname(DEFAULT_HOSTNAME);
-    ArduinoOTA.setPassword(DEFAULT_OTA_PASS);
-    ArduinoOTA.begin();
-
-    // just in case your sketch sucks, keep update OTA Available
-    // Trust me, when coding and testing it happens, this could save
-    // the need to connect FTDI to reflash
-    // Usefull just after 1st connexion when called from setup() before
-    // launching potentially buggy main()
-    for (uint8_t i=0; i<= 10; i++) {
-      LedRGBON(COLOR_MAGENTA);
-      delay(100);
-      LedRGBOFF();
-      delay(200);
-      ArduinoOTA.handle();
-    }
 
   } // if setup
 
@@ -353,6 +335,8 @@ void setup()
 
     waitUntil(Particle.connected);
 
+  #elif defined(DEBUG)
+    // Serial1.begin(115200);
   #endif
 
   // says main loop to do setup
@@ -423,12 +407,12 @@ void mysetup()
     }
 
     // Et on affiche nos paramètres
-    Serial.println("Core Network settings");
-    Serial.print("IP   : "); Serial.println(WiFi.localIP());
-    Serial.print("Mask : "); Serial.println(WiFi.subnetMask());
-    Serial.print("GW   : "); Serial.println(WiFi.gatewayIP());
-    Serial.print("SSDI : "); Serial.println(WiFi.SSID());
-    Serial.print("RSSI : "); Serial.print(WiFi.RSSI());Serial.println("dB");
+    Debugln("Core Network settings");
+    Debug("IP   : "); Debugln(WiFi.localIP());
+    Debug("Mask : "); Debugln(WiFi.subnetMask());
+    Debug("GW   : "); Debugln(WiFi.gatewayIP());
+    Debug("SSDI : "); Debugln(WiFi.SSID());
+    Debug("RSSI : "); Debug(WiFi.RSSI());Debugln("dB");
 
     //  WebServer / Command
     //server.setDefaultCommand(&handleRoot);
@@ -457,17 +441,17 @@ void mysetup()
     Debugln(')');
     Debugflush();
 
-    // Check File system init 
+    // Check File system init
     if (!SPIFFS.begin())
     {
       // Serious problem
       DebuglnF("SPIFFS Mount failed");
     } else {
-     
+
       DebuglnF("SPIFFS Mount succesfull");
 
       Dir dir = SPIFFS.openDir("/");
-      while (dir.next()) {    
+      while (dir.next()) {
         String fileName = dir.fileName();
         size_t fileSize = dir.fileSize();
         Debugf("FS File: %s, size: %d\n", fileName.c_str(), fileSize);
@@ -476,14 +460,28 @@ void mysetup()
       DebuglnF("");
     }
 
+    // Set OTA parameters
+    ArduinoOTA.setPort(DEFAULT_OTA_PORT);
+    ArduinoOTA.setHostname(DEFAULT_HOSTNAME);
+    ArduinoOTA.setPassword(DEFAULT_OTA_PASS);
+
     // Read Configuration from EEP
     if (readConfig()) {
         DebuglnF("Good CRC, not set!");
-        if (strlen(config.jeedom.host) > 0 && strlen(config.jeedom.url) > 0 
+        if (strlen(config.jeedom.host) > 0 && strlen(config.jeedom.url) > 0
           && strlen(config.jeedom.apikey) > 0 && (config.jeedom.freq > 0 && config.jeedom.freq < 86400)) {
           // Emoncms Update if needed
           Tick_jeedom.detach();
           Tick_jeedom.attach(config.jeedom.freq, Task_jeedom);
+        }
+        if (strlen(config.ota_auth) > 0) {
+          ArduinoOTA.setPassword(config.ota_auth);
+        }
+        if (strlen(config.host) > 0) {
+          ArduinoOTA.setHostname(config.host);
+        }
+        if (config.ota_port > 0) {
+          ArduinoOTA.setPort(config.ota_port);
         }
     } else {
       // Reset Configuration
@@ -501,16 +499,30 @@ void mysetup()
     // Connection au Wifi ou Vérification
     WifiHandleConn(true);
 
-    // OTA callbacks
-    ArduinoOTA.onStart([]() { 
+    ArduinoOTA.begin();
+
+    // just in case your sketch sucks, keep update OTA Available
+    // Trust me, when coding and testing it happens, this could save
+    // the need to connect FTDI to reflash
+    // Usefull just after 1st connexion when called from setup() before
+    // launching potentially buggy main()
+    for (uint8_t i=0; i<= 10; i++) {
       LedRGBON(COLOR_MAGENTA);
-      Serial.print(F("\r\nUpdate Started.."));
+      delay(100);
+      LedRGBOFF();
+      delay(200);
+      ArduinoOTA.handle();
+    }
+    // OTA callbacks
+    ArduinoOTA.onStart([]() {
+      LedRGBON(COLOR_MAGENTA);
+      DebugF("\r\nUpdate Started..");
       ota_blink = true;
     });
 
-    ArduinoOTA.onEnd([]() { 
+    ArduinoOTA.onEnd([]() {
       LedRGBOFF();
-      Serial.println(F("Update finished restarting"));
+      DebugF("Update finished restarting");
     });
 
     ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
@@ -531,7 +543,7 @@ void mysetup()
       else if (error == OTA_CONNECT_ERROR) Serial.println(F("Connect Failed"));
       else if (error == OTA_RECEIVE_ERROR) Serial.println(F("Receive Failed"));
       else if (error == OTA_END_ERROR) Serial.println(F("End Failed"));
-      ESP.restart(); 
+      ESP.restart();
     });
 
     // handler for uptime
@@ -564,7 +576,7 @@ void mysetup()
     });
 
     // handler for the /update form POST (once file upload finishes)
-    server.on("/update", HTTP_POST, 
+    server.on("/update", HTTP_POST,
       // handler once file upload finishes
       [&]() {
         server.sendHeader("Connection", "close");
@@ -572,12 +584,12 @@ void mysetup()
         server.send(200, "text/plain", (Update.hasError())?"FAIL":"OK");
         ESP.restart();
       },
-      // handler for upload, get's the sketch bytes, 
+      // handler for upload, get's the sketch bytes,
       // and writes them through the Update object
       [&]() {
         HTTPUpload& upload = server.upload();
 
-        if(upload.status == UPLOAD_FILE_START) {
+        if (upload.status == UPLOAD_FILE_START) {
           uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
           WiFiUDP::stopAll();
           Debugf("Update: %s\n", upload.filename.c_str());
@@ -585,8 +597,9 @@ void mysetup()
           ota_blink = true;
 
           //start with max available size
-          if(!Update.begin(maxSketchSpace)) 
+          if (!Update.begin(maxSketchSpace)) {
             Update.printError(Serial1);
+          }
 
         } else if(upload.status == UPLOAD_FILE_WRITE) {
           if (ota_blink) {
@@ -595,13 +608,14 @@ void mysetup()
             LedRGBOFF();
           }
           ota_blink = !ota_blink;
-          Debug(".");
-          if(Update.write(upload.buf, upload.currentSize) != upload.currentSize) 
+          DebugF(".");
+          if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
             Update.printError(Serial1);
+          }
 
-        } else if(upload.status == UPLOAD_FILE_END) {
+        } else if (upload.status == UPLOAD_FILE_END) {
           //true to set the size to the current progress
-          if(Update.end(true)) {
+          if (Update.end(true)) {
             Debugf("Update Success: %u\nRebooting...\n", upload.totalSize);
           } else {
             Update.printError(Serial1);
@@ -622,9 +636,9 @@ void mysetup()
 
     // serves all SPIFFS Web file with 24hr max-age control
     // to avoid multiple requests to ESP
-    server.serveStatic("/font", SPIFFS, "/font","max-age=86400"); 
-    server.serveStatic("/js",   SPIFFS, "/js"  ,"max-age=86400"); 
-    server.serveStatic("/css",  SPIFFS, "/css" ,"max-age=86400"); 
+    server.serveStatic("/fonts", SPIFFS, "/fonts","max-age=86400");
+    server.serveStatic("/js",    SPIFFS, "/js"  ,"max-age=86400");
+    server.serveStatic("/css",   SPIFFS, "/css" ,"max-age=86400");
     server.begin();
     Serial.println(F("HTTP server started"));
 
@@ -637,36 +651,36 @@ void mysetup()
   // Init bus I2C
   i2c_init();
 
-  Serial.print("Remora Version ");
-  Serial.println(REMORA_VERSION);
-  Serial.print("Compile avec les fonctions : ");
+  DebugF("Remora Version ");
+  Debugln(REMORA_VERSION);
+  DebugF("Compile avec les fonctions : ");
 
   #if defined (REMORA_BOARD_V10)
-    Serial.print("BOARD V1.0 ");
+    DebugF("BOARD V1.0 ");
   #elif defined (REMORA_BOARD_V11)
-    Serial.print("BOARD V1.1 ");
+    DebugF("BOARD V1.1 ");
   #elif defined (REMORA_BOARD_V12)
-    Serial.print("BOARD V1.2 MCP23017 ");
+    DebugF("BOARD V1.2 MCP23017 ");
   #elif defined (REMORA_BOARD_V13)
-    Serial.print("BOARD V1.3 MCP23017 ");
+    DebugF("BOARD V1.3 MCP23017 ");
   #else
-    Serial.print("BOARD Inconnue");
+    DebugF("BOARD Inconnue");
   #endif
 
   #ifdef MOD_OLED
-    Serial.print("OLED ");
+    DebugF("OLED ");
   #endif
   #ifdef MOD_TELEINFO
-    Serial.print("TELEINFO ");
+    DebugF("TELEINFO ");
   #endif
   #ifdef MOD_RF69
-    Serial.print("RFM69 ");
+    DebugF("RFM69 ");
   #endif
   #ifdef BLYNK_AUTH
-    Serial.print("BLYNK ");
+    DebugF("BLYNK ");
   #endif
 
-  Serial.println();
+  Debugln();
 
   // Init des fils pilotes
   if (pilotes_setup())
@@ -690,7 +704,7 @@ void mysetup()
 
   // Feed the dog
   _wdt_feed();
-    
+
   #ifdef MOD_TELEINFO
     // Initialiser la téléinfo et attente d'une trame valide
     // Le status est mis à jour dans les callback de la teleinfo
@@ -807,11 +821,11 @@ void loop()
   refreshDisplay = false;
 
   #if defined (SPARK)
-  // recupération de l'état de connexion au cloud SPARK
-  currentcloudstate = Spark.connected();
+    // recupération de l'état de connexion au cloud SPARK
+    currentcloudstate = Spark.connected();
   #elif defined (ESP8266)
-  // recupération de l'état de connexion au Wifi
-  currentcloudstate = WiFi.status()==WL_CONNECTED ? true:false;
+    // recupération de l'état de connexion au Wifi
+    currentcloudstate = WiFi.status()==WL_CONNECTED ? true : false;
   #endif
 
   // La connexion cloud vient de chager d'état ?
@@ -836,8 +850,8 @@ void loop()
     {
       // on compte la deconnexion led rouge
       my_cloud_disconnect++;
-      Serial.print("Perte de conexion au cloud #");
-      Serial.println(my_cloud_disconnect);
+      Debug("Perte de conexion au cloud #");
+      Debugln(my_cloud_disconnect);
       LedRGBON(COLOR_RED);
     }
   }
@@ -853,15 +867,15 @@ void loop()
 
   // Connection au Wifi ou Vérification
   #ifdef ESP8266
-    // Webserver 
+    // Webserver
     server.handleClient();
     ArduinoOTA.handle();
 
-    if (task_emoncms) { 
-      emoncmsPost(); 
-      task_emoncms=false; 
-    } else if (task_jeedom) { 
-      jeedomPost();  
+    if (task_emoncms) {
+      emoncmsPost();
+      task_emoncms=false;
+    } else if (task_jeedom) {
+      jeedomPost();
       task_jeedom=false;
     }
   #endif
