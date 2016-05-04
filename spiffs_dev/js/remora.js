@@ -351,8 +351,9 @@ var Timer_sys,
             $('#tab_scan_data').bootstrapTable('refresh',{silent:true, showLoading:true, url: '/wifiscan.json'});
           } else if (target == '#tab_fp') {
             $('body').removeClass('loaded');
+
             $.getJSON('/fp', function(data) {
-              $('#tab_fp zones').empty();
+              $('#tab_fp .zones').empty();
               for (var k in data) {
                 addZoneTemplate(k, data);
               }
