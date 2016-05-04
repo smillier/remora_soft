@@ -34,10 +34,10 @@ const char FP_NL[] PROGMEM = "\r\n";
 #ifdef ESP8266
 
 /* ======================================================================
-Function: getContentType 
+Function: getContentType
 Purpose : return correct mime content type depending on file extension
 Input   : -
-Output  : Mime content type 
+Output  : Mime content type
 Comments: -
 ====================================================================== */
 String getContentType(String filename) {
@@ -64,9 +64,9 @@ String getContentType(String filename) {
 }
 
 /* ======================================================================
-Function: formatSize 
+Function: formatSize
 Purpose : format a asize to human readable format
-Input   : size 
+Input   : size
 Output  : formated string
 Comments: -
 ====================================================================== */
@@ -84,30 +84,30 @@ String formatSize(size_t bytes)
 }
 
 /* ======================================================================
-Function: handleFileRead 
+Function: handleFileRead
 Purpose : return content of a file stored on SPIFFS file system
 Input   : file path
 Output  : true if file found and sent
 Comments: -
 ====================================================================== */
 bool handleFileRead(String path) {
-  if ( path.endsWith("/") ) 
+  if ( path.endsWith("/") )
     path += "index.htm";
-  
+
   String contentType = getContentType(path);
   String pathWithGz = path + ".gz";
 
   DebugF("handleFileRead ");
   Debug(path);
 
-  if(SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)) {
-    if( SPIFFS.exists(pathWithGz) ){
+  if (SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)) {
+    if ( SPIFFS.exists(pathWithGz) ){
       path += ".gz";
       DebugF(".gz");
     }
 
     DebuglnF(" found on FS");
- 
+
     File file = SPIFFS.open(path, "r");
     size_t sent = server.streamFile(file, contentType);
     file.close();
@@ -171,11 +171,11 @@ void formatNumberJSON( String &response, char * value)
 }
 
 /* ======================================================================
-Function: tinfoJSONTable 
+Function: tinfoJSONTable
 Purpose : dump all teleinfo values in JSON table format for browser
 Input   : linked list pointer on the concerned data
           true to dump all values, false for only modified ones
-Output  : - 
+Output  : -
 Comments: -
 ====================================================================== */
 void tinfoJSONTable(void)
@@ -233,7 +233,8 @@ void tinfoJSONTable(void)
     server.send ( 404, "text/plain", "No data" );
   }
   Debug(F("sending..."));
-  server.send ( 200, "text/json", response );
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send ( 200, "text/json", response);
   Debugln(F("OK!"));
 
   #else
@@ -244,10 +245,10 @@ void tinfoJSONTable(void)
 }
 
 /* ======================================================================
-Function: getSysJSONData 
+Function: getSysJSONData
 Purpose : Return JSON string containing system data
 Input   : Response String
-Output  : - 
+Output  : -
 Comments: -
 ====================================================================== */
 void getSysJSONData(String & response)
@@ -340,7 +341,7 @@ void getSysJSONData(String & response)
   response += "{\"na\":\"SPIFFS Occupation\",\"va\":\"";
   sprintf_P(buffer, "%d%%",100*info.usedBytes/info.totalBytes);
   response += buffer ;
-  response += "\"},\r\n"; 
+  response += "\"},\r\n";
 
   // regarder l'état de tous les fils Pilotes
   for (uint8_t i=1; i<=NB_FILS_PILOTES; i++)
@@ -349,37 +350,37 @@ void getSysJSONData(String & response)
     response += "{\"na\":\"Fil Pilote #";
     response += String(i);
     response += "\",\"va\":\"";
-    if      (fp=='E') response += "Eco"; 
-    else if (fp=='A') response += "Arrêt"; 
-    else if (fp=='H') response += "Hors Gel"; 
-    else if (fp=='1') response += "Eco - 1"; 
-    else if (fp=='2') response += "Eco - 2"; 
-    else if (fp=='C') response += "Confort"; 
-    response += "\"},\r\n"; 
+    if      (fp=='E') response += "Eco";
+    else if (fp=='A') response += "Arrêt";
+    else if (fp=='H') response += "Hors Gel";
+    else if (fp=='1') response += "Eco - 1";
+    else if (fp=='2') response += "Eco - 2";
+    else if (fp=='C') response += "Confort";
+    response += "\"},\r\n";
   }
 
   response += "{\"na\":\"Etat Relais\",\"va\":\"";
   response += etatrelais ? "Fermé":"Ouvert";
-  response += "\"},\r\n"; 
+  response += "\"},\r\n";
 
   response += "{\"na\":\"Delestage\",\"va\":\"";
   response += String(myDelestLimit);
   response += "A";
-  response += "\"},\r\n"; 
+  response += "\"},\r\n";
 
   response += "{\"na\":\"Relestage\",\"va\":\"";
   response += String(myRelestLimit);
   response += "A";
-  response += "\"},\r\n"; 
+  response += "\"},\r\n";
 
   response += "{\"na\":\"Etat Delestage\",\"va\":\"";
   response += "Niveau ";
   response += String(nivDelest);
   response += " Zone ";
   response += String(plusAncienneZoneDelestee);
-  response += "\"},\r\n"; 
+  response += "\"},\r\n";
 
-  // Free mem should be last one 
+  // Free mem should be last one
   response += "{\"na\":\"Free Ram\",\"va\":\"";
   response += formatSize(system_get_free_heap_size()) ;
   response += "\"}\r\n"; // Last don't have comma at end
@@ -389,16 +390,16 @@ void getSysJSONData(String & response)
 }
 
 /* ======================================================================
-Function: sysJSONTable 
+Function: sysJSONTable
 Purpose : dump all sysinfo values in JSON table format for browser
 Input   : -
-Output  : - 
+Output  : -
 Comments: -
 ====================================================================== */
 void sysJSONTable()
 {
   String response = "";
-  
+
   getSysJSONData(response);
 
   // Just to debug where we are
@@ -408,49 +409,49 @@ void sysJSONTable()
 }
 
 /* ======================================================================
-Function: getConfigJSONData 
+Function: getConfigJSONData
 Purpose : Return JSON string containing configuration data
 Input   : Response String
-Output  : - 
+Output  : -
 Comments: -
 ====================================================================== */
 void getConfJSONData(String & r)
 {
   // Json start
-  r = FPSTR(FP_JSON_START); 
+  r = FPSTR(FP_JSON_START);
 
   r+="\"";
-  r+=CFG_FORM_SSID;      r+=FPSTR(FP_QCQ); r+=config.ssid;           r+= FPSTR(FP_QCNL); 
-  r+=CFG_FORM_PSK;       r+=FPSTR(FP_QCQ); r+=config.psk;            r+= FPSTR(FP_QCNL); 
-  r+=CFG_FORM_HOST;      r+=FPSTR(FP_QCQ); r+=config.host;           r+= FPSTR(FP_QCNL); 
-  r+=CFG_FORM_AP_PSK;    r+=FPSTR(FP_QCQ); r+=config.ap_psk;         r+= FPSTR(FP_QCNL); 
-  r+=CFG_FORM_EMON_HOST; r+=FPSTR(FP_QCQ); r+=config.emoncms.host;   r+= FPSTR(FP_QCNL); 
-  r+=CFG_FORM_EMON_PORT; r+=FPSTR(FP_QCQ); r+=config.emoncms.port;   r+= FPSTR(FP_QCNL); 
-  r+=CFG_FORM_EMON_URL;  r+=FPSTR(FP_QCQ); r+=config.emoncms.url;    r+= FPSTR(FP_QCNL); 
-  r+=CFG_FORM_EMON_KEY;  r+=FPSTR(FP_QCQ); r+=config.emoncms.apikey; r+= FPSTR(FP_QCNL); 
-  r+=CFG_FORM_EMON_NODE; r+=FPSTR(FP_QCQ); r+=config.emoncms.node;   r+= FPSTR(FP_QCNL); 
-  r+=CFG_FORM_EMON_FREQ; r+=FPSTR(FP_QCQ); r+=config.emoncms.freq;   r+= FPSTR(FP_QCNL); 
-  r+=CFG_FORM_OTA_AUTH;  r+=FPSTR(FP_QCQ); r+=config.ota_auth;       r+= FPSTR(FP_QCNL); 
+  r+=CFG_FORM_SSID;      r+=FPSTR(FP_QCQ); r+=config.ssid;           r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_PSK;       r+=FPSTR(FP_QCQ); r+=config.psk;            r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_HOST;      r+=FPSTR(FP_QCQ); r+=config.host;           r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_AP_PSK;    r+=FPSTR(FP_QCQ); r+=config.ap_psk;         r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_EMON_HOST; r+=FPSTR(FP_QCQ); r+=config.emoncms.host;   r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_EMON_PORT; r+=FPSTR(FP_QCQ); r+=config.emoncms.port;   r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_EMON_URL;  r+=FPSTR(FP_QCQ); r+=config.emoncms.url;    r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_EMON_KEY;  r+=FPSTR(FP_QCQ); r+=config.emoncms.apikey; r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_EMON_NODE; r+=FPSTR(FP_QCQ); r+=config.emoncms.node;   r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_EMON_FREQ; r+=FPSTR(FP_QCQ); r+=config.emoncms.freq;   r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_OTA_AUTH;  r+=FPSTR(FP_QCQ); r+=config.ota_auth;       r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_OTA_PORT;  r+=FPSTR(FP_QCQ); r+=config.ota_port;       r+= FPSTR(FP_QCNL);
 
-  r+=CFG_FORM_JDOM_HOST; r+=FPSTR(FP_QCQ); r+=config.jeedom.host;   r+= FPSTR(FP_QCNL); 
-  r+=CFG_FORM_JDOM_PORT; r+=FPSTR(FP_QCQ); r+=config.jeedom.port;   r+= FPSTR(FP_QCNL); 
-  r+=CFG_FORM_JDOM_URL;  r+=FPSTR(FP_QCQ); r+=config.jeedom.url;    r+= FPSTR(FP_QCNL); 
-  r+=CFG_FORM_JDOM_KEY;  r+=FPSTR(FP_QCQ); r+=config.jeedom.apikey; r+= FPSTR(FP_QCNL); 
-  r+=CFG_FORM_JDOM_ADCO; r+=FPSTR(FP_QCQ); r+=config.jeedom.adco;   r+= FPSTR(FP_QCNL); 
-  r+=CFG_FORM_JDOM_FREQ; r+=FPSTR(FP_QCQ); r+=config.jeedom.freq;  
+  r+=CFG_FORM_JDOM_HOST; r+=FPSTR(FP_QCQ); r+=config.jeedom.host;   r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_JDOM_PORT; r+=FPSTR(FP_QCQ); r+=config.jeedom.port;   r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_JDOM_URL;  r+=FPSTR(FP_QCQ); r+=config.jeedom.url;    r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_JDOM_KEY;  r+=FPSTR(FP_QCQ); r+=config.jeedom.apikey; r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_JDOM_ADCO; r+=FPSTR(FP_QCQ); r+=config.jeedom.adco;   r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_JDOM_FREQ; r+=FPSTR(FP_QCQ); r+=config.jeedom.freq;
 
-  r+= F("\""); 
+  r+= F("\"");
   // Json end
   r += FPSTR(FP_JSON_END);
 
 }
 
 /* ======================================================================
-Function: confJSONTable 
+Function: confJSONTable
 Purpose : dump all config values in JSON table format for browser
 Input   : -
-Output  : - 
+Output  : -
 Comments: -
 ====================================================================== */
 void confJSONTable()
@@ -464,10 +465,10 @@ void confJSONTable()
 }
 
 /* ======================================================================
-Function: getSpiffsJSONData 
+Function: getSpiffsJSONData
 Purpose : Return JSON string containing list of SPIFFS files
 Input   : Response String
-Output  : - 
+Output  : -
 Comments: -
 ====================================================================== */
 void getSpiffsJSONData(String & response)
@@ -478,15 +479,15 @@ void getSpiffsJSONData(String & response)
   // Json start
   response = FPSTR(FP_JSON_START);
 
-  // Files Array  
+  // Files Array
   response += F("\"files\":[\r\n");
 
   // Loop trough all files
   Dir dir = SPIFFS.openDir("/");
-  while (dir.next()) {    
+  while (dir.next()) {
     String fileName = dir.fileName();
     size_t fileSize = dir.fileSize();
-    if (first_item)  
+    if (first_item)
       first_item=false;
     else
       response += ",";
@@ -502,7 +503,7 @@ void getSpiffsJSONData(String & response)
 
   // SPIFFS File system array
   response += F("\"spiffs\":[\r\n{");
-  
+
   // Get SPIFFS File system informations
   FSInfo info;
   SPIFFS.info(info);
@@ -512,17 +513,17 @@ void getSpiffsJSONData(String & response)
   response += info.usedBytes ;
   response += F(", \"ram\":");
   response += system_get_free_heap_size() ;
-  response += F("}\r\n]"); 
+  response += F("}\r\n]");
 
   // Json end
   response += FPSTR(FP_JSON_END);
 }
 
 /* ======================================================================
-Function: spiffsJSONTable 
+Function: spiffsJSONTable
 Purpose : dump all spiffs system in JSON table format for browser
 Input   : -
-Output  : - 
+Output  : -
 Comments: -
 ====================================================================== */
 void spiffsJSONTable()
@@ -533,10 +534,10 @@ void spiffsJSONTable()
 }
 
 /* ======================================================================
-Function: wifiScanJSON 
+Function: wifiScanJSON
 Purpose : scan Wifi Access Point and return JSON code
 Input   : -
-Output  : - 
+Output  : -
 Comments: -
 ====================================================================== */
 void wifiScanJSON(void)
@@ -555,7 +556,7 @@ void wifiScanJSON(void)
   for (uint8_t i = 0; i < n; ++i)
   {
     int8_t rssi = WiFi.RSSI(i);
-    
+
     uint8_t percent;
 
     // dBm to Quality
@@ -563,7 +564,7 @@ void wifiScanJSON(void)
     else if (rssi>=-50) percent = 100;
     else                percent = 2 * (rssi + 100);
 
-    if (first) 
+    if (first)
       first = false;
     else
       response += F(",");
@@ -672,7 +673,7 @@ void fpJSON(String & response, uint8_t fp)
   bool first_elem = true;
 
   // petite verif
-  if (fp>=0 && fp<=NB_FILS_PILOTES) {
+  if (fp>=0 && fp <= NB_FILS_PILOTES) {
     response = FPSTR(FP_JSON_START);
 
     // regarder l'état de tous les fils Pilotes
@@ -694,6 +695,7 @@ void fpJSON(String & response, uint8_t fp)
     }
     response+= FPSTR(FP_JSON_END);
   }
+  DebugF("Response: "); Debugln(response);
 }
 
 
@@ -735,10 +737,10 @@ void delestageJSON(/*String & response*/)
 
 
 /* ======================================================================
-Function: handleFactoryReset 
+Function: handleFactoryReset
 Purpose : reset the module to factory settingd
 Input   : -
-Output  : - 
+Output  : -
 Comments: -
 ====================================================================== */
 void handleFactoryReset(void)
@@ -755,10 +757,10 @@ void handleFactoryReset(void)
 }
 
 /* ======================================================================
-Function: handleReset 
+Function: handleReset
 Purpose : reset the module
 Input   : -
-Output  : - 
+Output  : -
 Comments: -
 ====================================================================== */
 void handleReset(void)
@@ -774,13 +776,13 @@ void handleReset(void)
 }
 
 /* ======================================================================
-Function: handleFormConfig 
+Function: handleFormConfig
 Purpose : handle main configuration page
 Input   : -
-Output  : - 
+Output  : -
 Comments: -
 ====================================================================== */
-void handleFormConfig(void) 
+void handleFormConfig(void)
 {
   String response="";
   int ret ;
@@ -790,7 +792,7 @@ void handleFormConfig(void)
   if (server.hasArg("save"))
   {
     int itemp;
-    DebuglnF("===== Posted configuration"); 
+    DebuglnF("===== Posted configuration");
 
     // WifInfo
     strncpy(config.ssid ,   server.arg("ssid").c_str(),     CFG_SSID_SIZE );
@@ -808,14 +810,14 @@ void handleFormConfig(void)
     itemp = server.arg("emon_node").toInt();
     config.emoncms.node = (itemp>=0 && itemp<=255) ? itemp : 0 ;
     itemp = server.arg("emon_port").toInt();
-    config.emoncms.port = (itemp>=0 && itemp<=65535) ? itemp : CFG_EMON_DEFAULT_PORT ; 
+    config.emoncms.port = (itemp>=0 && itemp<=65535) ? itemp : CFG_EMON_DEFAULT_PORT ;
     itemp = server.arg("emon_freq").toInt();
     if (itemp>0 && itemp<=86400){
       // Emoncms Update if needed
       Tick_emoncms.detach();
       Tick_emoncms.attach(itemp, Task_emoncms);
     } else {
-      itemp = 0 ; 
+      itemp = 0 ;
     }
     config.emoncms.freq = itemp;
 
@@ -825,14 +827,14 @@ void handleFormConfig(void)
     strncpy(config.jeedom.apikey, server.arg("jdom_apikey").c_str(),CFG_JDOM_APIKEY_SIZE );
     strncpy(config.jeedom.adco,   server.arg("jdom_adco").c_str(),CFG_JDOM_ADCO_SIZE );
     itemp = server.arg("jdom_port").toInt();
-    config.jeedom.port = (itemp>=0 && itemp<=65535) ? itemp : CFG_JDOM_DEFAULT_PORT ; 
+    config.jeedom.port = (itemp>=0 && itemp<=65535) ? itemp : CFG_JDOM_DEFAULT_PORT ;
     itemp = server.arg("jdom_freq").toInt();
     if (itemp>0 && itemp<=86400){
       // Emoncms Update if needed
       Tick_jeedom.detach();
       Tick_jeedom.attach(itemp, Task_jeedom);
     } else {
-      itemp = 0 ; 
+      itemp = 0 ;
     }
     config.jeedom.freq = itemp;
 
@@ -852,15 +854,16 @@ void handleFormConfig(void)
     response = PSTR("Missing Form Field");
   }
 
-  DebugF("Sending response "); 
-  Debug(ret); 
-  Debug(":"); 
-  Debugln(response); 
+  DebugF("Sending response ");
+  Debug(ret);
+  Debug(":");
+  Debugln(response);
   server.send ( ret, "text/plain", response);
 
   // This is slow, do it after response sent
-  if (showconfig)
+  if (showconfig) {
     showConfig();
+  }
 }
 
 /* ======================================================================
@@ -874,6 +877,7 @@ Comments: We search is we have a name that match to this URI, if one we
 void handleNotFound(void)
 {
   String response = "";
+  String s_uri;
 
   const char * uri;
   bool found = false;
@@ -881,16 +885,17 @@ void handleNotFound(void)
 
 
   // convert uri to char * for compare
-  uri = server.uri().c_str();
+  s_uri = server.uri();
+  uri = s_uri.c_str();
 
   DebugF("URI[");
   Debug(strlen(uri));
   DebugF("]='");
   Debug(uri);
-  DebugF("'");
+  DebuglnF("'");
 
   // Got consistent URI, skip fisrt / ?
-  // Attention si ? dans l'URL çà ne fait pas partie de l'URI 
+  // Attention si ? dans l'URL çà ne fait pas partie de l'URI
   // mais de hasArg traité plus bas
   if (uri && *uri=='/' && *++uri ) {
     uint8_t len = strlen(uri);
@@ -901,7 +906,6 @@ void handleNotFound(void)
 
       // Got at least one ?
       if (me) {
-
         // Loop thru the linked list of values
         while (me->next && !found) {
           // go to next node
@@ -926,44 +930,33 @@ void handleNotFound(void)
 
     // Requêtes d'interrogation
     // ========================
-
-    // http://ip_remora/relais    
-    /*if (!stricmp("relais", uri)) {
-      relaisJSON(response);
-      found = true;
-    // http://ip_remora/delestage
-    } else if (!stricmp("delestage", uri)) {
-      delestageJSON(response);
-      found = true;
-    // http://ip_remora/fp ou http://ip_remora/fpx
-    } else*/ 
-    
-    if ( (len==2 || len==3) && (uri[0]=='f'||uri[0]=='F') && (uri[1]=='p'||uri[1]=='P') ) {
+    if (len >= 2 && (strncmp("fp", uri, 2) == 0 || strncmp("FP", uri, 2) == 0)) {
       int8_t fp = -1;
 
       // http://ip_remora/fp
-      if (len==2) {
-        fp=0;
+      if (len == 2) {
+        fp = 0;
 
       // http://ip_remora/fpx
-      } else if ( len==3 ) {
+      } else if ( len == 3 ) {
         fp = uri[2];
-        if ( fp>='1' && fp<=('0'+NB_FILS_PILOTES) ) 
-         fp -= '0';
+        if ( fp >= '1' && fp <= ('0' + NB_FILS_PILOTES) ) {
+          fp -= '0';
+        }
       }
 
-      if (fp>=0 && fp<=NB_FILS_PILOTES) {
+      if (fp >= 0 && fp <= NB_FILS_PILOTES) {
         fpJSON(response, fp);
         found = true;
       }
-    } 
+    }
   } // valide URI
 
 
   // Requêtes modifiantes (cumulable)
   // ================================
-  if (  server.hasArg("fp") || 
-        server.hasArg("setfp") || 
+  if (  server.hasArg("fp") ||
+        server.hasArg("setfp") ||
         server.hasArg("relais")) {
 
     int error = 0;
@@ -984,7 +977,7 @@ void handleNotFound(void)
     if ( server.hasArg("relais") ) {
       String value = server.arg("relais");
       // La nouvelle valeur n'est pas celle qu'on vient de positionner ?
-      if ( relais(value) != server.arg("relais").toInt() ) 
+      if ( relais(value) != server.arg("relais").toInt() )
         error--;
     }
 
