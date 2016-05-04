@@ -88,11 +88,11 @@ void DataCallback(ValueList * me, uint8_t flags)
   //Serial.print(" Flags=0x");
   //Serial.print(flags, HEX);
 
-  if ( flags & TINFO_FLAGS_NOTHING ) DebugF(" Nothing");
-  else if ( flags & TINFO_FLAGS_UPDATED ) DebugF(" Updated");
-  else if ( flags & TINFO_FLAGS_ADDED )   DebugF(" Added");
-  else if ( flags & TINFO_FLAGS_EXIST )   DebugF(" Exist");
-  else if ( flags & TINFO_FLAGS_ALERT )   DebugF(" Alert");
+  if ( flags & TINFO_FLAGS_NOTHING )      { DebugF(" Nothing"); }
+  else if ( flags & TINFO_FLAGS_UPDATED ) { DebugF(" Updated"); }
+  else if ( flags & TINFO_FLAGS_ADDED )   { DebugF(" Added"); }
+  else if ( flags & TINFO_FLAGS_EXIST )   { DebugF(" Exist"); }
+  else if ( flags & TINFO_FLAGS_ALERT )   { DebugF(" Alert"); }
 
   // Nous venons de recevoir la puissance tarifaire en cours
   // To DO : gérer les autres types de contrat
@@ -122,8 +122,8 @@ void DataCallback(ValueList * me, uint8_t flags)
     // Calcul de quand on déclenchera le relestage
     myRelestLimit = ratio_relestage * myisousc;
 
-    // Maintenant on connait notre contrat, on peut commencer 
-    // A traiter le delestage eventuel et si celui-ci 
+    // Maintenant on connait notre contrat, on peut commencer
+    // A traiter le delestage eventuel et si celui-ci
     // n'a jamais été initialisé on le fait maintenant
     if ( timerDelestRelest == 0 )
       timerDelestRelest = millis();
@@ -250,7 +250,7 @@ bool tinfo_setup(bool wait_data)
           tinfo.process(c);
         }
       #endif
-      
+
       _yield();
     }
   }
@@ -275,7 +275,7 @@ void tinfo_loop(void)
   char c;
   uint8_t nb_char=0;
   // Evitons les conversions hasardeuses, parlons float
-  float fiInst = myiInst; 
+  float fiInst = myiInst;
 
   // on a la téléinfo présente ?
   if ( status & STATUS_TINFO) {

@@ -831,7 +831,7 @@ _State_e TInfo::process(char c)
           _recv_buff[_recv_idx++]=c;
 
         // clear the end of buffer (paranoia inside)
-        memset(&_recv_buff[_recv_idx], 0, TINFO_BUFSIZE-_recv_idx);
+        //memset(&_recv_buff[_recv_idx], 0, TINFO_BUFSIZE-_recv_idx);
 
         // check the group we've just received
         checkLine(_recv_buff) ;
