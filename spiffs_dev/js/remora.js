@@ -357,7 +357,7 @@ $(document).ready(function() {
         $('#frm_config').autofill(form_data);
       }).fail(function() { console.log( "error while requestiong configuration data" ); });
 
-      $('#tab_scan_data').bootstrapTable('refresh',{silent:true, showLoading:true, url: '/wifiscan.json'});
+      //$('#tab_scan_data').bootstrapTable('refresh',{silent:true, showLoading:true, url: '/wifiscan.json'});
     }
     // Onglet de gestion des zones
     else if (target == '#tab_fp') {
@@ -422,7 +422,15 @@ $(document).ready(function() {
     $('#tab_scan').modal('hide');
   });
   $('#btn_scan').click(function () {
+    $('body').removeClass('loaded');
     $('#tab_scan_data').bootstrapTable('refresh', {url: '/wifiscan.json', showLoading:false, silent:true});
+  });
+  $('#tab_scan_data').on('load-success.bs.table', function (e, data) {
+    console.log('#tab_scan_data loaded');
+    $('body').addClass('loaded');
+  })
+  .on('load-error.bs.table', function (e, status) {
+    console.error('Event: load-error.bs.table');
   });
   $('#btn_reset').click(function () {
     $.post('/factory_reset');
