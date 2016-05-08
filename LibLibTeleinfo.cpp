@@ -499,9 +499,9 @@ uint8_t TInfo::valuesDump(void)
         TI_Debugf("%02X =>", me->flags);
         if ( me->flags & TINFO_FLAGS_EXIST)
           TI_Debug(F("Exist ")) ;
-        if ( me->flags & TINFO_FLAGS_UPDATED)
+        else if ( me->flags & TINFO_FLAGS_UPDATED)
           TI_Debug(F("Updated ")) ;
-        if ( me->flags & TINFO_FLAGS_ADDED)
+        else if ( me->flags & TINFO_FLAGS_ADDED)
           TI_Debug(F("New ")) ;
       }
 
@@ -525,9 +525,11 @@ int TInfo::labelCount()
   // Get our linked list
   ValueList * me = &_valueslist;
 
-  if (me)
-    while ((me = me->next))
+  if (me) {
+    while ((me = me->next)) {
       count++;
+    }
+  }
 
   return (count);
 }
@@ -583,13 +585,15 @@ unsigned char TInfo::calcChecksum(char *etiquette, char *valeur)
   if (etiquette && valeur) {
     // this will not hurt and may save our life ;-)
     if (strlen(etiquette) && strlen(valeur)) {
-      while (*etiquette)
+      while (*etiquette) {
         sum += *etiquette++ ;
+      }
 
-      while(*valeur)
+      while (*valeur) {
         sum += *valeur++ ;
+      }
 
-      return ( (sum & 63) + ' ' ) ;
+      return ( (sum & 0x3f) + 0x20 ) ;
     }
   }
   return 0;
@@ -773,10 +777,11 @@ _State_e TInfo::process(char c)
         ValueList * me = &_valueslist;
 
         // Call user callback if any
-        if (_frame_updated && _fn_updated_frame)
+        if (_frame_updated && _fn_updated_frame) {
           _fn_updated_frame(me);
-        else if (_fn_new_frame)
+        } else if (_fn_new_frame) {
           _fn_new_frame(me);
+        }
 
         #ifdef TI_Debug
           valuesDump();
@@ -804,15 +809,8 @@ _State_e TInfo::process(char c)
     case  TINFO_EOT:
 
       clearBuffer();
-      // We were waiting fo this one ?
-      if (_state == TINFO_WAIT_ETX) {
-        TI_Debugln(F("TINFO_READY"));
-        _state = TINFO_READY;
-      }
-      else if ( _state == TINFO_INIT) {
-        TI_Debugln(F("TINFO_WAIT_STX"));
-        _state = TINFO_WAIT_STX ;
-      }
+      TI_Debugln(F("TINFO_WAIT_STX"));
+      _state = TINFO_WAIT_STX ;
 
     break;
 
@@ -827,11 +825,12 @@ _State_e TInfo::process(char c)
       // Are we ready to process ?
       if (_state == TINFO_READY) {
         // Store data recceived (we'll need it)
-        if ( _recv_idx < TINFO_BUFSIZE)
+        if ( _recv_idx < TINFO_BUFSIZE) {
           _recv_buff[_recv_idx++]=c;
+        }
 
         // clear the end of buffer (paranoia inside)
-        //memset(&_recv_buff[_recv_idx], 0, TINFO_BUFSIZE-_recv_idx);
+        memset(&_recv_buff[_recv_idx], 0, TINFO_BUFSIZE-_recv_idx);
 
         // check the group we've just received
         checkLine(_recv_buff) ;
@@ -847,10 +846,11 @@ _State_e TInfo::process(char c)
       // Only in a ready state of course
       if (_state == TINFO_READY) {
         // If buffer is not full, Store data
-        if ( _recv_idx < TINFO_BUFSIZE)
+        if ( _recv_idx < TINFO_BUFSIZE) {
           _recv_buff[_recv_idx++]=c;
-        else
+        } else {
           clearBuffer();
+        }
       }
     }
     break;
