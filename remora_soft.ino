@@ -336,7 +336,7 @@ void setup()
     waitUntil(Particle.connected);
 
   #elif defined(DEBUG)
-    // Serial1.begin(115200);
+    Serial1.begin(115200);
   #endif
 
   // says main loop to do setup
@@ -867,6 +867,15 @@ void loop()
 
   // Connection au Wifi ou Vérification
   #ifdef ESP8266
+    /*
+    // En attente de développement du mode présence
+    if (WiFi.getMode() == WIFI_AP_STA && WiFi.softAPgetStationNum() > 0) {
+      // Il y a du monde dans la maison, on est en mode confort
+    } else {
+      // Il n'y a personne, on est en mode eco
+    }
+    */
+
     // Webserver
     server.handleClient();
     ArduinoOTA.handle();
