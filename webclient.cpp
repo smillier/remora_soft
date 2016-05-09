@@ -37,7 +37,7 @@ boolean httpPost(char * host, uint16_t port, char * url)
   unsigned long start = millis();
 
   // configure traged server and url
-  http.begin(host, port, url/*, port==443 ? true : false*/); 
+  http.begin(host, port, url/*, port==443 ? true : false*/);
   //http.begin("http://emoncms.org/input/post.json?node=20&apikey=2f13e4608d411d20354485f72747de7b&json={PAPP:100}");
   //http.begin("emoncms.org", 80, "/input/post.json?node=20&apikey=2f13e4608d411d20354485f72747de7b&json={}"); //HTTP
 
@@ -65,7 +65,7 @@ boolean httpPost(char * host, uint16_t port, char * url)
 /* ======================================================================
 Function: emoncmsPost
 Purpose : Do a http post to emoncms
-Input   : 
+Input   :
 Output  : true if post returned 200 OK
 Comments: -
 ====================================================================== */
@@ -73,14 +73,14 @@ boolean emoncmsPost(void)
 {
   boolean ret = false;
 
-  #ifdef MOD_TELEINFO  
+  #ifdef MOD_TELEINFO
 
   // Some basic checking
   if (*config.emoncms.host) {
     ValueList * me = tinfo.getList();
     // Got at least one ?
     if (me && me->next) {
-      String url ; 
+      String url ;
       boolean first_item;
 
       url = *config.emoncms.url ? config.emoncms.url : "/";
@@ -89,7 +89,7 @@ boolean emoncmsPost(void)
         url+= F("node=");
         url+= String(config.emoncms.node);
         url+= "&";
-      } 
+      }
 
       url += F("apikey=") ;
       url += config.emoncms.apikey;
@@ -110,44 +110,44 @@ boolean emoncmsPost(void)
         url +=  me->name ;
         url += ":" ;
 
-        // EMONCMS ne sais traiter que des valeurs numériques, donc ici il faut faire une 
-        // table de mappage, tout à fait arbitraire, mais c"est celle-ci dont je me sers 
+        // EMONCMS ne sais traiter que des valeurs numériques, donc ici il faut faire une
+        // table de mappage, tout à fait arbitraire, mais c"est celle-ci dont je me sers
         // depuis mes débuts avec la téléinfo
         if (!strcmp(me->name, "OPTARIF")) {
-          // L'option tarifaire choisie (Groupe "OPTARIF") est codée sur 4 caractères alphanumériques 
+          // L'option tarifaire choisie (Groupe "OPTARIF") est codée sur 4 caractères alphanumériques
           /* J'ai pris un nombre arbitraire codé dans l'ordre ci-dessous
           je mets le 4eme char à 0, trop de possibilités
-          BASE => Option Base. 
-          HC.. => Option Heures Creuses. 
-          EJP. => Option EJP. 
+          BASE => Option Base.
+          HC.. => Option Heures Creuses.
+          EJP. => Option EJP.
           BBRx => Option Tempo
           */
           char * p = me->value;
-            
+
                if (*p=='B'&&*(p+1)=='A'&&*(p+2)=='S') url += "1";
           else if (*p=='H'&&*(p+1)=='C'&&*(p+2)=='.') url += "2";
           else if (*p=='E'&&*(p+1)=='J'&&*(p+2)=='P') url += "3";
           else if (*p=='B'&&*(p+1)=='B'&&*(p+2)=='R') url += "4";
           else url +="0";
         } else if (!strcmp(me->name, "HHPHC")) {
-          // L'horaire heures pleines/heures creuses (Groupe "HHPHC") est codé par un caractère A à Y 
+          // L'horaire heures pleines/heures creuses (Groupe "HHPHC") est codé par un caractère A à Y
           // J'ai choisi de prendre son code ASCII
           int code = *me->value;
           url += String(code);
         } else if (!strcmp(me->name, "PTEC")) {
-          // La période tarifaire en cours (Groupe "PTEC"), est codée sur 4 caractères 
+          // La période tarifaire en cours (Groupe "PTEC"), est codée sur 4 caractères
           /* J'ai pris un nombre arbitraire codé dans l'ordre ci-dessous
-          TH.. => Toutes les Heures. 
-          HC.. => Heures Creuses. 
-          HP.. => Heures Pleines. 
-          HN.. => Heures Normales. 
-          PM.. => Heures de Pointe Mobile. 
-          HCJB => Heures Creuses Jours Bleus. 
-          HCJW => Heures Creuses Jours Blancs (White). 
-          HCJR => Heures Creuses Jours Rouges. 
-          HPJB => Heures Pleines Jours Bleus. 
-          HPJW => Heures Pleines Jours Blancs (White). 
-          HPJR => Heures Pleines Jours Rouges. 
+          TH.. => Toutes les Heures.
+          HC.. => Heures Creuses.
+          HP.. => Heures Pleines.
+          HN.. => Heures Normales.
+          PM.. => Heures de Pointe Mobile.
+          HCJB => Heures Creuses Jours Bleus.
+          HCJW => Heures Creuses Jours Blancs (White).
+          HCJR => Heures Creuses Jours Rouges.
+          HPJB => Heures Pleines Jours Bleus.
+          HPJW => Heures Pleines Jours Blancs (White).
+          HPJR => Heures Pleines Jours Rouges.
           */
                if (!strcmp(me->value, "TH..")) url += "1";
           else if (!strcmp(me->value, "HC..")) url += "2";
@@ -181,7 +181,7 @@ boolean emoncmsPost(void)
 /* ======================================================================
 Function: jeedomPost
 Purpose : Do a http post to jeedom server
-Input   : 
+Input   :
 Output  : true if post returned 200 OK
 Comments: -
 ====================================================================== */
@@ -189,14 +189,14 @@ boolean jeedomPost(void)
 {
   boolean ret = false;
 
-  #ifdef MOD_TELEINFO  
+  #ifdef MOD_TELEINFO
 
   // Some basic checking
   if (*config.jeedom.host) {
     ValueList * me = tinfo.getList();
     // Got at least one ?
     if (me && me->next) {
-      String url ; 
+      String url ;
       boolean skip_item;
 
       url = *config.jeedom.url ? config.jeedom.url : "/";
@@ -207,7 +207,7 @@ boolean jeedomPost(void)
         url+= F("ADCO=");
         url+= config.jeedom.adco;
         url+= "&";
-      } 
+      }
 
       url += F("api=") ;
       url += config.jeedom.apikey;
