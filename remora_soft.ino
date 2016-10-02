@@ -54,6 +54,7 @@
   #include <SPI.h>
   #include <Ticker.h>
   #include <NeoPixelBus.h>
+  #include <RTClib.h>
   #include <BlynkSimpleEsp8266.h>
   #include "./LibMCP23017.h"
   #include "./LibSSD1306.h"
@@ -84,7 +85,7 @@ int my_cloud_disconnect = 0;
   // ESP8266 WebServer
   ESP8266WebServer server(80);
   // Udp listener for OTA
-  WiFiUDP OTA;
+  //WiFiUDP OTA;
   // Use WiFiClient class to create a connection to WEB server
   WiFiClient client;
   // RGB LED (1 LED)
@@ -100,6 +101,28 @@ int my_cloud_disconnect = 0;
   volatile boolean task_jeedom = false;
 
   bool ota_blink;
+
+  /******************************************************************************************************/
+  /*                                          TIME                                                      */
+  /******************************************************************************************************/
+
+  unsigned int localPort = 2390;            // local port to listen for UDP packets
+  //IPAddress timeServer(129, 6, 15, 28);     // time.nist.gov NTP server
+  IPAddress timeServerIP;
+  const char* timeServer = "0.fr.pool.ntp.org";
+  const int NTP_PACKET_SIZE = 48;           // NTP time stamp is in the first 48 bytes of the message
+  byte packetBuffer[ NTP_PACKET_SIZE];      // buffer to hold incoming and outgoing packets
+
+  WiFiUDP udp;                              // A UDP instance to let us send and receive packets over UDP
+  boolean doNTP=false;
+
+  // RTC handler
+  RTC_Millis rtc;                           // RTC (soft)
+  DateTime now;                             // current time
+  int ch,cm,cs,os,cdy,cmo,cyr,cdw;          // current time & date variables
+  int nh,nm,ns,ndy,nmo,nyr,ndw;             // NTP-based time & date variables
+
+  #define min(a,b) ((a)<(b)?(a):(b))        // recreate the min function
 #endif
 
 /* ======================================================================
@@ -254,7 +277,16 @@ int WifiHandleConn(boolean setup = false)
 
       DebugF("IP address   : "); Debugln(WiFi.localIP());
       DebugF("MAC address  : "); Debugln(WiFi.macAddress());
-    
+      #ifdef MOD_TIME
+        // Feed the dog
+        _wdt_feed();
+        // Time NTP
+        udp.begin(localPort);
+        DebugF("Starting UDP with Local Port "); Debugln(udp.localPort());
+        doNTP=true; // get NTP timestamp immediately
+        getTimeNTP();
+      #endif
+
     // not connected ? start AP
     } else {
       char ap_ssid[32];
@@ -338,6 +370,113 @@ char * timeAgo(unsigned long sec)
 
 
 /* ======================================================================
+Function: sendNTPpacket
+Purpose : send an NTP request to the time server at the given address
+Input   : address of time server
+Output  : -
+Comments: -
+====================================================================== */
+void sendNTPpacket(IPAddress& address) {
+  // Feed the dog
+  _wdt_feed();
+  DebuglnF("SendNTPpacket");
+  // set all bytes in the buffer to 0
+  memset(packetBuffer, 0, NTP_PACKET_SIZE);
+  // Initialize values needed to form NTP request
+  // (see URL above for details on the packets)
+  packetBuffer[0] = 0b11100011;   // LI, Version, Mode
+  packetBuffer[1] = 0;     // Stratum, or type of clock
+  packetBuffer[2] = 6;     // Polling Interval
+  packetBuffer[3] = 0xEC;  // Peer Clock Precision
+  // 8 bytes of zero for Root Delay & Root Dispersion
+  packetBuffer[12]  = 49;
+  packetBuffer[13]  = 0x4E;
+  packetBuffer[14]  = 49;
+  packetBuffer[15]  = 52;
+
+  // all NTP fields have been given values, now
+  // you can send a packet requesting a timestamp:
+  udp.beginPacket(address, 123); //NTP requests are to port 123
+  udp.write(packetBuffer, NTP_PACKET_SIZE);
+  udp.endPacket();
+}
+
+
+void getTimeNTP() {
+  //DebuglnF("getTimeNTP");
+  //get a random server from the pool
+  WiFi.hostByName(timeServer, timeServerIP); 
+  sendNTPpacket(timeServerIP);            // send an NTP packet to a time server
+  // Feed the dog
+  _wdt_feed();
+  delay(1000);                          // wait to see if a reply is available
+
+  int cb = udp.parsePacket();           // get packet (if available)
+  if (!cb) {
+    DebuglnF("... no NTP packet yet");
+    return;
+  }
+  DebugF("... NTP packet received with "); Debug(cb); DebuglnF(" bytes");     // We've received a packet, read the data from it
+  udp.read(packetBuffer, NTP_PACKET_SIZE);                            // read the packet into the buffer
+
+  unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);  // timestamp starts at byte 40 of packet. It is 2 words (4 bytes) long
+  unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);   // Extract each word and...
+  unsigned long secsSince1900 = highWord << 16 | lowWord;             // ... combine into long: NTP time (seconds since Jan 1 1900):
+
+  const unsigned long seventyYears = 2208988800UL;                    // Unix time starts on Jan 1 1970. In seconds, that's 2208988800:
+  unsigned long epoch = secsSince1900 - seventyYears;                 // subtract seventy years to get to 1 Jan. 1900:
+
+  int tz = -1;                                            // adjust for EST time zone
+  DateTime gt(epoch - (tz*60*60));                       // obtain date & time based on NTP-derived epoch...
+  tz = IsDST(gt.month(), gt.day(), gt.dayOfTheWeek())?-2:-1;  // if in DST correct for GMT+2 hours else GMT+1
+  DateTime ntime(epoch - (tz*60*60));                    // if in DST correct for GMT+2 hours else GMT+1
+  rtc.adjust(ntime);                                     // and set RTC to correct local time   
+//  nyr = ntime.year()-2000;
+//  nmo = ntime.month();
+//  ndy = ntime.day();
+//  nh  = ntime.hour(); if(nh==0) nh=24;                   // adjust to 1-24            
+//  nm  = ntime.minute();                     
+//  ns  = ntime.second();                     
+//
+//  DebugF("... NTP packet local time: [GMT + "); Debug(tz); DebugF("]: ");       // Local time at Greenwich Meridian (GMT) + offset  
+//  if (nh < 10) DebugF(" "); Debug(nh);  DebugF(":");          // print the hour 
+//  if (nm < 10) DebugF("0"); Debug(nm);  DebugF(":");          // print the minute
+//  if (ns < 10) DebugF("0"); Debug(ns);                        // print the second
+//
+//  DebugF(" on ");                                             // Local date
+//  if(nyr < 10) DebugF("0"); Debug(nyr);  DebugF("/");         // print the year 
+//  if(nmo < 10) DebugF("0"); Debug(nmo);  DebugF("/");         // print the month
+//  if(ndy < 10) DebugF("0"); Debugln(ndy);                     // print the day
+//  Debugln();
+}
+
+void getTime() {
+  //Debugln("getTime");
+  now = rtc.now();  
+  ch  = min(24,now.hour()); if(ch == 0) ch=24; // hours 1-24
+  cm  = min(59,now.minute()); 
+  cs  = min(59,now.second());
+  cdy = min(31,now.day()); 
+  cmo = min(now.month(),12); 
+  cyr = min(99,now.year()-2000); 
+  cdw = now.dayOfTheWeek();
+  Debugf("DateTime: %02d/%02d/%d %d:%02d:%02d", cdy, cmo, cyr, ch, cm, cs);
+  Debugln();
+}
+
+// IsDST(): returns true if during DST, false otherwise
+boolean IsDST(int mo, int dy, int dw) {
+  //DebuglnF("IsDST");
+  if (mo < 3 || mo > 10) { return false; }                // January, February, and December are out.
+  if (mo > 3 && mo < 10) { return true;  }                // April to October are in
+  int previousSunday = dy - dw;
+  DebugF("Previous Sunday: "); Debugln(previousSunday);
+  if (mo == 3) { return previousSunday >= 24; }            // In March, we are DST if our previous Sunday was on or after the 24th.
+  return previousSunday < 24;                             // In October we must be after the last Sunday to be DST. That means the previous Sunday was on or after the 24th.
+}
+
+
+/* ======================================================================
 Function: setup
 Purpose : prepare and init stuff, configuration, ..
 Input   : -
@@ -354,7 +493,7 @@ void setup()
     waitUntil(Particle.connected);
 
   #endif
-  #ifdef DEBUG
+  #ifdef DEBUG_INIT
     DEBUG_SERIAL.begin(115200);
   #endif
 
@@ -449,6 +588,10 @@ void mysetup()
 
     // Clear our global flags
     config.config = 0;
+
+    #ifdef MOD_TIME
+      rtc.begin(DateTime(F(__DATE__), F(__TIME__)));
+    #endif  
 
     // Our configuration is stored into EEPROM
     //EEPROM.begin(sizeof(_Config));
@@ -734,6 +877,57 @@ void mysetup()
   Debugflush();
 }
 
+/* ======================================================================
+Function: rtc
+Purpose : compte le temps qui passe
+Input   : -
+Output  : -
+Comments: -
+====================================================================== */
+/*void getTimeRTC() {
+  timeNow = millis() / 1000; // the number of milliseconds that have passed since boot
+  seconds = timeNow - timeLast;
+  // the number of seconds that have passed since the last time 60 seconds was reached.
+  if (seconds == 60) {
+    timeLast = timeNow;
+    minutes = minutes + 1;
+  }
+  // if one minute has passed, start counting milliseconds from zero again 
+  // and add one minute to the clock.
+  if (minutes == 60) {
+    minutes = 0;
+    hours = hours + 1;
+  }
+  // if one hour has passed, start counting minutes from zero and add one hour to the clock
+  if (hours == 24) {
+    hours = 0;
+    days = days + 1;
+  }
+  //if 24 hours have passed, add one day
+  if (hours == (24 - startingHour) && correctedToday == 0) {
+    delay(dailyErrorFast * 1000);
+    seconds = seconds + dailyErrorBehind;
+    correctedToday = 1;
+  }
+  // every time 24 hours have passed since the initial starting time and it has
+  // not been reset this day before, add milliseconds or delay the program with
+  // some milliseconds.
+
+  // Change these varialbes according to the error of your board.
+
+  // The only way to find out how far off your boards internal clock is, 
+  // is by uploading this sketch at exactly the same time as the real time,
+  // letting it run for a few days
+
+  // and then determining how many seconds slow/fast your boards internal clock
+  // is on a daily average. (24 hours).
+  if (hours == 24 - startingHour + 2) {
+    correctedToday = 0;
+  }
+  // let the sketch know that a new day has started for what concerns correction,
+  // if this line was not here the arduiono would continue to correct for an entire hour
+  // that is 24 - startingHour.
+}*/
 
 
 /* ======================================================================
@@ -758,11 +952,26 @@ void loop()
   }
 
   // Gérer notre compteur de secondes
-  if ( millis()-previousMillis > 1000) {
+  if (millis() - previousMillis > 1000) {
     // Ceci arrive toute les secondes écoulées
     previousMillis = currentMillis;
     uptime++;
-    refreshDisplay = true ;
+    refreshDisplay = true;
+
+    #ifdef ESP8266
+      #ifdef MOD_TIME
+        getTime(); // Gestion du temps
+        //Debug("doNTP: "); Debugln(doNTP ? "true" : "false");
+        if (doNTP) {
+          // updated hourly
+          if (cm%60 == 0 && cs%60 == 0) {
+            DebuglnF("It's time to get time");
+            getTimeNTP();
+          }
+        }
+      #endif
+    #endif
+
     #ifdef BLYNK_AUTH
       if ( Blynk.connected() ) {
         String up    = String(uptime) + "s";
@@ -805,11 +1014,11 @@ void loop()
   refreshDisplay = false;
 
   #if defined (SPARK)
-  // recupération de l'état de connexion au cloud SPARK
-  currentcloudstate = Spark.connected();
+    // recupération de l'état de connexion au cloud SPARK
+    currentcloudstate = Spark.connected();
   #elif defined (ESP8266)
-  // recupération de l'état de connexion au Wifi
-  currentcloudstate = WiFi.status()==WL_CONNECTED ? true:false;
+    // recupération de l'état de connexion au Wifi
+    currentcloudstate = WiFi.status()==WL_CONNECTED ? true:false;
   #endif
 
   // La connexion cloud vient de chager d'état ?
@@ -863,5 +1072,4 @@ void loop()
       task_jeedom=false;
     }
   #endif
-
 }

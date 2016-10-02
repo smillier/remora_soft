@@ -26,11 +26,12 @@
 #define REMORA_BOARD_V13  // Version 1.3
 
 //  Définir ici les modules utilisés sur la carte Remora
-#define MOD_RF69      /* Module RF  */
+//#define MOD_RF69      /* Module RF  */
 //#define MOD_OLED      /* Afficheur  */
-#define MOD_TELEINFO  /* Teleinfo   */
+//#define MOD_TELEINFO  /* Teleinfo   */
 //#define MOD_RF_OREGON   /* Reception des sondes orégon */
 #define MOD_ADPS          /* Délestage */
+//#define MOD_TIME          /* Gestion du temps */
 
 // Version logicielle remora
 #define REMORA_VERSION "1.3.2"
@@ -90,6 +91,7 @@
   #include <ESP8266WiFi.h>
   #include <ESP8266HTTPClient.h>
   #include <ESP8266WebServer.h>
+  #include <WiFiUdp.h>
   #include <Ticker.h>
   #include <NeoPixelBus.h>
   
@@ -109,7 +111,8 @@ extern "C" {
 
   #define _yield  yield
   #define _wdt_feed ESP.wdtFeed
-  #define DEBUG_SERIAL  Serial1
+  #define DEBUG_SERIAL  Serial
+  //#define DEBUG_INIT            // Décommenter cette ligne si DEBUG_SERIAL est Serial1
 #endif
 
 #define DEBUG
@@ -118,19 +121,19 @@ extern "C" {
 // debugging, this should not interfere with main sketch or other 
 // libraries
 #ifdef DEBUG
-#define Debug(x)    DEBUG_SERIAL.print(x)
-#define Debugln(x)  DEBUG_SERIAL.println(x)
-#define DebugF(x)   DEBUG_SERIAL.print(F(x))
-#define DebuglnF(x) DEBUG_SERIAL.println(F(x))
-#define Debugf(...) DEBUG_SERIAL.printf(__VA_ARGS__)
-#define Debugflush  DEBUG_SERIAL.flush
+  #define Debug(x)    DEBUG_SERIAL.print(x)
+  #define Debugln(x)  DEBUG_SERIAL.println(x)
+  #define DebugF(x)   DEBUG_SERIAL.print(F(x))
+  #define DebuglnF(x) DEBUG_SERIAL.println(F(x))
+  #define Debugf(...) DEBUG_SERIAL.printf(__VA_ARGS__)
+  #define Debugflush  DEBUG_SERIAL.flush
 #else
-#define Debug(x)    {}
-#define Debugln(x)  {}
-#define DebugF(x)   {}
-#define DebuglnF(x) {}
-#define Debugf(...) {}
-#define Debugflush(){}
+  #define Debug(x)    {}
+  #define Debugln(x)  {}
+  #define DebugF(x)   {}
+  #define DebuglnF(x) {}
+  #define Debugf(...) {}
+  #define Debugflush(){}
 #endif
 
 // Includes du projets remora
@@ -232,7 +235,7 @@ extern "C" {
 
 // status global de l'application
 extern uint16_t status;
-extern unsigned long uptime ;
+extern unsigned long uptime;
 
 
 #ifdef SPARK
@@ -259,6 +262,26 @@ extern unsigned long uptime ;
 
   extern Ticker Tick_emoncms;
   extern Ticker Tick_jeedom;
+
+  // Gestion du temps
+  /*unsigned long timeNow = 0;
+  unsigned long timeLast = 0;
+  int startingHour = 12; // Time start Settings:
+  // set your starting hour here, not below at int hour.
+  // This ensures accurate daily correction of time
+  int seconds = 0;
+  int minutes = 33;
+  int hours = startingHour;
+  int days = 0;
+  //Accuracy settings
+  // set the average number of milliseconds your microcontroller's time is fast on a daily basis
+  int dailyErrorFast = 0;
+  // set the average number of milliseconds your microcontroller's time is behind on a daily basis
+  int dailyErrorBehind = 0;
+  // do not change this variable, one means that the time has already been corrected today for
+  // the error in your boards crystal. This is true for the first day because you just set the time
+  // when you uploaded the sketch.
+  int correctedToday = 1;*/
 #endif
 
 
@@ -269,5 +292,6 @@ extern uint16_t status; // status global de l'application
 char * timeAgo(unsigned long);
 void Task_emoncms();
 void Task_jeedom();
+
 
 #endif
