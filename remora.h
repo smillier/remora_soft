@@ -31,7 +31,7 @@
 //#define MOD_TELEINFO  /* Teleinfo   */
 //#define MOD_RF_OREGON   /* Reception des sondes orégon */
 #define MOD_ADPS          /* Délestage */
-//#define MOD_TIME          /* Gestion du temps */
+#define MOD_TIME          /* Gestion du temps */
 
 // Version logicielle remora
 #define REMORA_VERSION "1.3.2"
@@ -94,6 +94,8 @@
   #include <WiFiUdp.h>
   #include <Ticker.h>
   #include <NeoPixelBus.h>
+  #include <RTClib.h>
+  #include <stddef.h>
   
 extern "C" {
 #include "user_interface.h"
@@ -262,26 +264,6 @@ extern unsigned long uptime;
 
   extern Ticker Tick_emoncms;
   extern Ticker Tick_jeedom;
-
-  // Gestion du temps
-  /*unsigned long timeNow = 0;
-  unsigned long timeLast = 0;
-  int startingHour = 12; // Time start Settings:
-  // set your starting hour here, not below at int hour.
-  // This ensures accurate daily correction of time
-  int seconds = 0;
-  int minutes = 33;
-  int hours = startingHour;
-  int days = 0;
-  //Accuracy settings
-  // set the average number of milliseconds your microcontroller's time is fast on a daily basis
-  int dailyErrorFast = 0;
-  // set the average number of milliseconds your microcontroller's time is behind on a daily basis
-  int dailyErrorBehind = 0;
-  // do not change this variable, one means that the time has already been corrected today for
-  // the error in your boards crystal. This is true for the first day because you just set the time
-  // when you uploaded the sketch.
-  int correctedToday = 1;*/
 #endif
 
 

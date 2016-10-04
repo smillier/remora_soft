@@ -54,7 +54,6 @@
   #include <SPI.h>
   #include <Ticker.h>
   #include <NeoPixelBus.h>
-  #include <RTClib.h>
   #include <BlynkSimpleEsp8266.h>
   #include "./LibMCP23017.h"
   #include "./LibSSD1306.h"
@@ -121,6 +120,8 @@ int my_cloud_disconnect = 0;
   DateTime now;                             // current time
   int ch,cm,cs,os,cdy,cmo,cyr,cdw;          // current time & date variables
   int nh,nm,ns,ndy,nmo,nyr,ndw;             // NTP-based time & date variables
+
+  long backFromHolidays;                    // Date en seconds, depuis 2000, avant le retour de vacances
 
   #define min(a,b) ((a)<(b)?(a):(b))        // recreate the min function
 #endif
@@ -402,8 +403,14 @@ void sendNTPpacket(IPAddress& address) {
 }
 
 
+/* ======================================================================
+Function: getTimeNTP
+Purpose : Parse result of NTP request to update RTC soft
+Input   : -
+Output  : -
+Comments: -
+====================================================================== */
 void getTimeNTP() {
-  //DebuglnF("getTimeNTP");
   //get a random server from the pool
   WiFi.hostByName(timeServer, timeServerIP); 
   sendNTPpacket(timeServerIP);            // send an NTP packet to a time server
@@ -430,28 +437,17 @@ void getTimeNTP() {
   DateTime gt(epoch - (tz*60*60));                       // obtain date & time based on NTP-derived epoch...
   tz = IsDST(gt.month(), gt.day(), gt.dayOfTheWeek())?-2:-1;  // if in DST correct for GMT+2 hours else GMT+1
   DateTime ntime(epoch - (tz*60*60));                    // if in DST correct for GMT+2 hours else GMT+1
-  rtc.adjust(ntime);                                     // and set RTC to correct local time   
-//  nyr = ntime.year()-2000;
-//  nmo = ntime.month();
-//  ndy = ntime.day();
-//  nh  = ntime.hour(); if(nh==0) nh=24;                   // adjust to 1-24            
-//  nm  = ntime.minute();                     
-//  ns  = ntime.second();                     
-//
-//  DebugF("... NTP packet local time: [GMT + "); Debug(tz); DebugF("]: ");       // Local time at Greenwich Meridian (GMT) + offset  
-//  if (nh < 10) DebugF(" "); Debug(nh);  DebugF(":");          // print the hour 
-//  if (nm < 10) DebugF("0"); Debug(nm);  DebugF(":");          // print the minute
-//  if (ns < 10) DebugF("0"); Debug(ns);                        // print the second
-//
-//  DebugF(" on ");                                             // Local date
-//  if(nyr < 10) DebugF("0"); Debug(nyr);  DebugF("/");         // print the year 
-//  if(nmo < 10) DebugF("0"); Debug(nmo);  DebugF("/");         // print the month
-//  if(ndy < 10) DebugF("0"); Debugln(ndy);                     // print the day
-//  Debugln();
+  rtc.adjust(ntime);                                     // and set RTC to correct local time
 }
 
+/* ======================================================================
+Function: getTime
+Purpose : Update RTC time
+Input   : -
+Output  : -
+Comments: -
+====================================================================== */
 void getTime() {
-  //Debugln("getTime");
   now = rtc.now();  
   ch  = min(24,now.hour()); if(ch == 0) ch=24; // hours 1-24
   cm  = min(59,now.minute()); 
@@ -460,11 +456,17 @@ void getTime() {
   cmo = min(now.month(),12); 
   cyr = min(99,now.year()-2000); 
   cdw = now.dayOfTheWeek();
-  Debugf("DateTime: %02d/%02d/%d %d:%02d:%02d", cdy, cmo, cyr, ch, cm, cs);
-  Debugln();
+  Debugf("DateTime: %02d/%02d/%d %d:%02d:%02d\n", cdy, cmo, cyr, ch, cm, cs);
 }
 
-// IsDST(): returns true if during DST, false otherwise
+
+/* ======================================================================
+Function: IsDST
+Purpose : returns true if during DST, false otherwise
+Input   : month, day, dayOfWeek
+Output  : -
+Comments: -
+====================================================================== */
 boolean IsDST(int mo, int dy, int dw) {
   //DebuglnF("IsDST");
   if (mo < 3 || mo > 10) { return false; }                // January, February, and December are out.
@@ -693,6 +695,47 @@ void mysetup()
     server.on("/config.json", confJSONTable);
     server.on("/spiffs.json", spiffsJSONTable);
     server.on("/wifiscan.json", wifiScanJSON);
+    server.on("/holidays", [&]() {
+      Debugln("holidays request");
+      if (!server.hasArg("seconds")) {
+        Debugln("Param seconds is required");
+        server.send(412, "text/json", "{\"response\":\"param 'seconds' is required\"}");
+      } else {
+        DebugF("Seconds: "); Debugln(server.arg("seconds"));
+        backFromHolidays = DateTime(server.arg("seconds").toInt()).secondstime();
+        char cmd[NB_FILS_PILOTES+1] = "";
+        uint8_t i = 0;
+        // Si la durée avant le retour est supérieur à 2 jours, on coupe tout
+        if (backFromHolidays - now.secondstime() > (2*SECONDS_PER_DAY)) {
+          DebuglnF("Time of holidays is superior at 2 days, stop relais and radia HG");
+          fnct_relais((String)FNCT_RELAIS_ARRET);
+          // On sauvegarde l'état des fils pilotes
+          for (i = 0; i < NB_FILS_PILOTES; i++) {
+            saveFP[i] = etatFP[i];
+            //DebugF("saveFP[i]: "); Debug(saveFP[i]); DebugF(" - etatFP[i]: "); Debugln(etatFP[i]);
+            cmd[i] = 'H';
+          }
+        } else {
+          DebuglnF("Time of holidays is inferior at 2 days, radia ECO");
+          // On sauvegarde l'état des fils pilotes
+          for (i = 0; i < NB_FILS_PILOTES; i++) {
+            saveFP[i] = etatFP[i];
+            //DebugF("saveFP[i]: "); Debug(saveFP[i]); DebugF(" - etatFP[i]: "); Debugln(etatFP[i]);
+            cmd[i] = 'E';
+          }
+        }
+        //DebugF("cmd: "); Debugln(cmd);
+        int ret = fp(cmd);
+        //DebugF("Retour fp: "); Debugln(String(ret));
+        //String response = FPSTR("{") + F("\"response\":") + String(ret) + FPSTR("}") ;
+        String response = "";
+        response += FPSTR("{\r\n");
+        response += F("\"response\":");
+        response += ret;
+        response += FPSTR("\r\n}\r\n") ;
+        server.send(200, "text/json", response);
+      }
+    });
 
     // handler for the hearbeat
     server.on("/hb.htm", HTTP_GET, [&](){
@@ -968,6 +1011,30 @@ void loop()
             DebuglnF("It's time to get time");
             getTimeNTP();
           }
+        }
+        // Si la variable des vacances est définie
+        // Si la date de retour est atteinte
+        DebugF("backFromHolidays: "); Debugln(backFromHolidays);
+        DebugF("now: "); Debugln(now.secondstime());
+        if (backFromHolidays > 0 && backFromHolidays < now.secondstime()) {
+          DebuglnF("Holidays are finish, sorry ;-)");
+          // On réinitialise la variable
+          backFromHolidays = 0;
+          // On remet le mode auto du relais
+          if (fnctRelais != FNCT_RELAIS_AUTO) {
+            DebuglnF("Relay mode in auto");
+            fnct_relais((String)FNCT_RELAIS_AUTO);
+          }
+          // On remet le chauffage en route
+          char cmd[NB_FILS_PILOTES+1] = "";
+          for (uint8_t i = 0; i < NB_FILS_PILOTES; i++) {
+            cmd[i] = saveFP[i];
+            //saveFP[i] = '';
+          }
+          int ret = fp(cmd);
+          DebugF("Retour fp: "); Debugln(String(ret));
+        } else if (backFromHolidays > 0) {
+          //Debugf("Holidays in progress");
         }
       #endif
     #endif
