@@ -72,6 +72,7 @@ extern Adafruit_MCP23017 mcp;
 extern int SortiesFP[];
 extern char etatFP[];
 extern char saveFP[];
+extern uint saveRelais;
 extern char memFP[];
 extern int nivDelest;
 extern uint8_t plusAncienneZoneDelestee;

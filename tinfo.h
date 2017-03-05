@@ -44,10 +44,10 @@ extern char myPeriode[];
 extern char mytinfo[];
 extern char myAction[];
 
-extern int      etatrelais;
-extern int      fnctRelais;   // Mode de fonctionnement du relais (0: arrêt, 1: marche forcée, 2: auto)
-extern float    myDelestLimit;
-extern float    myRelestLimit;
+extern unsigned int etatrelais;
+extern unsigned int fnctRelais;   // Mode de fonctionnement du relais (0: arrêt, 1: marche forcée, 2: auto)
+extern float        myDelestLimit;
+extern float        myRelestLimit;
 
 // Function exported for other source file
 // =======================================

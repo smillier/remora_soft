@@ -94,9 +94,11 @@
   #include <WiFiUdp.h>
   #include <Ticker.h>
   #include <NeoPixelBus.h>
+#ifdef MOD_TIME
   #include <RTClib.h>
   #include <stddef.h>
-  
+#endif
+
 extern "C" {
 #include "user_interface.h"
 }
@@ -120,7 +122,7 @@ extern "C" {
 #define DEBUG
 
 // I prefix debug macro to be sure to use specific for THIS library
-// debugging, this should not interfere with main sketch or other 
+// debugging, this should not interfere with main sketch or other
 // libraries
 #ifdef DEBUG
   #define Debug(x)    DEBUG_SERIAL.print(x)

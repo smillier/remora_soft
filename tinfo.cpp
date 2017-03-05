@@ -32,8 +32,8 @@ float ratio_delestage = DELESTAGE_RATIO;
 float ratio_relestage = RELESTAGE_RATIO;
 float myDelestLimit   = 0.0;
 float myRelestLimit   = 0.0;
-int etatrelais        = 0; // Etat du relais
-int fnctRelais        = 2; // Mode de fonctionnement du relais
+uint etatrelais       = 0; // Etat du relais
+uint fnctRelais       = 2; // Mode de fonctionnement du relais
 int lastPtec          = PTEC_HP;
 
 unsigned long tinfo_led_timer = 0; // Led blink timer
@@ -139,8 +139,8 @@ void DataCallback(ValueList * me, uint8_t flags)
     // Calcul de quand on déclenchera le relestage
     myRelestLimit = ratio_relestage * myisousc;
 
-    // Maintenant on connait notre contrat, on peut commencer 
-    // A traiter le delestage eventuel et si celui-ci 
+    // Maintenant on connait notre contrat, on peut commencer
+    // A traiter le delestage eventuel et si celui-ci
     // n'a jamais été initialisé on le fait maintenant
     if ( timerDelestRelest == 0 )
       timerDelestRelest = millis();
@@ -271,7 +271,7 @@ bool tinfo_setup(bool wait_data)
           tinfo.process(c);
         }
       #endif
-      
+
       _yield();
     }
   }
@@ -296,7 +296,7 @@ void tinfo_loop(void)
   char c;
   uint8_t nb_char=0;
   // Evitons les conversions hasardeuses, parlons float
-  float fiInst = myiInst; 
+  float fiInst = myiInst;
 
   // on a la téléinfo présente ?
   if ( status & STATUS_TINFO) {
