@@ -55,6 +55,10 @@
   #include <Ticker.h>
   #include <NeoPixelBus.h>
   #include <BlynkSimpleEsp8266.h>
+#ifdef MOD_TIME
+  #include <RTClib.h>
+  #include <stddef.h>
+#endif
   #include "./LibMCP23017.h"
   #include "./LibSSD1306.h"
   #include "./LibGFX.h"
@@ -104,26 +108,27 @@ int my_cloud_disconnect = 0;
   /******************************************************************************************************/
   /*                                          TIME                                                      */
   /******************************************************************************************************/
+  #ifdef MOD_TIME
+    unsigned int localPort = 2390;            // local port to listen for UDP packets
+    //IPAddress timeServer(129, 6, 15, 28);     // time.nist.gov NTP server
+    IPAddress timeServerIP;
+    const char* timeServer = "0.fr.pool.ntp.org";
+    const int NTP_PACKET_SIZE = 48;           // NTP time stamp is in the first 48 bytes of the message
+    byte packetBuffer[ NTP_PACKET_SIZE];      // buffer to hold incoming and outgoing packets
 
-  unsigned int localPort = 2390;            // local port to listen for UDP packets
-  //IPAddress timeServer(129, 6, 15, 28);     // time.nist.gov NTP server
-  IPAddress timeServerIP;
-  const char* timeServer = "0.fr.pool.ntp.org";
-  const int NTP_PACKET_SIZE = 48;           // NTP time stamp is in the first 48 bytes of the message
-  byte packetBuffer[ NTP_PACKET_SIZE];      // buffer to hold incoming and outgoing packets
+    WiFiUDP udp;                              // A UDP instance to let us send and receive packets over UDP
+    boolean doNTP=false;
 
-  WiFiUDP udp;                              // A UDP instance to let us send and receive packets over UDP
-  boolean doNTP=false;
+    // RTC handler
+    RTC_Millis rtc;                           // RTC (soft)
+    DateTime now;                             // current time
+    int ch,cm,cs,os,cdy,cmo,cyr,cdw;          // current time & date variables
+    int nh,nm,ns,ndy,nmo,nyr,ndw;             // NTP-based time & date variables
 
-  // RTC handler
-  RTC_Millis rtc;                           // RTC (soft)
-  DateTime now;                             // current time
-  int ch,cm,cs,os,cdy,cmo,cyr,cdw;          // current time & date variables
-  int nh,nm,ns,ndy,nmo,nyr,ndw;             // NTP-based time & date variables
+    long backFromHolidays;                    // Date en seconds, depuis 2000, avant le retour de vacances
 
-  long backFromHolidays;                    // Date en seconds, depuis 2000, avant le retour de vacances
-
-  #define min(a,b) ((a)<(b)?(a):(b))        // recreate the min function
+    #define min(a,b) ((a)<(b)?(a):(b))        // recreate the min function
+  #endif
 #endif
 
 /* ======================================================================
@@ -185,7 +190,7 @@ void spark_expose_cloud(void)
 /* ======================================================================
 Function: Task_emoncms
 Purpose : callback of emoncms ticker
-Input   : 
+Input   :
 Output  : -
 Comments: Like an Interrupt, need to be short, we set flag for main loop
 ====================================================================== */
@@ -197,7 +202,7 @@ void Task_emoncms()
 /* ======================================================================
 Function: Task_jeedom
 Purpose : callback of jeedom ticker
-Input   : 
+Input   :
 Output  : -
 Comments: Like an Interrupt, need to be short, we set flag for main loop
 ====================================================================== */
@@ -213,7 +218,7 @@ Input   : setup true if we're called 1st Time from setup
 Output  : state of the wifi status
 Comments: -
 ====================================================================== */
-int WifiHandleConn(boolean setup = false) 
+int WifiHandleConn(boolean setup = false)
 {
   int ret = WiFi.status();
   uint8_t timeout ;
@@ -222,13 +227,13 @@ int WifiHandleConn(boolean setup = false)
     // Feed the dog
     _wdt_feed();
 
-    DebugF("========== SDK Saved parameters Start"); 
+    DebugF("========== SDK Saved parameters Start");
     WiFi.printDiag(DEBUG_SERIAL);
-    DebuglnF("========== SDK Saved parameters End"); 
+    DebuglnF("========== SDK Saved parameters End");
 
     #if defined (DEFAULT_WIFI_SSID) && defined (DEFAULT_WIFI_PASS)
-      DebugF("Connection au Wifi : "); 
-      Debug(DEFAULT_WIFI_SSID); 
+      DebugF("Connection au Wifi : ");
+      Debug(DEFAULT_WIFI_SSID);
       DebugF(" avec la clé '");
       Debug(DEFAULT_WIFI_PASS);
       DebugF("'...");
@@ -236,7 +241,7 @@ int WifiHandleConn(boolean setup = false)
       WiFi.begin(DEFAULT_WIFI_SSID, DEFAULT_WIFI_PASS);
     #else
       if (*config.ssid) {
-        DebugF("Connection à: "); 
+        DebugF("Connection à: ");
         Debug(config.ssid);
         Debugflush();
 
@@ -412,11 +417,11 @@ Comments: -
 ====================================================================== */
 void getTimeNTP() {
   //get a random server from the pool
-  WiFi.hostByName(timeServer, timeServerIP); 
+  WiFi.hostByName(timeServer, timeServerIP);
   sendNTPpacket(timeServerIP);            // send an NTP packet to a time server
   // Feed the dog
   _wdt_feed();
-  delay(1000);                          // wait to see if a reply is available
+  delay(1500);                          // wait to see if a reply is available
 
   int cb = udp.parsePacket();           // get packet (if available)
   if (!cb) {
@@ -448,13 +453,13 @@ Output  : -
 Comments: -
 ====================================================================== */
 void getTime() {
-  now = rtc.now();  
+  now = rtc.now();
   ch  = min(24,now.hour()); if(ch == 0) ch=24; // hours 1-24
-  cm  = min(59,now.minute()); 
+  cm  = min(59,now.minute());
   cs  = min(59,now.second());
-  cdy = min(31,now.day()); 
-  cmo = min(now.month(),12); 
-  cyr = min(99,now.year()-2000); 
+  cdy = min(31,now.day());
+  cmo = min(now.month(),12);
+  cyr = min(99,now.year()-2000);
   cdw = now.dayOfTheWeek();
   Debugf("DateTime: %02d/%02d/%d %d:%02d:%02d\n", cdy, cmo, cyr, ch, cm, cs);
 }
@@ -593,7 +598,7 @@ void mysetup()
 
     #ifdef MOD_TIME
       rtc.begin(DateTime(F(__DATE__), F(__TIME__)));
-    #endif  
+    #endif
 
     // Our configuration is stored into EEPROM
     //EEPROM.begin(sizeof(_Config));
@@ -605,17 +610,17 @@ void mysetup()
     Debugln(')');
     Debugflush();
 
-    // Check File system init 
+    // Check File system init
     if (!SPIFFS.begin())
     {
       // Serious problem
       DebuglnF("SPIFFS Mount failed");
     } else {
-     
+
       DebuglnF("SPIFFS Mount succesfull");
 
       Dir dir = SPIFFS.openDir("/");
-      while (dir.next()) {    
+      while (dir.next()) {
         String fileName = dir.fileName();
         size_t fileSize = dir.fileSize();
         Debugf("FS File: %s, size: %d\n", fileName.c_str(), fileSize);
@@ -644,13 +649,13 @@ void mysetup()
     WifiHandleConn(true);
 
     // OTA callbacks
-    ArduinoOTA.onStart([]() { 
+    ArduinoOTA.onStart([]() {
       LedRGBON(COLOR_MAGENTA);
       DebugF("\r\nUpdate Started..");
       ota_blink = true;
     });
 
-    ArduinoOTA.onEnd([]() { 
+    ArduinoOTA.onEnd([]() {
       LedRGBOFF();
       DebuglnF("Update finished restarting");
     });
@@ -673,7 +678,7 @@ void mysetup()
       else if (error == OTA_CONNECT_ERROR) DebuglnF("Connect Failed");
       else if (error == OTA_RECEIVE_ERROR) DebuglnF("Receive Failed");
       else if (error == OTA_END_ERROR) DebuglnF("End Failed");
-      ESP.restart(); 
+      ESP.restart();
     });
 
     // handler for uptime
@@ -697,44 +702,56 @@ void mysetup()
     server.on("/wifiscan.json", wifiScanJSON);
     server.on("/holidays", [&]() {
       Debugln("holidays request");
-      if (!server.hasArg("seconds")) {
-        Debugln("Param seconds is required");
-        server.send(412, "text/json", "{\"response\":\"param 'seconds' is required\"}");
-      } else {
-        DebugF("Seconds: "); Debugln(server.arg("seconds"));
-        backFromHolidays = DateTime(server.arg("seconds").toInt()).secondstime();
-        char cmd[NB_FILS_PILOTES+1] = "";
-        uint8_t i = 0;
-        // Si la durée avant le retour est supérieur à 2 jours, on coupe tout
-        if (backFromHolidays - now.secondstime() > (2*SECONDS_PER_DAY)) {
-          DebuglnF("Time of holidays is superior at 2 days, stop relais and radia HG");
-          fnct_relais((String)FNCT_RELAIS_ARRET);
-          // On sauvegarde l'état des fils pilotes
-          for (i = 0; i < NB_FILS_PILOTES; i++) {
-            saveFP[i] = etatFP[i];
-            //DebugF("saveFP[i]: "); Debug(saveFP[i]); DebugF(" - etatFP[i]: "); Debugln(etatFP[i]);
-            cmd[i] = 'H';
-          }
+      #ifdef MOD_TIME
+        if (!server.hasArg("seconds")) {
+          String response = FPSTR("{\r\n");
+          response += F("\"response\":");
+          response += backFromHolidays;
+          response += FPSTR("\r\n}\r\n") ;
+          server.send(200, "text/json", response);
         } else {
-          DebuglnF("Time of holidays is inferior at 2 days, radia ECO");
-          // On sauvegarde l'état des fils pilotes
-          for (i = 0; i < NB_FILS_PILOTES; i++) {
-            saveFP[i] = etatFP[i];
-            //DebugF("saveFP[i]: "); Debug(saveFP[i]); DebugF(" - etatFP[i]: "); Debugln(etatFP[i]);
-            cmd[i] = 'E';
+          DebugF("Seconds: "); Debugln(server.arg("seconds"));
+          backFromHolidays = DateTime(server.arg("seconds").toInt()).secondstime();
+          char cmd[NB_FILS_PILOTES+1] = "";
+          uint8_t i = 0;
+          // Si la durée avant le retour est supérieur à 2 jours, on coupe tout
+          if (backFromHolidays - now.secondstime() > (2*SECONDS_PER_DAY)) {
+            DebuglnF("Time of holidays is superior at 2 days, stop relais and radia HG");
+            if (fnctRelais == FNCT_RELAIS_AUTO) {
+              saveRelais = fnctRelais;
+              fnct_relais((String)FNCT_RELAIS_ARRET);
+            }
+            // On sauvegarde l'état des fils pilotes
+            for (i = 0; i < NB_FILS_PILOTES; i++) {
+              saveFP[i] = etatFP[i];
+              //DebugF("saveFP[i]: "); Debug(saveFP[i]); DebugF(" - etatFP[i]: "); Debugln(etatFP[i]);
+              cmd[i] = 'H';
+            }
+          } else {
+            DebuglnF("Time of holidays is inferior at 2 days, radia ECO");
+            // On sauvegarde l'état des fils pilotes
+            for (i = 0; i < NB_FILS_PILOTES; i++) {
+              saveFP[i] = etatFP[i];
+              //DebugF("saveFP[i]: "); Debug(saveFP[i]); DebugF(" - etatFP[i]: "); Debugln(etatFP[i]);
+              cmd[i] = 'E';
+            }
           }
+          //DebugF("cmd: "); Debugln(cmd);
+          int ret = fp(cmd);
+          //DebugF("Retour fp: "); Debugln(String(ret));
+          //String response = FPSTR("{") + F("\"response\":") + String(ret) + FPSTR("}") ;
+          String response = "";
+          response += FPSTR("{\r\n");
+          response += F("\"response\":");
+          response += ret;
+          response += FPSTR("\r\n}\r\n") ;
+          server.send(200, "text/json", response);
         }
-        //DebugF("cmd: "); Debugln(cmd);
-        int ret = fp(cmd);
-        //DebugF("Retour fp: "); Debugln(String(ret));
-        //String response = FPSTR("{") + F("\"response\":") + String(ret) + FPSTR("}") ;
-        String response = "";
-        response += FPSTR("{\r\n");
-        response += F("\"response\":");
-        response += ret;
-        response += FPSTR("\r\n}\r\n") ;
-        server.send(200, "text/json", response);
-      }
+      #else
+        server.sendHeader("Connection", "close");
+        server.sendHeader("Access-Control-Allow-Origin", "*");
+        server.send(404, "text/plain", "MOD_TIME unactive");
+      #endif
     });
 
     // handler for the hearbeat
@@ -745,7 +762,7 @@ void mysetup()
     });
 
     // handler for the /update form POST (once file upload finishes)
-    server.on("/update", HTTP_POST, 
+    server.on("/update", HTTP_POST,
       // handler once file upload finishes
       [&]() {
         server.sendHeader("Connection", "close");
@@ -753,7 +770,7 @@ void mysetup()
         server.send(200, "text/plain", (Update.hasError())?"FAIL":"OK");
         ESP.restart();
       },
-      // handler for upload, get's the sketch bytes, 
+      // handler for upload, get's the sketch bytes,
       // and writes them through the Update object
       [&]() {
         HTTPUpload& upload = server.upload();
@@ -766,7 +783,7 @@ void mysetup()
           ota_blink = true;
 
           //start with max available size
-          if(!Update.begin(maxSketchSpace)) 
+          if(!Update.begin(maxSketchSpace))
             Update.printError(DEBUG_SERIAL);
 
         } else if(upload.status == UPLOAD_FILE_WRITE) {
@@ -777,7 +794,7 @@ void mysetup()
           }
           ota_blink = !ota_blink;
           Debug(".");
-          if(Update.write(upload.buf, upload.currentSize) != upload.currentSize) 
+          if(Update.write(upload.buf, upload.currentSize) != upload.currentSize)
             Update.printError(DEBUG_SERIAL);
 
         } else if(upload.status == UPLOAD_FILE_END) {
@@ -803,9 +820,9 @@ void mysetup()
 
     // serves all SPIFFS Web file with 24hr max-age control
     // to avoid multiple requests to ESP
-    server.serveStatic("/font", SPIFFS, "/font","max-age=86400"); 
-    server.serveStatic("/js",   SPIFFS, "/js"  ,"max-age=86400"); 
-    server.serveStatic("/css",  SPIFFS, "/css" ,"max-age=86400"); 
+    server.serveStatic("/font", SPIFFS, "/font","max-age=86400");
+    server.serveStatic("/js",   SPIFFS, "/js"  ,"max-age=86400");
+    server.serveStatic("/css",  SPIFFS, "/css" ,"max-age=86400");
     server.begin();
     DebuglnF("HTTP server started");
 
@@ -849,6 +866,9 @@ void mysetup()
   #ifdef MOD_ADPS
     Debug("ADPS ");
   #endif
+  #ifdef MOD_TIME
+    Debug("TIME ");
+  #endif
 
   Debugln();
 
@@ -874,7 +894,7 @@ void mysetup()
 
   // Feed the dog
   _wdt_feed();
-    
+
   #ifdef MOD_TELEINFO
     // Initialiser la téléinfo et attente d'une trame valide
     // Le status est mis à jour dans les callback de la teleinfo
@@ -935,7 +955,7 @@ Comments: -
     timeLast = timeNow;
     minutes = minutes + 1;
   }
-  // if one minute has passed, start counting milliseconds from zero again 
+  // if one minute has passed, start counting milliseconds from zero again
   // and add one minute to the clock.
   if (minutes == 60) {
     minutes = 0;
@@ -958,7 +978,7 @@ Comments: -
 
   // Change these varialbes according to the error of your board.
 
-  // The only way to find out how far off your boards internal clock is, 
+  // The only way to find out how far off your boards internal clock is,
   // is by uploading this sketch at exactly the same time as the real time,
   // letting it run for a few days
 
@@ -1006,35 +1026,56 @@ void loop()
         getTime(); // Gestion du temps
         //Debug("doNTP: "); Debugln(doNTP ? "true" : "false");
         if (doNTP) {
-          // updated hourly
-          if (cm%60 == 0 && cs%60 == 0) {
+          // updated journaly
+          if (ch%24 == 0 && cm%60 == 0 && cs%60 == 0) {
             DebuglnF("It's time to get time");
             getTimeNTP();
           }
         }
         // Si la variable des vacances est définie
-        // Si la date de retour est atteinte
-        DebugF("backFromHolidays: "); Debugln(backFromHolidays);
-        DebugF("now: "); Debugln(now.secondstime());
-        if (backFromHolidays > 0 && backFromHolidays < now.secondstime()) {
-          DebuglnF("Holidays are finish, sorry ;-)");
-          // On réinitialise la variable
-          backFromHolidays = 0;
-          // On remet le mode auto du relais
-          if (fnctRelais != FNCT_RELAIS_AUTO) {
-            DebuglnF("Relay mode in auto");
-            fnct_relais((String)FNCT_RELAIS_AUTO);
+        if (backFromHolidays > 0) {
+          // Si la date de retour est atteinte
+          DebugF("backFromHolidays: "); Debugln(backFromHolidays);
+          DebugF("now: "); Debugln(now.secondstime());
+          // Le mode du relais du ballon doit être enclenché 24h avant le retour,
+          // si il était en mode automatique avant les vacances
+          if (saveRelais == FNCT_RELAIS_AUTO && backFromHolidays - SECONDS_PER_DAY < now.secondstime()) {
+            // On remet le mode auto du relais
+            if (fnctRelais != FNCT_RELAIS_AUTO) {
+              DebuglnF("Change mode relay in auto");
+              fnct_relais((String)FNCT_RELAIS_AUTO);
+              saveRelais = 0;
+            }
           }
-          // On remet le chauffage en route
-          char cmd[NB_FILS_PILOTES+1] = "";
-          for (uint8_t i = 0; i < NB_FILS_PILOTES; i++) {
-            cmd[i] = saveFP[i];
-            //saveFP[i] = '';
+          if (backFromHolidays - SECONDS_PER_DAY < now.secondstime()) {
+            // On remet les radiateurs en mode eco
+            // TODO: Ajouter un flag pour eviter de boucler
+            char cmd[NB_FILS_PILOTES+1] = "";
+            for (uint8_t i = 0; i < NB_FILS_PILOTES; i++) {
+              cmd[i] = 'E';
+              //saveFP[i] = '';
+            }
+            int ret = fp(cmd);
+            DebugF("Retour fp: "); Debugln(String(ret));
           }
-          int ret = fp(cmd);
-          DebugF("Retour fp: "); Debugln(String(ret));
-        } else if (backFromHolidays > 0) {
-          //Debugf("Holidays in progress");
+          // Le chauffage doit être enclenché 4h avant le retour
+          // TODO: calculer le temps de chauffe avec les sondes
+          if (backFromHolidays - (4 * 3600) < now.secondstime()) {
+            DebuglnF("Holidays are finish, sorry :-(");
+            // On réinitialise la variable
+            backFromHolidays = 0;
+
+            // On remet le chauffage en route
+            char cmd[NB_FILS_PILOTES+1] = "";
+            for (uint8_t i = 0; i < NB_FILS_PILOTES; i++) {
+              cmd[i] = saveFP[i];
+              //saveFP[i] = '';
+            }
+            int ret = fp(cmd);
+            DebugF("Retour fp: "); Debugln(String(ret));
+          } else if (backFromHolidays > 0) {
+            //Debugf("Holidays in progress");
+          }
         }
       #endif
     #endif
@@ -1127,15 +1168,15 @@ void loop()
 
   // Connection au Wifi ou Vérification
   #ifdef ESP8266
-    // Webserver 
+    // Webserver
     server.handleClient();
     ArduinoOTA.handle();
 
-    if (task_emoncms) { 
-      emoncmsPost(); 
-      task_emoncms=false; 
-    } else if (task_jeedom) { 
-      jeedomPost();  
+    if (task_emoncms) {
+      emoncmsPost();
+      task_emoncms=false;
+    } else if (task_jeedom) {
+      jeedomPost();
       task_jeedom=false;
     }
   #endif
