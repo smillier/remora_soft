@@ -1,8 +1,8 @@
 // ======================================================================
 //                      ESP8266 WEB Server Simulator
 // ======================================================================
-// This file is not part of web server, it's just used as ESP8266 
-// Simulator to check HTLM / JQuery and all web stuff without needing 
+// This file is not part of web server, it's just used as ESP8266
+// Simulator to check HTLM / JQuery and all web stuff without needing
 // to flash ESP8266 target, you'll need nodejs to run it
 // Please install dependencies with
 // npm install mime httpdispatcher websocket mime formidable
@@ -20,7 +20,8 @@ var mime = require('mime');
 var formidable = require("formidable");
 var util = require('util');
 var os = require('os');
-var dispatcher = require('httpdispatcher');
+var HttpDispatcher = require('httpdispatcher');
+var dispatcher = new HttpDispatcher();
 var interval;
 var startTime = Date.now();
 var ws = require('websocket').server;
@@ -81,91 +82,95 @@ var config = {
 }
 
 var fp ={
-	"fp1": "A",
-	"fp2": "E",
-	"fp3": "E",
-	"fp4": "E",
-	"fp5": "C",
-	"fp6": "H",
-	"fp7": "C"
+  "fp1": "A",
+  "fp2": "E",
+  "fp3": "E",
+  "fp4": "E",
+  "fp5": "C",
+  "fp6": "H",
+  "fp7": "C"
 }
 
 var relais = {
-	"relais": 1,
-	"fnct_relais": 2
+  "relais": 1,
+  "fnct_relais": 2
 }
+var saveRelais = 0;
+var saveFP = {};
 
-var spiffs = { 
-	"files":[
-	{"na":"/css/nrjmeter.css.gz","va":"24325"}
-	,{"na":"/favicon.ico","va":"1150"}
-	,{"na":"/fonts/glyphicons.woff","va":"23424"}
-	,{"na":"/fonts/glyphicons.woff2","va":"18028"}
-	,{"na":"/index.htm.gz","va":"6026"}
-	,{"na":"/js/main.js.gz","va":"6131"}
-	,{"na":"/js/nrjmeter.js.gz","va":"80913"}
-	,{"na":"/version.json","va":"57"}
-	],
-	"spiffs":[
-	{"Total":957314, "Used":163652, "ram":21440}
-	]
+var holidays = 0;
+
+var spiffs = {
+  "files":[
+  {"na":"/css/nrjmeter.css.gz","va":"24325"}
+  ,{"na":"/favicon.ico","va":"1150"}
+  ,{"na":"/fonts/glyphicons.woff","va":"23424"}
+  ,{"na":"/fonts/glyphicons.woff2","va":"18028"}
+  ,{"na":"/index.htm.gz","va":"6026"}
+  ,{"na":"/js/main.js.gz","va":"6131"}
+  ,{"na":"/js/nrjmeter.js.gz","va":"80913"}
+  ,{"na":"/version.json","va":"57"}
+  ],
+  "spiffs":[
+  {"Total":957314, "Used":163652, "ram":21440}
+  ]
 }
 
 var wifiscan = [
-	{"ssid":"FreeWifi_secure","rssi":-59,"enc":"????","chan":1},
-	{"ssid":"HOME-FREEBOX","rssi":-60,"enc":"WPA2","chan":1},
-	{"ssid":"FreeWifi","rssi":-60,"enc":"Open","chan":1},
-	{"ssid":"CH2I-HOTSPOT","rssi":-61,"enc":"WPA2","chan":9},
-	{"ssid":"HP-Print-3D-Deskjet 3520 series","rssi":-77,"enc":"Open","chan":6},
-	{"ssid":"Livebox-0479","rssi":-93,"enc":"Auto","chan":6},
-	{"ssid":"HOME-HOTSPOT","rssi":-60,"enc":"WPA2","chan":9}
-	]
+  {"ssid":"FreeWifi_secure","rssi":-59,"enc":"????","chan":1},
+  {"ssid":"HOME-FREEBOX","rssi":-60,"enc":"WPA2","chan":1},
+  {"ssid":"FreeWifi","rssi":-60,"enc":"Open","chan":1},
+  {"ssid":"CH2I-HOTSPOT","rssi":-61,"enc":"WPA2","chan":9},
+  {"ssid":"HP-Print-3D-Deskjet 3520 series","rssi":-77,"enc":"Open","chan":6},
+  {"ssid":"Livebox-0479","rssi":-93,"enc":"Auto","chan":6},
+  {"ssid":"HOME-HOTSPOT","rssi":-60,"enc":"WPA2","chan":9}
+  ]
 
 
 function system() {
 return[
-	{"na":"Uptime","va":((Date.now()-startTime)/1000).toFixed(0)},
-	{"na":"Firmware Version","va":"1.0"},
-	{"na":"Compile le","va":"Feb 28 2016 04:35:12"},
-	{"na":"SDK Version","va":"1.5.1(e67da894)"},
-	{"na":"Chip ID","va":"0x115F0B"},
-	{"na":"Boot Version","va":"0x1F"},
-	{"na":"Reset cause","va":"External System"},
-	{"na":"Flash Real Size","va":"4.00 MB"},
-	{"na":"Flash IDE Speed","va":"40MHz"},
-	{"na":"Flash IDE Mode","va":"QIO"},
-	{"na":"Firmware Size","va":"373.69 KB"},
-	{"na":"Free Size","va":"2.63 MB"},
-	{"na":"Analog","va":"6 mV"},
-	{"na":"Wifi Mode","va":"STA"},
-	{"na":"Wifi Mode","va":"N"},
-	{"na":"Wifi Channel","va":"9"},
-	{"na":"Wifi AP ID","va":"0"},
-	{"na":"Wifi Status","va":"5"},
-	{"na":"Wifi Autoconnect","va":"1"},
-	{"na":"Etat Relais", "va":"Fermé"},
-	{"na":"Fnct Relais", "va":"Auto"},
-	{"na":"SPIFFS Total","va":"934.88 KB"},
-	{"na":"SPIFFS Used","va":"159.82 KB"},
-	{"na":"SPIFFS Occupation","va":"17%"},
-	{"na":"Free Ram","va":humanSize(os.freemem())}
-	]
+  {"na":"Uptime","va":((Date.now()-startTime)/1000).toFixed(0)},
+  {"na":"Firmware Version","va":"1.0"},
+  {"na":"Compile le","va":"Feb 28 2016 04:35:12"},
+  {"na":"SDK Version","va":"1.5.1(e67da894)"},
+  {"na":"Chip ID","va":"0x115F0B"},
+  {"na":"Boot Version","va":"0x1F"},
+  {"na":"Reset cause","va":"External System"},
+  {"na":"Flash Real Size","va":"4.00 MB"},
+  {"na":"Flash IDE Speed","va":"40MHz"},
+  {"na":"Flash IDE Mode","va":"QIO"},
+  {"na":"Firmware Size","va":"373.69 KB"},
+  {"na":"Free Size","va":"2.63 MB"},
+  {"na":"Analog","va":"6 mV"},
+  {"na":"Wifi Mode","va":"STA"},
+  {"na":"Wifi Mode","va":"N"},
+  {"na":"Wifi Channel","va":"9"},
+  {"na":"Wifi AP ID","va":"0"},
+  {"na":"Wifi Status","va":"5"},
+  {"na":"Wifi Autoconnect","va":"1"},
+  {"na":"Etat Relais", "va":"Fermé"},
+  {"na":"Fnct Relais", "va":"Auto"},
+  {"na":"SPIFFS Total","va":"934.88 KB"},
+  {"na":"SPIFFS Used","va":"159.82 KB"},
+  {"na":"SPIFFS Occupation","va":"17%"},
+  {"na":"Free Ram","va":humanSize(os.freemem())}
+  ]
 }
 
 
 function humanSize(bytes) {
-	var units =  ['kB','MB','GB','TB','PB','EB','ZB','YB']
-	var thresh = 1024;
-	if(Math.abs(bytes) < thresh) 
-		return bytes + ' B';
+  var units =  ['kB','MB','GB','TB','PB','EB','ZB','YB']
+  var thresh = 1024;
+  if(Math.abs(bytes) < thresh)
+    return bytes + ' B';
 
-	var u = -1;
-	do {
-		bytes /= thresh;
-		++u;
-	} 
-	while(Math.abs(bytes) >= thresh && u < units.length - 1);
-	return bytes.toFixed(1)+' '+units[u];
+  var u = -1;
+  do {
+    bytes /= thresh;
+    ++u;
+  }
+  while(Math.abs(bytes) >= thresh && u < units.length - 1);
+  return bytes.toFixed(1)+' '+units[u];
 }
 
 //Lets use our dispatcher
@@ -173,7 +178,7 @@ function handleRequest(req, res) {
   try {
     console.log(req.url);
     dispatcher.dispatch(req, res);
-  } 
+  }
   catch(err) {
     console.log(err);
   }
@@ -191,160 +196,158 @@ function isEmptyObject(obj) {
 
 dispatcher.onError(function(req, res) {
   var uri = url.parse(req.url).pathname;
-	var filePath = '.' + uri;
-	var extname = path.extname(filePath);
-	var url_parts = url.parse(req.url, true);
-	var query = url_parts.query;
-	var contentType ;
+  var filePath = '.' + uri;
+  var extname = path.extname(filePath);
+  var url_parts = url.parse(req.url, true);
+  var query = url_parts.query;
+  var contentType ;
 
- 	console.log(util.inspect({query: query}));
+  console.log(util.inspect({query: query}));
 
-		// Check first Query posted http://ip/?toto=titi
-		if (!isEmptyObject(query)) {
+  // Check first Query posted http://ip/?toto=titi
+  if (!isEmptyObject(query)) {
 
-		 	if (query.fp != undefined && query.fp.length==7){
-		 		console.log("FP="+query.fp);
-		 		for (var i=1; i<=7; i++) {
-		 			fp["fp"+i] = query.fp.charAt(i-1);
-		 		}
-		 		console.log( util.inspect({fp: fp}));
-			  res.writeHead(200, {"Content-Type": "text/json"});
-			  res.end('{"response":0}');
+    if (query.fp != undefined && query.fp.length==7){
+      console.log("FP="+query.fp);
+      for (var i=1; i<=7; i++) {
+        fp["fp"+i] = query.fp.charAt(i-1);
+      }
+      console.log( util.inspect({fp: fp}));
+      res.writeHead(200, {"Content-Type": "text/json"});
+      res.end('{"response":0}');
 
-		 	} else if  (query.setfp != undefined && query.setfp.length==2) {
-		 		console.log("setfp="+query.setfp);
-		 		var i = query.setfp.charAt(0);
-		 		var o = query.setfp.charAt(1).toUpperCase();
+    } else if  (query.setfp != undefined && query.setfp.length==2) {
+      console.log("setfp="+query.setfp);
+      var i = query.setfp.charAt(0);
+      var o = query.setfp.charAt(1).toUpperCase();
 
-			  res.writeHead(200, {"Content-Type": "text/json"});
+      res.writeHead(200, {"Content-Type": "text/json"});
 
-		 		if (i>='1' && i<='7' && (o=='C'||o=='A'||o=='E'||o=='H'||o=='1'||o=='2') ) {
-		 			fp["fp"+i] = o;
-			  	res.end('{"response":0}');
-			 		console.log( util.inspect({fp: fp}));
-		 		} else {
-				  res.end('{"response":1}');
-				}
+      if (i>='1' && i<='7' && (o=='C'||o=='A'||o=='E'||o=='H'||o=='1'||o=='2') ) {
+        fp["fp"+i] = o;
+        res.end('{"response":0}');
+        console.log( util.inspect({fp: fp}));
+      } else {
+        res.end('{"response":1}');
+      }
 
-			} else if (query.frelais != undefined && query.frelais.length == 1) {
-				console.log("frelais: ", query.frelais);
-				if (query.frelais >= 0 && query.frelais <= 2) {
-			  	res.writeHead(200, {"Content-Type": "text/json"});
-			  	relais.fnct_relais = query.frelais;
-			  	if (query.frelais >= 0 && query.frelais <= 1) {
-			  		relais.relais = query.frelais;
-			  	} else {
-			  		relais.relais = Math.floor(Math.random() * 2);
-			  	}
-			  	res.end('{"response":0}');
-				} else {
-					res.writeHead(412, {"Content-Type": "text/json"});
-					res.end('{"response":1}');
-				}
-		 	} else {
-        res.writeHead(500);
-        res.end('Sorry, unknown or bad query received: '+query+' ..\n');
-		 	}
+    } else if (query.frelais != undefined && query.frelais.length == 1) {
+      console.log("frelais: ", query.frelais);
+      if (query.frelais >= 0 && query.frelais <= 2) {
+        res.writeHead(200, {"Content-Type": "text/json"});
+        relais.fnct_relais = query.frelais;
+        if (query.frelais >= 0 && query.frelais <= 1) {
+          relais.relais = query.frelais;
+        } else {
+          relais.relais = Math.floor(Math.random() * 2);
+        }
+        res.end('{"response":0}');
+      } else {
+        res.writeHead(412, {"Content-Type": "text/json"});
+        res.end('{"response":1}');
+      }
+    } else {
+      res.writeHead(500);
+      res.end('Sorry, unknown or bad query received: '+query+' ..\n');
+    }
 
-		// serve Web page
-		} else {
+  // serve Web page
+  } else {
 
-			if (filePath == './') {
-  			filePath = './index.htm';
-			}
-			
-			contentType = mime.lookup(filePath);
+    if (filePath == './') {
+      filePath = './index.htm';
+    }
 
-			// Stream out he file
-			fs.readFile(filePath, function(error, content) {
-		    if (error) {
-		      if(error.code == 'ENOENT'){
-		        fs.readFile('./404.html', function(error, content) {
-		          res.writeHead(200, { 'Content-Type': contentType });
-		          res.end(content, 'utf-8');
-							console.log("ENOENT "+filePath+ ' => '+contentType);
-		        });
-		      }
-		      else {
-		        res.writeHead(500);
-		        res.end('Sorry, check with the site admin for error: '+error.code+' ..\n');
-		        res.end(); 
-						console.log("Error "+filePath+ ' => '+contentType);
-		      }
-		    }
-		    else {
-		      res.writeHead(200, { 'Content-Type': contentType });
-		      res.end(content, 'utf-8');
-					console.log("Sent "+filePath+ ' => '+contentType);
-		    }
-		  });
-		}
+    contentType = mime.lookup(filePath);
 
-
+    // Stream out he file
+    fs.readFile(filePath, function(error, content) {
+      if (error) {
+        if(error.code == 'ENOENT'){
+          fs.readFile('./404.html', function(error, content) {
+            res.writeHead(200, { 'Content-Type': contentType });
+            res.end(content, 'utf-8');
+            console.log("ENOENT "+filePath+ ' => '+contentType);
+          });
+        }
+        else {
+          res.writeHead(500);
+          res.end('Sorry, check with the site admin for error: '+error.code+' ..\n');
+          res.end();
+          console.log("Error "+filePath+ ' => '+contentType);
+        }
+      }
+      else {
+        res.writeHead(200, { 'Content-Type': contentType });
+        res.end(content, 'utf-8');
+        console.log("Sent "+filePath+ ' => '+contentType);
+      }
+    });
+  }
 });
 
 
 function rnd(low, high) {
-	return Math.floor((Math.random() * 100 ) * (high - low) + low) ;
+  return Math.floor((Math.random() * 100 ) * (high - low) + low) ;
 }
 
-function rTemp() { 
-	temperature = (rnd(-20,20) + 20) / 100.0; 
-	return temperature;
+function rTemp() {
+  temperature = (rnd(-20,20) + 20) / 100.0;
+  return temperature;
 }
 
-function rHum() { 
-	humidity = (rnd(-20,20) + 50)/100.0; 
+function rHum() {
+  humidity = (rnd(-20,20) + 50)/100.0;
  return humidity;
 }
 
-function sensors() {  
-	var sensors =	{	"si7021":[ {"temperature":rTemp(),	"humidity":rHum(),	"seen":1}	],
-									 "sht10":[ {"temperature":rTemp(),	 "humidity":rHum(),	"seen":1}	]	}
-	return sensors;
+function sensors() {
+  var sensors = { "si7021":[ {"temperature":rTemp(),  "humidity":rHum(),  "seen":1} ],
+                   "sht10":[ {"temperature":rTemp(),   "humidity":rHum(), "seen":1} ] }
+  return sensors;
 }
 
 function log(con, msg) {
-	console.log(msg);
-	con.sendUTF(JSON.stringify({message:"log", data:msg}));
+  console.log(msg);
+  con.sendUTF(JSON.stringify({message:"log", data:msg}));
 }
 
 dispatcher.onGet('/tinfo.json', function(req, res) {
-	require('fs').readFile('./tinfo.json', function(err, file) {
-		if (err) {
-			//errorListener(req, res);
-			return;
-		}
-		res.writeHeader(200, {
-			"Content-Type": "text/json"
-		});
-		res.write(file, 'binary');
-		res.end();
-	});
+  require('fs').readFile('./tinfo.json', function(err, file) {
+    if (err) {
+      //errorListener(req, res);
+      return;
+    }
+    res.writeHeader(200, {
+      "Content-Type": "text/json"
+    });
+    res.write(file, 'binary');
+    res.end();
+  });
 })
 
 dispatcher.onGet("/sensors", function(req, res) {
       res.writeHead(200, {"Content-Type": "text/json"});
       res.end(JSON.stringify(sensors()));
-});    
+});
 
 dispatcher.onGet("/system.json", function(req, res) {
-			//console.log('s[0]=' + util.inspect(system[0], false, null));
-			//system[0].va = ((Date.now()-startTime)/1000).toFixed(0);
-			//system[1].va = humanSize(os.freemem());
+      //console.log('s[0]=' + util.inspect(system[0], false, null));
+      //system[0].va = ((Date.now()-startTime)/1000).toFixed(0);
+      //system[1].va = humanSize(os.freemem());
       res.writeHead(200, {"Content-Type": "text/json"});
       res.end(JSON.stringify(system()));
-});    
+});
 
 dispatcher.onGet("/spiffs", function(req, res) {
       res.writeHead(200, {"Content-Type": "text/json"});
       res.end(JSON.stringify(spiffs));
-});    
+});
 
 dispatcher.onGet("/config", function(req, res) {
       res.writeHead(200, {"Content-Type": "text/json"});
       res.end(JSON.stringify(config));
-});  
+});
 
 dispatcher.onGet("/fp", function(req, res) {
       res.writeHead(200, {"Content-Type": "text/json"});
@@ -352,88 +355,184 @@ dispatcher.onGet("/fp", function(req, res) {
 });
 
 dispatcher.onGet("/relais", function(req, res) {
-	console.log('relaisJSON: ', JSON.stringify(relais));
+  console.log('relaisJSON: ', JSON.stringify(relais));
       res.writeHead(200, {"Content-Type": "text/json"});
       res.end(JSON.stringify(relais));
 });
 
+dispatcher.onGet("/holidays", function(req, res) {
+  var now = parseInt(Date.now() / 1000, 10);
+  var uri = url.parse(req.url).pathname;
+  var filePath = '.' + uri;
+  var extname = path.extname(filePath);
+  var url_parts = url.parse(req.url, true);
+  var query = url_parts.query;
+  if (query.seconds != undefined) {
+    console.log('holidays seconds: ', query.seconds);
+    res.writeHead(200, {"Content-Type": "text/json"});
+    var seconds = parseInt(query.seconds, 10);
+    if (seconds > 0) {
+      holidays = seconds;
+      res.end('{"response":0}');
+    } else {
+      res.end('{"response":1}');
+    }
+
+    /********************************************************/
+
+    // Si la durée avant le retour est supérieur à 2 jours, on coupe tout
+    if (holidays - now > (2*86400)) {
+      console.log("Time of holidays is superior at 2 days, stop relais and radia HG");
+      if (relais.fnct_relais == 2) {
+        saveRelais = relais.fnct_relais;
+        relais.fnct_relais = 0;
+        relais.relais = 0;
+      }
+      // On sauvegarde l'état des fils pilotes
+      for (i = 1; i <= 7; i++) {
+        saveFP["fp"+i] = fp["fp"+i];
+        //DebugF("saveFP[i]: "); Debug(saveFP[i]); DebugF(" - etatFP[i]: "); Debugln(etatFP[i]);
+        fp["fp"+i] = 'H';
+      }
+    } else if (holidays > 0) {
+      console.log("Time of holidays is inferior at 2 days, radia ECO");
+      // On sauvegarde l'état des fils pilotes
+      for (i = 1; i <= 7; i++) {
+        saveFP["fp"+i] = fp["fp"+i];
+        //DebugF("saveFP[i]: "); Debug(saveFP[i]); DebugF(" - etatFP[i]: "); Debugln(etatFP[i]);
+        fp["fp"+i] = 'E';
+      }
+    }
+    console.log('saveFP: ', saveFP);
+    console.log('FP: ', fp);
+
+    /********************************************************/
+
+  } else if (query.testRelais != undefined) {
+    holidays = now;
+    res.writeHead(200, {"Content-Type": "text/json"});
+    res.end(JSON.stringify(holidays));
+  } else {
+    /********************************************************/
+    // Si la variable des vacances est définie
+    if (holidays > 0) {
+      // Si la date de retour est atteinte
+      console.log("backFromHolidays: ", holidays);
+      console.log("now: ", now);
+      // Le mode du relais du ballon doit être enclenché 24h avant le retour,
+      // si il était en mode automatique avant les vacances
+      if (saveRelais == 2 && holidays - 86400 < now) {
+        // On remet le mode auto du relais
+        if (relais.fnct_relais != 2) {
+          console.log("Change mode relay in auto");
+          relais.fnct_relais = 2;
+          relais.relais = 1;
+          saveRelais = 0;
+        }
+      }
+      // Le chauffage doit être enclenché 4h avant le retour
+      // TODO: calculer le temps de chauffe avec les sondes
+      if (holidays - (4 * 3600) < now) {
+        console.log("Holidays are finish, sorry :-(");
+        // On réinitialise la variable
+        holidays = 0;
+
+        // On remet le chauffage en route
+        for (var i = 1; i <= 7; i++) {
+          fp["fp"+i] = saveFP["fp"+i];
+        }
+        saveFP = {};
+      } else if (holidays > 0) {
+        console.log("Holidays in progress");
+      }
+      console.log('saveFP: ', saveFP);
+      console.log('FP: ', fp);
+    }
+
+    /********************************************************/
+    console.log('request holidays: ', JSON.stringify(holidays));
+    res.writeHead(200, {"Content-Type": "text/json"});
+    res.end(JSON.stringify({response: holidays}));
+  }
+});
+
 dispatcher.onGet("/?", function(req, res) {
-			//Store the data from the fields in your data store.
-			//The data store could be a file or database or any other store based
-			//on your application.
-			var fields = [];
-			var form = new formidable.IncomingForm();
-			form.on('field', function (field, value) {
-			    console.log(field);
-			    console.log(value);
-			    fields[field] = value;
-			});
+      //Store the data from the fields in your data store.
+      //The data store could be a file or database or any other store based
+      //on your application.
+      var fields = [];
+      var form = new formidable.IncomingForm();
+      form.on('field', function (field, value) {
+          console.log(field);
+          console.log(value);
+          fields[field] = value;
+      });
 
-			form.on('end', function () {
-			  res.writeHead(200, {"Content-Type": "text/json"});
- 			  res.end('{"response":0}');
-			});
-			form.parse(req);
+      form.on('end', function () {
+        res.writeHead(200, {"Content-Type": "text/json"});
+        res.end('{"response":0}');
+      });
+      form.parse(req);
 
-}); 
+});
 
 dispatcher.onGet("/wifiscan.json", function(req, res) {
-			setTimeout(function() {
-	      						res.writeHead(200, {"Content-Type": "text/json"});
-  	    						res.end(JSON.stringify(wifiscan));
-									}, 1000, req, res);
-}); 
+      setTimeout(function() {
+                    res.writeHead(200, {"Content-Type": "text/json"});
+                    res.end(JSON.stringify(wifiscan));
+                  }, 1000, req, res);
+});
 
 dispatcher.onGet("/hb", function(req, res) {
       res.writeHead(200, {"Content-Type": "text/html"});
       res.end("OK");
-});    
+});
 
 var server = http.createServer(handleRequest);
 var wsSrv = new ws({ httpServer: server });
 
 wsSrv.on('request', function(request) {
-	var connection = request.accept('', request.origin);
-	console.log("+++ Websocket client connected!");
-	clearInterval(interval);
+  var connection = request.accept('', request.origin);
+  console.log("+++ Websocket client connected!");
+  clearInterval(interval);
 
-	connection.on('message', function(message) {
-		console.log('WS ' + util.inspect(message, false, null));
+  connection.on('message', function(message) {
+    console.log('WS ' + util.inspect(message, false, null));
 
-		if (message.type === 'utf8') {
-			var msg = message.utf8Data.split(':');
-			var value = msg[1];
-			msg = msg[0]
-			console.log('WS  msg="' + msg + '" value="'+value+'"');
-			// Command message
-			if ( msg.charAt(0)=='$' ) 
-			{
-				clearInterval(interval);
+    if (message.type === 'utf8') {
+      var msg = message.utf8Data.split(':');
+      var value = msg[1];
+      msg = msg[0]
+      console.log('WS  msg="' + msg + '" value="'+value+'"');
+      // Command message
+      if ( msg.charAt(0)=='$' )
+      {
+        clearInterval(interval);
 
-				if (msg==='$system') {
-					interval = setInterval(function(){connection.sendUTF(JSON.stringify({message:"system", data:system()}));}, 1000);
-					connection.sendUTF(JSON.stringify({message:"system", data:system()}));
-					//connection.sendUTF('\'{message:"sensors", data:[{"na":"Uptime","va":"17"},{"na":"Board Version","va":"1.0.0"},{"na":"Compile le","va":"Jan 20 2016 18:54:14"}]}\'');
-				} else if (msg==='$sensors') {
-					interval = setInterval(function(){connection.sendUTF(JSON.stringify({message:"sensors", data:sensors()}));},value*1000);
-					connection.sendUTF(JSON.stringify({message:"sensors", data:sensors()}));
-				}
-			} else {
-				connection.sendUTF("Reveived your raw message '" + msg + "'");
+        if (msg==='$system') {
+          interval = setInterval(function(){connection.sendUTF(JSON.stringify({message:"system", data:system()}));}, 1000);
+          connection.sendUTF(JSON.stringify({message:"system", data:system()}));
+          //connection.sendUTF('\'{message:"sensors", data:[{"na":"Uptime","va":"17"},{"na":"Board Version","va":"1.0.0"},{"na":"Compile le","va":"Jan 20 2016 18:54:14"}]}\'');
+        } else if (msg==='$sensors') {
+          interval = setInterval(function(){connection.sendUTF(JSON.stringify({message:"sensors", data:sensors()}));},value*1000);
+          connection.sendUTF(JSON.stringify({message:"sensors", data:sensors()}));
+        }
+      } else {
+        connection.sendUTF("Reveived your raw message '" + msg + "'");
 
-				//log(connection, "Reveived your raw message '" + msg + "'");
-			}
+        //log(connection, "Reveived your raw message '" + msg + "'");
+      }
 
-		}
-		else if (message.type === 'binary') {
-			console.log('Received Binary Message of ' + message.binaryData.length + ' bytes');
-			connection.sendBytes(message.binaryData);
-		}
-	});
+    }
+    else if (message.type === 'binary') {
+      console.log('Received Binary Message of ' + message.binaryData.length + ' bytes');
+      connection.sendBytes(message.binaryData);
+    }
+  });
 
-	connection.on('close', function(reasonCode, description) {
-		console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
-	});
+  connection.on('close', function(reasonCode, description) {
+    console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
+  });
 });
 
 //Lets start our server
