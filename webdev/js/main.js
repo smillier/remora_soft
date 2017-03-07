@@ -137,12 +137,12 @@
 
   function activeZone(id, state) {
     if (debug) console.log('activeZone', id, state);
-    
+
     var $div = $('div.thumbnail[data-zone="'+id+'"]'),
         $icon = $('span.icon', $div),
         active,
         img;
-    
+
     switch (state) {
       case 'C':
         active = 'a.conf';
@@ -331,7 +331,50 @@
           });
         });
       }
+      // Onglet de gestion des zones
+      else if (target == '#tab_holidays') {
+        $('body').removeClass('loaded'); // On affiche le loader
+        // On récupère l'état de toutes les zones
+        $.getJSON('/holidays', function(data) {
+          if (data.response > 0) {
+            function formatDate(date) {
+              var elts = [date.getFullYear()];
+              var month = date.getMonth()+1;
+              if (month < 10) {month = '0' + month;}
+              elts.push(month);
+              var day = date.getDate();
+              if (day < 10) {day = '0' + day;}
+              elts.push(day);
+              return elts.join('-');
+            }
+            var backTimestamp = new Date(data.response * 1000);
+            $('#holidays').val(formatDate(backTimestamp));
+            $('#delete_hld').off('click').click(delete_hld).show();
+          } else {
+            $('#info-holiday').text('Aucune date configurée').show();
+            $('#delete_hld').hide();
+          }
+          $('body').addClass('loaded'); // On masque le loader
+        });
+      }
     });
+
+    function delete_hld(e) {
+      if (e.preventDefault) {
+        e.preventDefault();
+      }
+      $.getJSON('/holidays?seconds=1')
+        .done( function(msg, textStatus, xhr) {
+          $('#holidays').val('');
+          $('#delete_hld').hide();
+          $('.nav-tabs a[href=#tab_holidays]').tab('show');
+          $('#info-holiday').text('Aucune date configurée').show();
+          Notify(2, 'ok', 'success', 'Enregistrement effectué', xhr.status+' '+msg);
+        })
+        .fail( function(xhr, textStatus, errorThrown) {
+          Notify(4, 'remove', 'danger', 'Erreur lors de l\'enregistrement', xhr.status+' '+errorThrown);
+        });
+    }
 
     $('#tab_tinfo_data')
       .on('load-success.bs.table', function (e, data) {
@@ -459,6 +502,30 @@
         $btn.addClass('hide');
       }
       return ok;
+    });
+
+    $('#frm_holidays').validator().on('submit', function (e) {
+      // everything looks good!
+      if (!e.isDefaultPrevented()) {
+        e.preventDefault();
+        console.log("Form Holidays Submit");
+        var backDate = $('#holidays').val();
+        var backTimestamp = parseInt(new Date(backDate).getTime() / 1000);
+
+        $.getJSON('/holidays?seconds=' + backTimestamp)
+          .done( function(msg, textStatus, xhr) {
+            if (msg.response == 0) {
+              Notify(2, 'ok', 'success', 'Enregistrement effectué', xhr.status);
+              $('#delete_hld').off('click').click(delete_hld).show();
+              $('#info-holiday').text('').hide();
+            } else {
+              Notify(4, 'remove', 'danger', 'Erreur lors de l\'enregistrement', xhr.status);
+            }
+          })
+          .fail( function(xhr, textStatus, errorThrown) {
+            Notify(4, 'remove', 'danger', 'Erreur lors de l\'enregistrement', xhr.status+' '+errorThrown);
+          });
+      }
     });
 
     $('#btn_upload_fw').click(function() {
