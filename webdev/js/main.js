@@ -363,7 +363,7 @@
       if (e.preventDefault) {
         e.preventDefault();
       }
-      $.getJSON('/holidays?seconds=1')
+      $.getJSON('/holidays?seconds=0')
         .done( function(msg, textStatus, xhr) {
           $('#holidays').val('');
           $('#delete_hld').hide();

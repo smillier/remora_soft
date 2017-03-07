@@ -387,7 +387,7 @@ dispatcher.onGet("/holidays", function(req, res) {
     console.log('holidays seconds: ', query.seconds);
     res.writeHead(200, {"Content-Type": "text/json"});
     var seconds = parseInt(query.seconds, 10);
-    if (seconds > 0) {
+    if (seconds >= 0) {
       holidays = seconds;
       res.end('{"response":0}');
     } else {
@@ -418,6 +418,20 @@ dispatcher.onGet("/holidays", function(req, res) {
         //DebugF("saveFP[i]: "); Debug(saveFP[i]); DebugF(" - etatFP[i]: "); Debugln(etatFP[i]);
         fp["fp"+i] = 'E';
       }
+    } else {
+      if (saveRelais == 2 && relais.fnct_relais != 2) {
+        console.log("Change mode relay in auto");
+        relais.fnct_relais = 2;
+        relais.relais = 1;
+        saveRelais = 0;
+      }
+      // On remet le chauffage en route
+      for (var i = 1; i <= 7; i++) {
+        fp["fp"+i] = saveFP["fp"+i];
+      }
+      saveFP = {};
+      // On réinitialise la variable
+      holidays = 0;
     }
     console.log('saveFP: ', saveFP);
     console.log('FP: ', fp);
@@ -450,6 +464,7 @@ dispatcher.onGet("/holidays", function(req, res) {
       // TODO: calculer le temps de chauffe avec les sondes
       if (holidays - (4 * 3600) < now) {
         console.log("Holidays are finish, sorry :-(");
+        console.log('saveFP: ', saveFP);
         // On réinitialise la variable
         holidays = 0;
 
@@ -461,7 +476,6 @@ dispatcher.onGet("/holidays", function(req, res) {
       } else if (holidays > 0) {
         console.log("Holidays in progress");
       }
-      console.log('saveFP: ', saveFP);
       console.log('FP: ', fp);
     }
 

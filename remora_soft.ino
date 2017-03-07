@@ -786,7 +786,7 @@ void mysetup()
               //DebugF("saveFP[i]: "); Debug(saveFP[i]); DebugF(" - etatFP[i]: "); Debugln(etatFP[i]);
               cmd[i] = 'H';
             }
-          } else {
+          } else if (backFromHolidays - now.secondstime() > 0) {
             DebuglnF("Time of holidays is inferior at 2 days, radia ECO");
             // On sauvegarde l'état des fils pilotes
             for (i = 0; i < NB_FILS_PILOTES; i++) {
@@ -794,6 +794,21 @@ void mysetup()
               //DebugF("saveFP[i]: "); Debug(saveFP[i]); DebugF(" - etatFP[i]: "); Debugln(etatFP[i]);
               cmd[i] = 'E';
             }
+          } else {
+            DebuglnF("Date de retour annulée");
+            // Le mode du relais du ballon doit être remis en mode auto,
+            // si il était en mode automatique avant les vacances
+            if (saveRelais == FNCT_RELAIS_AUTO && fnctRelais != FNCT_RELAIS_AUTO) {
+              DebuglnF("Change mode relay in auto");
+              fnct_relais((String)FNCT_RELAIS_AUTO);
+              saveRelais = 0;
+            }
+            // On remet le chauffage en route
+            for (uint8_t i = 0; i < NB_FILS_PILOTES; i++) {
+              cmd[i] = saveFP[i];
+              saveFP[i] = '';
+            }
+            backFromHolidays = 0;
           }
           //DebugF("cmd: "); Debugln(cmd);
           int ret = fp(cmd);
