@@ -4,9 +4,9 @@
 // This file is not part of web server, it's just used as ESP8266 SPIFFS
 // WEB server files preparation tool
 // Please install dependencies with
-// npm install zlib
+// npm install
 // after all is installed just start by typing on command line
-// node create_spiffs.js
+// npm run create_spiffs
 // once all is fine, you can upload data tiles with Arduino IDE
 //
 // Written by Charles-Henri Hallard (http://hallard.me)
@@ -35,11 +35,12 @@ var stream = fs.createWriteStream(jsfile);
 stream.once('open', function(fd) {
 
   console.log('Uglifying .js files');
-  uglified = uglify.minify([ 
-    "js/ajaxq.js", 
-    "js/autofill.js", 
-    "js/validator.js" 
-  ]   ); 
+  uglified = uglify.minify([
+    "js/ajaxq.js",
+    "js/autofill.js",
+    "js/validator.js",
+    'js/main.js'
+  ]);
 
   stream.write(uglified.code);
   stream.end();
@@ -92,5 +93,13 @@ var out = fs.createWriteStream(gzhtm);
 
 console.log('Compressing ' + gzhtm + ' file');
 inp.pipe(gzip).pipe(out);
-console.log('finished!');
 
+// =================
+// fonts
+// =================
+var fonts = ["glyphicons.woff", "glyphicons.woff2", "jeedom2.woff"];
+for (var i = 0; i < fonts.length; i++) {
+  console.log('Copy font: ' + fonts[i]);
+  fs.createReadStream('fonts/' + fonts[i]).pipe(fs.createWriteStream('../data/fonts/' + fonts[i]));
+}
+console.log('finished!');

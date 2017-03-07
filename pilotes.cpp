@@ -52,8 +52,8 @@ int setfp(String command)
   command.trim();
   command.toUpperCase();
 
-  Serial.print("setfp=");
-  Serial.println(command);
+  Debug("setfp=");
+  Debugln(command);
 
   int returnValue = -1;
 
@@ -77,7 +77,7 @@ int setfp(String command)
         (cOrdre!='C' && cOrdre!='E' && cOrdre!='H' && cOrdre!='A') )
     {
         // erreur
-        Serial.println("Argument incorrect");
+        Debugln("Argument incorrect");
     }
     else
     {
@@ -116,10 +116,10 @@ int setfp_interne(uint8_t fp, char cOrdre)
   // Pour le moment les ordres Eco-1 et Eco-2 ne sont pas traités
   // 'D' correspond à délestage
 
-  Serial.print("setfp_interne : fp=");
-  Serial.print(fp);
-  Serial.print(" ; cOrdre=");
-  Serial.println(cOrdre);
+  Debug("setfp_interne : fp=");
+  Debug(fp);
+  Debug(" ; cOrdre=");
+  Debugln(cOrdre);
 
   if ( (fp < 1 || fp > NB_FILS_PILOTES) ||
       (cOrdre!='C' && cOrdre!='E' && cOrdre!='H' && cOrdre!='A' && cOrdre!='D') )
@@ -136,8 +136,8 @@ int setfp_interne(uint8_t fp, char cOrdre)
     // tableau d'index de 0 à 6 pas de 1 à 7
     // on en profite pour Sauver l'état
     etatFP[fp-1]=cOrdre;
-    Serial.print("etatFP=");
-    Serial.println(etatFP);
+    Debug("etatFP=");
+    Debugln(etatFP);
 
     switch (cOrdre)
     {
@@ -198,10 +198,10 @@ void delester1zone(void)
 {
   uint8_t numFp; // numéro du fil pilote à délester
 
-  Serial.print("delester1zone() : avant : nivDelest=");
-  Serial.print(nivDelest);
-  Serial.print(" ; plusAncienneZoneDelestee=");
-  Serial.println(plusAncienneZoneDelestee);
+  Debug("delester1zone() : avant : nivDelest=");
+  Debug(nivDelest);
+  Debug(" ; plusAncienneZoneDelestee=");
+  Debugln(plusAncienneZoneDelestee);
 
   if (nivDelest < NB_FILS_PILOTES) // On s'assure que l'on n'est pas au niveau max
   {
@@ -210,10 +210,10 @@ void delester1zone(void)
     setfp_interne(numFp, 'D');
   }
 
-  Serial.print("delester1zone() : apres : nivDelest=");
-  Serial.print(nivDelest);
-  Serial.print(" ; plusAncienneZoneDelestee=");
-  Serial.println(plusAncienneZoneDelestee);
+  Debug("delester1zone() : apres : nivDelest=");
+  Debug(nivDelest);
+  Debug(" ; plusAncienneZoneDelestee=");
+  Debugln(plusAncienneZoneDelestee);
 }
 
 /* ======================================================================
@@ -227,10 +227,10 @@ void relester1zone(void)
 {
   uint8_t numFp; // numéro du fil pilote à passer HORS-GEL
 
-  Serial.print("relester1zone() : avant : nivDelest=");
-  Serial.print(nivDelest);
-  Serial.print(" ; plusAncienneZoneDelestee=");
-  Serial.println(plusAncienneZoneDelestee);
+  Debug("relester1zone() : avant : nivDelest=");
+  Debug(nivDelest);
+  Debug(" ; plusAncienneZoneDelestee=");
+  Debugln(plusAncienneZoneDelestee);
 
   if (nivDelest > 0) // On s'assure qu'un délestage est en cours
   {
@@ -241,10 +241,10 @@ void relester1zone(void)
     plusAncienneZoneDelestee = (plusAncienneZoneDelestee % NB_FILS_PILOTES) + 1;
   }
 
-  Serial.print("relester1zone() : apres : nivDelest=");
-  Serial.print(nivDelest);
-  Serial.print(" ; plusAncienneZoneDelestee=");
-  Serial.println(plusAncienneZoneDelestee);
+  Debug("relester1zone() : apres : nivDelest=");
+  Debug(nivDelest);
+  Debug(" ; plusAncienneZoneDelestee=");
+  Debugln(plusAncienneZoneDelestee);
 }
 
 /* ======================================================================
@@ -256,10 +256,10 @@ Comments: -
 ====================================================================== */
 void decalerDelestage(void)
 {
-  Serial.print("decalerDelestage() : avant : nivDelest=");
-  Serial.print(nivDelest);
-  Serial.print(" ; plusAncienneZoneDelestee=");
-  Serial.println(plusAncienneZoneDelestee);
+  Debug("decalerDelestage() : avant : nivDelest=");
+  Debug(nivDelest);
+  Debug(" ; plusAncienneZoneDelestee=");
+  Debugln(plusAncienneZoneDelestee);
 
   if (nivDelest > 0 && nivDelest < NB_FILS_PILOTES)
   // On ne peut pas faire tourner les zones délestées s'il n'y en a aucune en cours
@@ -269,10 +269,10 @@ void decalerDelestage(void)
     delester1zone();
   }
 
-  Serial.print("decalerDelestage() : apres : nivDelest=");
-  Serial.print(nivDelest);
-  Serial.print(" ; plusAncienneZoneDelestee=");
-  Serial.println(plusAncienneZoneDelestee);
+  Debug("decalerDelestage() : apres : nivDelest=");
+  Debug(nivDelest);
+  Debug(" ; plusAncienneZoneDelestee=");
+  Debugln(plusAncienneZoneDelestee);
 }
 
 /* ======================================================================
@@ -296,8 +296,8 @@ int fp(String command)
   command.trim();
   command.toUpperCase();
 
-  Serial.print("fp=");
-  Serial.println(command);
+  Debug("fp=");
+  Debugln(command);
 
 
   // Vérifier que l'on a la commande de tous les fils pilotes
@@ -344,28 +344,102 @@ Comments: exposée par l'API spark donc attaquable par requête HTTP(S)
 int relais(String command)
 {
   command.trim();
-  uint8_t cmd = command[0];
+  uint8_t cmd = command.toInt();
 
-  Serial.print("relais=");
-  Serial.println(command);
-  Serial.flush();
+  DebugF("relais=");
+  Debugln(command);
+  Debugflush();
 
   // Vérifier que l'on a la commande d'un seul caractère
-  if (command.length()!=1 || (cmd!='1' && cmd!='0'))
+  if (command.length()!=1 || cmd < 0 || cmd > 1)
     return (-1);
 
   // Conversion en 0,1 numerique
-  etatrelais= cmd - '0';
+  etatrelais = cmd;
+  int etatRelaisPin = cmd;
+
+  // Inverse etat pin relais si definit dans remora.h
+  #ifdef RELAIS_REVERSE
+    etatRelaisPin = !etatRelaisPin;
+  #endif
 
     // Allumer/Etteindre le relais et la LED
   #ifdef RELAIS_PIN
-    _digitalWrite(RELAIS_PIN, etatrelais);
+    _digitalWrite(RELAIS_PIN, etatRelaisPin);
   #endif
   #ifdef LED_PIN
     _digitalWrite(LED_PIN, etatrelais);
   #endif
 
   return (etatrelais);
+}
+
+/* ======================================================================
+Function: relais
+Purpose : selectionne l'état du relais
+Input   : état du relais (0 ouvert, 1 fermé)
+Output  : etat du relais (0 ou 1)
+Comments: exposée par l'API spark donc attaquable par requête HTTP(S)
+====================================================================== */
+int fnct_relais(String command)
+{
+  command.trim();
+  uint8_t cmd = command.toInt();
+
+  Debug("fnct_relais="); Debugln(command);
+  Debug("command length="); Debugln(command.length());
+  Debugf("cmd: %d\n", cmd);
+  //Debugflush();
+
+  // Vérifier que l'on a la commande d'un seul caractère
+  if (command.length() != 1 || cmd < 0 || cmd > 2)
+    return (-1);
+
+  // On si il y a modification du fonctionnement du relais
+  if (fnctRelais != cmd) {
+    // Conversion en 0,1,2 numerique
+    fnctRelais = cmd;
+    // Si le mode est différent du mode auto, on applique la commande
+    if (fnctRelais < FNCT_RELAIS_AUTO) {
+      relais(command);
+    }
+    #ifdef MOD_TELEINFO
+      else {
+        ValueList * me = tinfo.getList();
+        bool found = false;   // flag for PTEC found
+        // Got at least one ?
+        if (me) {
+          // Loop thru the node
+          while (me->next) {
+            // go to next node
+            me = me->next;
+            // we're there
+            _wdt_feed();
+            //DebugF("me->name: "); Debug(me->name); DebugF(" - value: "); Debugln(me->value);
+            // Check PTEC label
+            if (me->name && !strcmp(me->name, "PTEC")) {
+              //DebuglnF("PTEC found");
+              // If "heures creuses", close relay
+              if (me->value && !strcmp(me->value, "HC..")) {
+                //DebuglnF("PTEC == HC..");
+                relais("1");
+              } else {
+                relais("0");
+              }
+              found = true;
+              break;
+            }
+          }
+          // If PTEC not found, close relay
+          if (!found) {
+            relais("0");
+          }
+        }
+      }
+    #endif
+  }
+
+  return (fnctRelais);
 }
 
 /* ======================================================================
@@ -386,20 +460,20 @@ bool pilotes_setup(void)
 
   // Cartes Version 1.2+ pilotage part I/O Expander
   #else
-    Serial.print("Initializing MCP23017...Searching...");
-    Serial.flush();
+    Debug("Initializing MCP23017...Searching...");
+    Debugflush();
 
     // Détection du MCP23017
     if (!i2c_detect(MCP23017_ADDRESS))
     {
-      Serial.println("Not found!");
-      Serial.flush();
+      Debugln("Not found!");
+      Debugflush();
       return (false);
     }
     else
     {
-      Serial.print("Setup...");
-      Serial.flush();
+      Debug("Setup...");
+      Debugflush();
 
       // et l'initialiser
       mcp.begin();
@@ -407,8 +481,8 @@ bool pilotes_setup(void)
       // Mettre les 16 I/O PIN en sortie
       mcp.writeRegister(MCP23017_IODIRA,0x00);
       mcp.writeRegister(MCP23017_IODIRB,0x00);
-      Serial.println("OK!");
-      Serial.flush();
+      Debugln("OK!");
+      Debugflush();
     }
   #endif
 

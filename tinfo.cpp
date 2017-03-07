@@ -19,20 +19,22 @@
 TInfo tinfo;
 #endif
 
-uint mypApp   = 0;
-uint myiInst  = 0;
-uint myindexHC= 0;
-uint myindexHP= 0;
-uint myimax= 0;
-uint myisousc = ISOUSCRITE; // pour calculer la limite de délestage
-char myPeriode[8]= "";
-char mytinfo[250] ="";
-char mycompteur[64] ="";
+uint mypApp           = 0;
+uint myiInst          = 0;
+uint myindexHC        = 0;
+uint myindexHP        = 0;
+uint myimax           = 0;
+uint myisousc         = ISOUSCRITE; // pour calculer la limite de délestage
+char myPeriode[8]     = "";
+char mytinfo[250]     = "";
+char mycompteur[64]   = "";
 float ratio_delestage = DELESTAGE_RATIO;
 float ratio_relestage = RELESTAGE_RATIO;
-float myDelestLimit = 0.0;
-float myRelestLimit = 0.0;
-int etatrelais       = 0; // Etat du relais
+float myDelestLimit   = 0.0;
+float myRelestLimit   = 0.0;
+int etatrelais        = 0; // Etat du relais
+int fnctRelais        = 2; // Mode de fonctionnement du relais
+int lastPtec          = PTEC_HP;
 
 unsigned long tinfo_led_timer = 0; // Led blink timer
 unsigned long tinfo_last_frame = 0; // dernière fois qu'on a recu une trame valide
@@ -85,14 +87,16 @@ void DataCallback(ValueList * me, uint8_t flags)
   DebugF("=");
   Debug(me->value);
 
-  //Serial.print(" Flags=0x");
-  //Serial.print(flags, HEX);
+  //Debug(" Flags=0x");
+  //DEBUG_SERIAL.print(flags, HEX);
 
-  if ( flags & TINFO_FLAGS_NOTHING )      { DebugF(" Nothing"); }
-  else if ( flags & TINFO_FLAGS_UPDATED ) { DebugF(" Updated"); }
-  else if ( flags & TINFO_FLAGS_ADDED )   { DebugF(" Added"); }
-  else if ( flags & TINFO_FLAGS_EXIST )   { DebugF(" Exist"); }
-  else if ( flags & TINFO_FLAGS_ALERT )   { DebugF(" Alert"); }
+  if ( flags & TINFO_FLAGS_NOTHING ) DebugF(" Nothing");
+  if ( flags & TINFO_FLAGS_ADDED )   DebugF(" Added");
+  if ( flags & TINFO_FLAGS_UPDATED ) DebugF(" Updated");
+  if ( flags & TINFO_FLAGS_EXIST )   DebugF(" Exist");
+  if ( flags & TINFO_FLAGS_ALERT )   DebugF(" Alert");
+  Debugln();
+  Debugflush();
 
   // Nous venons de recevoir la puissance tarifaire en cours
   // To DO : gérer les autres types de contrat
@@ -104,7 +108,21 @@ void DataCallback(ValueList * me, uint8_t flags)
     // To DO : gérer les autres types de contrat
     if (!strcmp(me->value, "HP..")) ptec= PTEC_HP;
     if (!strcmp(me->value, "HC..")) ptec= PTEC_HC;
-    if (!strcmp(me->value, "TH..")) ptec= PTEC_HP;
+
+    //=============================================================
+    //    Ajout de la gestion du relais aux heures creuses
+    //=============================================================
+    if (fnctRelais == FNCT_RELAIS_AUTO && lastPtec != ptec) {
+      //Debug("PTEC: ");
+      if (ptec == PTEC_HC) {
+        //Debugln(" HC");
+        relais("1");
+      } else {
+        //Debugln(" HP");
+        relais("0");
+      }
+      lastPtec = (int)ptec;
+    }
   }
 
   // Mise à jour des variables "cloud"
@@ -129,7 +147,7 @@ void DataCallback(ValueList * me, uint8_t flags)
       timerDelestRelest = millis();
   }
 
-  Serial.println();
+  Debugln();
 
   // nous avons une téléinfo fonctionelle
   status |= STATUS_TINFO;
@@ -157,7 +175,7 @@ void NewFrame(ValueList * me)
   #else
     //sprintf( buff, "New Frame");
   #endif
-  //Serial.println(buff);
+  //Debugln(buff);
 
   // Ok nous avons une téléinfo fonctionelle
   status |= STATUS_TINFO;
@@ -187,7 +205,7 @@ void UpdatedFrame(ValueList * me)
   #else
     //sprintf( buff, "Updated Frame");
   #endif
-  //Serial.println(buff);
+  //Debugln(buff);
 
   //On publie toutes les infos teleinfos dans un seul appel :
   sprintf(mytinfo,"{\"papp\":%u,\"iinst\":%u,\"isousc\":%u,\"ptec\":%u,\"indexHP\":%u,\"indexHC\":%u,\"imax\":%u,\"ADCO\":%u}",
@@ -215,7 +233,7 @@ bool tinfo_setup(bool wait_data)
   Debugflush();
 
   #ifdef SPARK
-  Serial1.begin(1200);  // Port série RX/TX on serial1 for Spark
+    Serial1.begin(1200);  // Port série RX/TX on serial1 for Spark
   #endif
 
   // reset du timeout de detection de la teleinfo
@@ -225,7 +243,9 @@ bool tinfo_setup(bool wait_data)
   tinfo.init();
 
   // Attacher les callback donc nous avons besoin
-  tinfo.attachADPS(ADPSCallback);
+  #ifdef MOD_ADPS
+    tinfo.attachADPS(ADPSCallback);
+  #endif
   tinfo.attachData(DataCallback);
   tinfo.attachNewFrame(NewFrame);
   tinfo.attachUpdatedFrame(UpdatedFrame);
@@ -240,13 +260,15 @@ bool tinfo_setup(bool wait_data)
       #ifdef SPARK
         if ( Serial1.available()) {
           c = Serial1.read();
-          //Serial.print(c);
-          //Serial.flush();
+          //Debug(c);
+          //Debugflush();
           tinfo.process(c);
         }
       #else
         if (Serial.available()) {
           c = Serial.read();
+          //Debug(c);
+          //Debugflush();
           tinfo.process(c);
         }
       #endif
@@ -318,6 +340,7 @@ void tinfo_loop(void)
   #endif
 
   // Faut-il enclencher le delestage ?
+  #ifdef MOD_ADPS
   //On dépasse le courant max?
   if (fiInst > myDelestLimit) {
     if ((millis() - timerDelestRelest) > 5000L)  {
@@ -344,6 +367,7 @@ void tinfo_loop(void)
       }
     }
   }
+  #endif //ADPS active
 
   // Do we have RGB led timer expiration ?
   if (tinfo_led_timer && (millis()-tinfo_led_timer >= TINFO_LED_BLINK_MS)) {

@@ -12,6 +12,7 @@
 //           15/09/2015 Charles-Henri Hallard : Ajout compatibilité ESP8266
 //           02/12/2015 Charles-Henri Hallard : Ajout API WEB ESP8266 et Remora V1.3
 //           04/01/2016 Charles-Henri Hallard : Ajout Interface WEB GUIT
+//           04/03/2017 Manuel Hervo          : Ajout des connexions TCP Asynchrones
 //
 // **********************************************************************************
 
@@ -46,8 +47,10 @@
   #include <FS.h>
   #include <ESP8266WiFi.h>
   #include <ESP8266HTTPClient.h>
-  #include <ESP8266WebServer.h>
-  #include <ESP8266mDNS.h>
+  // #include <ESP8266WebServer.h>
+  // #include <ESP8266mDNS.h>
+  #include <ESPAsyncTCP.h>
+  #include <ESPAsyncWebServer.h>
   #include <WiFiUdp.h>
   #include <ArduinoOTA.h>
   #include <Wire.h>
@@ -82,9 +85,7 @@ int my_cloud_disconnect = 0;
 
 #ifdef ESP8266
   // ESP8266 WebServer
-  ESP8266WebServer server(80);
-  // Udp listener for OTA
-  WiFiUDP OTA;
+  AsyncWebServer server(80);
   // Use WiFiClient class to create a connection to WEB server
   WiFiClient client;
   // RGB LED (1 LED)
@@ -100,6 +101,8 @@ int my_cloud_disconnect = 0;
   volatile boolean task_jeedom = false;
 
   bool ota_blink;
+
+  bool reboot = false;
 #endif
 
 /* ======================================================================
@@ -199,7 +202,7 @@ int WifiHandleConn(boolean setup = false)
     _wdt_feed();
 
     DebugF("========== SDK Saved parameters Start");
-    WiFi.printDiag(Serial);
+    WiFi.printDiag(DEBUG_SERIAL);
     DebuglnF("========== SDK Saved parameters End");
 
     #if defined (DEFAULT_WIFI_SSID) && defined (DEFAULT_WIFI_PASS)
@@ -264,10 +267,19 @@ int WifiHandleConn(boolean setup = false)
 
       // protected network
       DebugF(" avec la clé '");
-      Debug(DEFAULT_WIFI_AP_PASS);
+      if (*config.ap_psk) {
+        Debug(config.ap_psk);
+      } else {
+        Debug(DEFAULT_WIFI_AP_PASS);
+      }
       Debugln("'");
       Debugflush();
-      WiFi.softAP(DEFAULT_HOSTNAME, DEFAULT_WIFI_AP_PASS);
+
+      if (*config.ap_psk) {
+        WiFi.softAP(DEFAULT_HOSTNAME, config.ap_psk);
+      } else {
+        WiFi.softAP(DEFAULT_HOSTNAME, DEFAULT_WIFI_AP_PASS);
+      }
       WiFi.mode(WIFI_AP_STA);
 
       DebugF("IP address   : "); Debugln(WiFi.softAPIP());
@@ -276,6 +288,29 @@ int WifiHandleConn(boolean setup = false)
 
     // Feed the dog
     _wdt_feed();
+
+    // Set OTA parameters
+     ArduinoOTA.setPort(DEFAULT_OTA_PORT);
+     ArduinoOTA.setHostname(DEFAULT_HOSTNAME);
+     if (*config.ota_auth) {
+       ArduinoOTA.setPassword(config.ota_auth);
+     }/* else {
+       ArduinoOTA.setPassword(DEFAULT_OTA_PASS);
+     }*/
+     ArduinoOTA.begin();
+
+    // just in case your sketch sucks, keep update OTA Available
+    // Trust me, when coding and testing it happens, this could save
+    // the need to connect FTDI to reflash
+    // Usefull just after 1st connexion when called from setup() before
+    // launching potentially buggy main()
+    for (uint8_t i=0; i<= 10; i++) {
+      LedRGBON(COLOR_MAGENTA);
+      delay(100);
+      LedRGBOFF();
+      delay(200);
+      ArduinoOTA.handle();
+    }
 
   } // if setup
 
@@ -338,12 +373,15 @@ void setup()
   #elif defined(DEBUG)
     Serial1.begin(115200);
   #endif
+  #if defined DEBUG_INIT || !defined MOD_TELEINFO
+    DEBUG_SERIAL.begin(115200);
+  #endif
 
   // says main loop to do setup
   first_setup = true;
 
-  Serial.println("Starting main setup");
-  Serial.flush();
+  Debugln("Starting main setup");
+  Debugflush();
 }
 
 
@@ -425,8 +463,10 @@ void mysetup()
 
   #elif defined (ESP8266)
 
-    // Init de la téléinformation
-    Serial.begin(1200, SERIAL_7E1);
+    #ifdef MOD_TELEINFO
+      // Init de la téléinformation
+      Serial.begin(1200, SERIAL_7E1);
+    #endif
 
     // Clear our global flags
     config.config = 0;
@@ -515,6 +555,9 @@ void mysetup()
     }
     // OTA callbacks
     ArduinoOTA.onStart([]() {
+      if (ArduinoOTA.getCommand() == U_SPIFFS) {
+        SPIFFS.end();
+      }
       LedRGBON(COLOR_MAGENTA);
       DebugF("\r\nUpdate Started..");
       ota_blink = true;
@@ -522,7 +565,7 @@ void mysetup()
 
     ArduinoOTA.onEnd([]() {
       LedRGBOFF();
-      DebugF("Update finished restarting");
+      DebuglnF("Update finished restarting");
     });
 
     ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
@@ -532,31 +575,31 @@ void mysetup()
         LedRGBOFF();
       }
       ota_blink = !ota_blink;
-      //Serial.printf("Progress: %u%%\n", (progress / (total / 100)));
+      //Debugf("Progress: %u%%\n", (progress / (total / 100)));
     });
 
     ArduinoOTA.onError([](ota_error_t error) {
       LedRGBON(COLOR_RED);
-      Serial.printf("Update Error[%u]: ", error);
-      if (error == OTA_AUTH_ERROR) Serial.println(F("Auth Failed"));
-      else if (error == OTA_BEGIN_ERROR) Serial.println(F("Begin Failed"));
-      else if (error == OTA_CONNECT_ERROR) Serial.println(F("Connect Failed"));
-      else if (error == OTA_RECEIVE_ERROR) Serial.println(F("Receive Failed"));
-      else if (error == OTA_END_ERROR) Serial.println(F("End Failed"));
-      ESP.restart();
+      DEBUG_SERIAL.printf("Update Error[%u]: ", error);
+      if (error == OTA_AUTH_ERROR) DebuglnF("Auth Failed");
+      else if (error == OTA_BEGIN_ERROR) DebuglnF("Begin Failed");
+      else if (error == OTA_CONNECT_ERROR) DebuglnF("Connect Failed");
+      else if (error == OTA_RECEIVE_ERROR) DebuglnF("Receive Failed");
+      else if (error == OTA_END_ERROR) DebuglnF("End Failed");
+      //reboot = true;
     });
 
     // handler for uptime
-    server.on("/uptime", [&](){
+    server.on("/uptime", HTTP_GET, [](AsyncWebServerRequest *request) {
       String response = "";
       response += FPSTR("{\r\n");
       response += F("\"uptime\":");
       response += uptime;
       response += FPSTR("\r\n}\r\n") ;
-      server.send ( 200, "text/json", response );
+      request->send(200, "text/json", response);
     });
 
-    server.on("/config_form.json", handleFormConfig);
+    server.on("/config_form.json", HTTP_POST, handleFormConfig);
     server.on("/factory_reset",handleFactoryReset );
     server.on("/reset", handleReset);
     server.on("/tinfo", tinfoJSON);
@@ -569,78 +612,30 @@ void mysetup()
     server.on("/wifiscan.json", wifiScanJSON);
 
     // handler for the hearbeat
-    server.on("/hb.htm", HTTP_GET, [&](){
-        server.sendHeader("Connection", "close");
-        server.sendHeader("Access-Control-Allow-Origin", "*");
-        server.send(200, "text/html", R"(OK)");
+    server.on("/hb.htm", HTTP_GET, [](AsyncWebServerRequest *request) {
+      AsyncWebServerResponse *response = request->beginResponse(200, "text/html", R"(OK)");
+      response->addHeader("Connection", "close");
+      response->addHeader("Access-Control-Allow-Origin", "*");
+      request->send(response);
     });
 
     // handler for the /update form POST (once file upload finishes)
-    server.on("/update", HTTP_POST,
-      // handler once file upload finishes
-      [&]() {
-        server.sendHeader("Connection", "close");
-        server.sendHeader("Access-Control-Allow-Origin", "*");
-        server.send(200, "text/plain", (Update.hasError())?"FAIL":"OK");
-        ESP.restart();
-      },
-      // handler for upload, get's the sketch bytes,
-      // and writes them through the Update object
-      [&]() {
-        HTTPUpload& upload = server.upload();
-
-        if (upload.status == UPLOAD_FILE_START) {
-          uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-          WiFiUDP::stopAll();
-          Debugf("Update: %s\n", upload.filename.c_str());
-          LedRGBON(COLOR_MAGENTA);
-          ota_blink = true;
-
-          //start with max available size
-          if (!Update.begin(maxSketchSpace)) {
-            Update.printError(Serial1);
-          }
-
-        } else if(upload.status == UPLOAD_FILE_WRITE) {
-          if (ota_blink) {
-            LedRGBON(COLOR_MAGENTA);
-          } else {
-            LedRGBOFF();
-          }
-          ota_blink = !ota_blink;
-          DebugF(".");
-          if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
-            Update.printError(Serial1);
-          }
-
-        } else if (upload.status == UPLOAD_FILE_END) {
-          //true to set the size to the current progress
-          if (Update.end(true)) {
-            Debugf("Update Success: %u\nRebooting...\n", upload.totalSize);
-          } else {
-            Update.printError(Serial1);
-          }
-
-          LedRGBOFF();
-
-        } else if(upload.status == UPLOAD_FILE_ABORTED) {
-          Update.end();
-          LedRGBOFF();
-          DebuglnF("Update was aborted");
-        }
-        delay(0);
-      }
-    );
+    server.on("/update", HTTP_POST, [](AsyncWebServerRequest *request) {
+      reboot = !Update.hasError();
+      AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", reboot ? "OK" : "FAIL");
+      response->addHeader("Connection", "close");
+      request->send(response);
+    }, handle_fw_upload);
 
     server.onNotFound(handleNotFound);
 
     // serves all SPIFFS Web file with 24hr max-age control
     // to avoid multiple requests to ESP
-    server.serveStatic("/fonts", SPIFFS, "/fonts","max-age=86400");
-    server.serveStatic("/js",    SPIFFS, "/js"  ,"max-age=86400");
-    server.serveStatic("/css",   SPIFFS, "/css" ,"max-age=86400");
+    server.serveStatic("/font", SPIFFS, "/font","max-age=86400");
+    server.serveStatic("/js",   SPIFFS, "/js"  ,"max-age=86400");
+    server.serveStatic("/css",  SPIFFS, "/css" ,"max-age=86400");
     server.begin();
-    Serial.println(F("HTTP server started"));
+    DebuglnF("HTTP server started");
 
     #ifdef BLYNK_AUTH
       Blynk.config(BLYNK_AUTH);
@@ -651,33 +646,36 @@ void mysetup()
   // Init bus I2C
   i2c_init();
 
-  DebugF("Remora Version ");
+  Debug("Remora Version ");
   Debugln(REMORA_VERSION);
-  DebugF("Compile avec les fonctions : ");
+  Debug("Compile avec les fonctions : ");
 
   #if defined (REMORA_BOARD_V10)
-    DebugF("BOARD V1.0 ");
+    Debug("BOARD V1.0 ");
   #elif defined (REMORA_BOARD_V11)
-    DebugF("BOARD V1.1 ");
+    Debug("BOARD V1.1 ");
   #elif defined (REMORA_BOARD_V12)
-    DebugF("BOARD V1.2 MCP23017 ");
+    Debug("BOARD V1.2 MCP23017 ");
   #elif defined (REMORA_BOARD_V13)
-    DebugF("BOARD V1.3 MCP23017 ");
+    Debug("BOARD V1.3 MCP23017 ");
   #else
-    DebugF("BOARD Inconnue");
+    Debug("BOARD Inconnue");
   #endif
 
   #ifdef MOD_OLED
-    DebugF("OLED ");
+    Debug("OLED ");
   #endif
   #ifdef MOD_TELEINFO
-    DebugF("TELEINFO ");
+    Debug("TELEINFO ");
   #endif
   #ifdef MOD_RF69
-    DebugF("RFM69 ");
+    Debug("RFM69 ");
   #endif
   #ifdef BLYNK_AUTH
-    DebugF("BLYNK ");
+    Debug("BLYNK ");
+  #endif
+  #ifdef MOD_ADPS
+    Debug("ADPS ");
   #endif
 
   Debugln();
@@ -717,7 +715,7 @@ void mysetup()
   // Enclencher le relais 1 seconde
   // si dispo sur la carte
   #ifndef REMORA_BOARD_V10
-    DebugF("Relais=ON   ");
+    Debug("Relais=ON   ");
     Debugflush();
     relais("1");
     for (uint8_t i=0; i<20; i++)
@@ -732,7 +730,7 @@ void mysetup()
         tinfo_loop();
       #endif
     }
-    DebuglnF("Relais=OFF");
+    Debugln("Relais=OFF");
     Debugflush();
     relais("0");
   #endif
@@ -746,7 +744,7 @@ void mysetup()
   // On etteint la LED embarqué du core
   LedRGBOFF();
 
-  DebuglnF("Starting main loop");
+  Debugln("Starting main loop");
   Debugflush();
 }
 
@@ -772,6 +770,14 @@ void loop()
     mysetup();
     first_setup = false;
   }
+
+  #ifdef ESP8266
+  /* Reboot handler */
+  if (reboot) {
+    delay(REBOOT_DELAY);
+    ESP.restart();
+  }
+  #endif
 
   // Gérer notre compteur de secondes
   if ( millis()-previousMillis > 1000) {
@@ -867,17 +873,8 @@ void loop()
 
   // Connection au Wifi ou Vérification
   #ifdef ESP8266
-    /*
-    // En attente de développement du mode présence
-    if (WiFi.getMode() == WIFI_AP_STA && WiFi.softAPgetStationNum() > 0) {
-      // Il y a du monde dans la maison, on est en mode confort
-    } else {
-      // Il n'y a personne, on est en mode eco
-    }
-    */
-
     // Webserver
-    server.handleClient();
+    //server.handleClient();
     ArduinoOTA.handle();
 
     if (task_emoncms) {

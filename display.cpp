@@ -93,7 +93,15 @@ void displayTeleinfo(void)
   #endif
 
   display.setCursor(0,48);
-  display.printf("%s  %c", etatFP, etatrelais+'0' );
+  // On transcrit l'état de fonctionnement du relais en une lettre
+  // S: arrêt, F: marche forcée, A: auto
+  char dFnctRelais = 'A';
+  if (fnctRelais == FNCT_RELAIS_ARRET) {
+    dFnctRelais = 'S';
+  } else if (fnctRelais == FNCT_RELAIS_FORCE) {
+    dFnctRelais = 'F';
+  }
+  display.printf("%s %c%c", etatFP, dFnctRelais, etatrelais+'0' );
 
   // Bargraphe de puissance
   display.drawVerticalBargraph(114,0,12,40,1, percent);
@@ -164,7 +172,7 @@ bool display_setup(void)
 {
   bool ret = false;
 
-  DebugF("Initializing OLED...Searching...");
+  Debug("Initializing OLED...Searching...");
   Debugflush();
 
   // Par defaut affichage des infos de téléinfo
@@ -172,16 +180,16 @@ bool display_setup(void)
 
   // Init et detection des modules I2C
   if (!i2c_detect(OLED_I2C_ADDRESS)) {
-    DebuglnF("Not found!");
+    Debugln("Not found!");
   } else {
-    DebugF("Setup...");
-    Debugflush();
+    Debug("Setup...");
+    Serial.flush();
 
     // initialize with the I2C addr for the 128x64
     display.begin(OLED_I2C_ADDRESS);
     display.clearDisplay() ;
     display.display();
-    DebuglnF("OK!");
+    Debugln("OK!");
     ret = true;
   }
 

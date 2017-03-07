@@ -1,8 +1,8 @@
 // ======================================================================
 //                      ESP8266 WEB Server Simulator
 // ======================================================================
-// This file is not part of web server, it's just used as ESP8266 
-// Simulator to check HTLM / JQuery and all web stuff without needing 
+// This file is not part of web server, it's just used as ESP8266
+// Simulator to check HTLM / JQuery and all web stuff without needing
 // to flash ESP8266 target, you'll need nodejs to run it
 // Please install dependencies with
 // npm install mime httpdispatcher websocket mime formidable
@@ -20,12 +20,15 @@ var mime = require('mime');
 var formidable = require("formidable");
 var util = require('util');
 var os = require('os');
-var dispatcher = require('httpdispatcher');
+var HttpDispatcher = require('httpdispatcher');
+var dispatcher = new HttpDispatcher();
 var interval;
 var startTime = Date.now();
 var ws = require('websocket').server;
 var temperature=20;
 var humidity=50;
+var teleinfo = false;
+
 
 
 var config = {
@@ -90,7 +93,12 @@ var fp ={
 	"fp7": "C"
 }
 
-var spiffs = { 
+var relais = {
+	"relais": 1,
+	"fnct_relais": 2
+}
+
+var spiffs = {
 	"files":[
 	{"na":"/css/nrjmeter.css.gz","va":"24325"}
 	,{"na":"/favicon.ico","va":"1150"}
@@ -106,7 +114,7 @@ var spiffs = {
 	]
 }
 
-var wifiscan = { "wifiscan":[
+var wifiscan = [
 	{"ssid":"FreeWifi_secure","rssi":-59,"enc":"????","chan":1},
 	{"ssid":"HOME-FREEBOX","rssi":-60,"enc":"WPA2","chan":1},
 	{"ssid":"FreeWifi","rssi":-60,"enc":"Open","chan":1},
@@ -115,8 +123,6 @@ var wifiscan = { "wifiscan":[
 	{"ssid":"Livebox-0479","rssi":-93,"enc":"Auto","chan":6},
 	{"ssid":"HOME-HOTSPOT","rssi":-60,"enc":"WPA2","chan":9}
 	]
-}
-
 
 
 function system() {
@@ -140,6 +146,8 @@ return[
 	{"na":"Wifi AP ID","va":"0"},
 	{"na":"Wifi Status","va":"5"},
 	{"na":"Wifi Autoconnect","va":"1"},
+	{"na":"Etat Relais", "va":"Fermé"},
+	{"na":"Fnct Relais", "va":"Auto"},
 	{"na":"SPIFFS Total","va":"934.88 KB"},
 	{"na":"SPIFFS Used","va":"159.82 KB"},
 	{"na":"SPIFFS Occupation","va":"17%"},
@@ -151,14 +159,14 @@ return[
 function humanSize(bytes) {
 	var units =  ['kB','MB','GB','TB','PB','EB','ZB','YB']
 	var thresh = 1024;
-	if(Math.abs(bytes) < thresh) 
+	if(Math.abs(bytes) < thresh)
 		return bytes + ' B';
 
 	var u = -1;
 	do {
 		bytes /= thresh;
 		++u;
-	} 
+	}
 	while(Math.abs(bytes) >= thresh && u < units.length - 1);
 	return bytes.toFixed(1)+' '+units[u];
 }
@@ -168,7 +176,7 @@ function handleRequest(req, res) {
   try {
     console.log(req.url);
     dispatcher.dispatch(req, res);
-  } 
+  }
   catch(err) {
     console.log(err);
   }
@@ -197,21 +205,58 @@ dispatcher.onError(function(req, res) {
 		// Check first Query posted http://ip/?toto=titi
 		if (!isEmptyObject(query)) {
 
-
 		 	if (query.fp != undefined && query.fp.length==7){
 		 		console.log("FP="+query.fp);
 		 		for (var i=1; i<=7; i++) {
 		 			fp["fp"+i] = query.fp.charAt(i-1);
 		 		}
-
 		 		console.log( util.inspect({fp: fp}));
+			  res.writeHead(200, {"Content-Type": "text/json"});
+			  res.end('{"response":0}');
 
-		 	} else if  (query.setfp != undefined ) {
+		 	} else if  (query.setfp != undefined && query.setfp.length==2) {
 		 		console.log("setfp="+query.setfp);
+		 		var i = query.setfp.charAt(0);
+		 		var o = query.setfp.charAt(1).toUpperCase();
+
+			  res.writeHead(200, {"Content-Type": "text/json"});
+
+		 		if (i>='1' && i<='7' && (o=='C'||o=='A'||o=='E'||o=='H'||o=='1'||o=='2') ) {
+		 			fp["fp"+i] = o;
+			  	res.end('{"response":0}');
+			 		console.log( util.inspect({fp: fp}));
+		 		} else {
+				  res.end('{"response":1}');
+				}
+
+			} else if (query.frelais != undefined && query.frelais.length == 1) {
+				console.log("frelais: ", query.frelais);
+				if (query.frelais >= 0 && query.frelais <= 2) {
+			  	res.writeHead(200, {"Content-Type": "text/json"});
+			  	relais.fnct_relais = query.frelais;
+			  	if (query.frelais >= 0 && query.frelais <= 1) {
+			  		relais.relais = query.frelais;
+			  	} else {
+			  		relais.relais = Math.floor(Math.random() * 2);
+			  	}
+			  	res.end('{"response":0}');
+				} else {
+					res.writeHead(412, {"Content-Type": "text/json"});
+					res.end('{"response":1}');
+				}
+			} else if (query.relais != undefined && query.relais.length == 1) {
+				console.log('relais: ', query.relais);
+				if (query.relais >= 0 && query.relais <= 1) {
+					res.writeHead(200, {"Content-Type": "text/json"});
+					relais.relais = query.relais;
+			  	res.end('{"response":0}');
+				} else {
+					res.writeHead(412, {"Content-Type": "text/json"});
+					res.end('{"response":1}');
+				}
 		 	} else {
         res.writeHead(500);
         res.end('Sorry, unknown or bad query received: '+query+' ..\n');
-        res.end(); 
 		 	}
 
 		// serve Web page
@@ -220,7 +265,6 @@ dispatcher.onError(function(req, res) {
 			if (filePath == './') {
   			filePath = './index.htm';
 			}
-			
 			contentType = mime.lookup(filePath);
 
 			// Stream out he file
@@ -236,7 +280,7 @@ dispatcher.onError(function(req, res) {
 		      else {
 		        res.writeHead(500);
 		        res.end('Sorry, check with the site admin for error: '+error.code+' ..\n');
-		        res.end(); 
+		        res.end();
 						console.log("Error "+filePath+ ' => '+contentType);
 		      }
 		    }
@@ -256,17 +300,17 @@ function rnd(low, high) {
 	return Math.floor((Math.random() * 100 ) * (high - low) + low) ;
 }
 
-function rTemp() { 
-	temperature = (rnd(-20,20) + 20) / 100.0; 
+function rTemp() {
+	temperature = (rnd(-20,20) + 20) / 100.0;
 	return temperature;
 }
 
-function rHum() { 
-	humidity = (rnd(-20,20) + 50)/100.0; 
+function rHum() {
+	humidity = (rnd(-20,20) + 50)/100.0;
  return humidity;
 }
 
-function sensors() {  
+function sensors() {
 	var sensors =	{	"si7021":[ {"temperature":rTemp(),	"humidity":rHum(),	"seen":1}	],
 									 "sht10":[ {"temperature":rTemp(),	 "humidity":rHum(),	"seen":1}	]	}
 	return sensors;
@@ -277,34 +321,58 @@ function log(con, msg) {
 	con.sendUTF(JSON.stringify({message:"log", data:msg}));
 }
 
+dispatcher.onGet('/tinfo.json', function(req, res) {
+	if (teleinfo) {
+		require('fs').readFile('./tinfo.json', function(err, file) {
+			if (err) {
+				//errorListener(req, res);
+				return;
+			}
+			res.writeHeader(200, {
+				"Content-Type": "text/json"
+			});
+			res.write(file, 'binary');
+			res.end();
+		});
+	} else {
+		res.writeHeader(404, {"Content-Type": "text/json"});
+		res.end(JSON.stringify({result: "Teleinfo non activée"}));
+	}
+});
 
 dispatcher.onGet("/sensors", function(req, res) {
       res.writeHead(200, {"Content-Type": "text/json"});
       res.end(JSON.stringify(sensors()));
-});    
+});
 
-dispatcher.onGet("/system", function(req, res) {
+dispatcher.onGet("/system.json", function(req, res) {
 			//console.log('s[0]=' + util.inspect(system[0], false, null));
 			//system[0].va = ((Date.now()-startTime)/1000).toFixed(0);
 			//system[1].va = humanSize(os.freemem());
       res.writeHead(200, {"Content-Type": "text/json"});
       res.end(JSON.stringify(system()));
-});    
+});
 
 dispatcher.onGet("/spiffs", function(req, res) {
       res.writeHead(200, {"Content-Type": "text/json"});
       res.end(JSON.stringify(spiffs));
-});    
+});
 
 dispatcher.onGet("/config", function(req, res) {
       res.writeHead(200, {"Content-Type": "text/json"});
       res.end(JSON.stringify(config));
-});  
+});
 
 dispatcher.onGet("/fp", function(req, res) {
       res.writeHead(200, {"Content-Type": "text/json"});
       res.end(JSON.stringify(fp));
-});  
+});
+
+dispatcher.onGet("/relais", function(req, res) {
+	console.log('relaisJSON: ', JSON.stringify(relais));
+      res.writeHead(200, {"Content-Type": "text/json"});
+      res.end(JSON.stringify(relais));
+});
 
 dispatcher.onGet("/?", function(req, res) {
 			//Store the data from the fields in your data store.
@@ -320,23 +388,23 @@ dispatcher.onGet("/?", function(req, res) {
 
 			form.on('end', function () {
 			  res.writeHead(200, {"Content-Type": "text/json"});
-			  res.end(JSON.stringify("{\"response\":1}"));
+ 			  res.end('{"response":0}');
 			});
 			form.parse(req);
 
-}); 
+});
 
-dispatcher.onGet("/wifiscan", function(req, res) {
+dispatcher.onGet("/wifiscan.json", function(req, res) {
 			setTimeout(function() {
 	      						res.writeHead(200, {"Content-Type": "text/json"});
   	    						res.end(JSON.stringify(wifiscan));
 									}, 1000, req, res);
-}); 
+});
 
 dispatcher.onGet("/hb", function(req, res) {
       res.writeHead(200, {"Content-Type": "text/html"});
       res.end("OK");
-});    
+});
 
 var server = http.createServer(handleRequest);
 var wsSrv = new ws({ httpServer: server });
@@ -355,7 +423,7 @@ wsSrv.on('request', function(request) {
 			msg = msg[0]
 			console.log('WS  msg="' + msg + '" value="'+value+'"');
 			// Command message
-			if ( msg.charAt(0)=='$' ) 
+			if ( msg.charAt(0)=='$' )
 			{
 				clearInterval(interval);
 
