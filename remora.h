@@ -35,7 +35,7 @@
 #define MOD_TIME          /* Gestion du temps */
 
 // Version logicielle remora
-#define REMORA_VERSION "1.3.4"
+#define REMORA_VERSION "1.3.5-beta"
 
 // Définir ici votre authentification blynk, cela
 // Activera automatiquement blynk http://blynk.cc
