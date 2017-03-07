@@ -27,7 +27,7 @@ var startTime = Date.now();
 var ws = require('websocket').server;
 var temperature=20;
 var humidity=50;
-var teleinfo = false;
+var teleinfo = true;
 
 
 
@@ -206,96 +206,62 @@ dispatcher.onError(function(req, res) {
 
  	console.log(util.inspect({query: query}));
 
-		// Check first Query posted http://ip/?toto=titi
-		if (!isEmptyObject(query)) {
+	// Check first Query posted http://ip/?toto=titi
+	if (!isEmptyObject(query)) {
 
-		 	if (query.fp != undefined && query.fp.length==7){
-		 		console.log("FP="+query.fp);
-		 		for (var i=1; i<=7; i++) {
-		 			fp["fp"+i] = query.fp.charAt(i-1);
-		 		}
+	 	if (query.fp != undefined && query.fp.length==7){
+	 		console.log("FP="+query.fp);
+	 		for (var i=1; i<=7; i++) {
+	 			fp["fp"+i] = query.fp.charAt(i-1);
+	 		}
+	 		console.log( util.inspect({fp: fp}));
+		  res.writeHead(200, {"Content-Type": "text/json"});
+		  res.end('{"response":0}');
+
+	 	} else if  (query.setfp != undefined && query.setfp.length==2) {
+	 		console.log("setfp="+query.setfp);
+	 		var i = query.setfp.charAt(0);
+	 		var o = query.setfp.charAt(1).toUpperCase();
+
+		  res.writeHead(200, {"Content-Type": "text/json"});
+
+	 		if (i>='1' && i<='7' && (o=='C'||o=='A'||o=='E'||o=='H'||o=='1'||o=='2') ) {
+	 			fp["fp"+i] = o;
+		  	res.end('{"response":0}');
 		 		console.log( util.inspect({fp: fp}));
-			  res.writeHead(200, {"Content-Type": "text/json"});
-			  res.end('{"response":0}');
-
-		 	} else if  (query.setfp != undefined && query.setfp.length==2) {
-		 		console.log("setfp="+query.setfp);
-		 		var i = query.setfp.charAt(0);
-		 		var o = query.setfp.charAt(1).toUpperCase();
-
-			  res.writeHead(200, {"Content-Type": "text/json"});
-
-		 		if (i>='1' && i<='7' && (o=='C'||o=='A'||o=='E'||o=='H'||o=='1'||o=='2') ) {
-		 			fp["fp"+i] = o;
-			  	res.end('{"response":0}');
-			 		console.log( util.inspect({fp: fp}));
-		 		} else {
-				  res.end('{"response":1}');
-				}
-
-			} else if (query.frelais != undefined && query.frelais.length == 1) {
-				console.log("frelais: ", query.frelais);
-				if (query.frelais >= 0 && query.frelais <= 2) {
-			  	res.writeHead(200, {"Content-Type": "text/json"});
-			  	relais.fnct_relais = query.frelais;
-			  	if (query.frelais >= 0 && query.frelais <= 1) {
-			  		relais.relais = query.frelais;
-			  	} else {
-			  		relais.relais = Math.floor(Math.random() * 2);
-			  	}
-			  	res.end('{"response":0}');
-				} else {
-					res.writeHead(412, {"Content-Type": "text/json"});
-					res.end('{"response":1}');
-				}
-			} else if (query.relais != undefined && query.relais.length == 1) {
-				console.log('relais: ', query.relais);
-				if (query.relais >= 0 && query.relais <= 1) {
-					res.writeHead(200, {"Content-Type": "text/json"});
-					relais.relais = query.relais;
-			  	res.end('{"response":0}');
-				} else {
-					res.writeHead(412, {"Content-Type": "text/json"});
-					res.end('{"response":1}');
-				}
-		 	} else {
-        res.writeHead(500);
-        res.end('Sorry, unknown or bad query received: '+query+' ..\n');
-		 	}
-
-		// serve Web page
-		} else {
-
-			if (filePath == './') {
-  			filePath = './index.htm';
+	 		} else {
+			  res.end('{"response":1}');
 			}
-			contentType = mime.lookup(filePath);
 
-			// Stream out he file
-			fs.readFile(filePath, function(error, content) {
-		    if (error) {
-		      if(error.code == 'ENOENT'){
-		        fs.readFile('./404.html', function(error, content) {
-		          res.writeHead(200, { 'Content-Type': contentType });
-		          res.end(content, 'utf-8');
-							console.log("ENOENT "+filePath+ ' => '+contentType);
-		        });
-		      }
-		      else {
-		        res.writeHead(500);
-		        res.end('Sorry, check with the site admin for error: '+error.code+' ..\n');
-		        res.end();
-						console.log("Error "+filePath+ ' => '+contentType);
-		      }
-		    }
-		    else {
-		      res.writeHead(200, { 'Content-Type': contentType });
-		      res.end(content, 'utf-8');
-					console.log("Sent "+filePath+ ' => '+contentType);
-		    }
-		  });
-		}
-
+		} else if (query.frelais != undefined && query.frelais.length == 1) {
+			console.log("frelais: ", query.frelais);
+			if (query.frelais >= 0 && query.frelais <= 2) {
+		  	res.writeHead(200, {"Content-Type": "text/json"});
+		  	relais.fnct_relais = query.frelais;
+		  	if (query.frelais >= 0 && query.frelais <= 1) {
+		  		relais.relais = query.frelais;
+		  	} else {
+		  		relais.relais = Math.floor(Math.random() * 2);
+		  	}
+		  	res.end('{"response":0}');
+			} else {
+				res.writeHead(412, {"Content-Type": "text/json"});
+				res.end('{"response":1}');
+			}
+		} else if (query.relais != undefined && query.relais.length == 1) {
+			console.log('relais: ', query.relais);
+			if (query.relais >= 0 && query.relais <= 1) {
+				res.writeHead(200, {"Content-Type": "text/json"});
+				relais.relais = query.relais;
+		  	res.end('{"response":0}');
+			} else {
+				res.writeHead(412, {"Content-Type": "text/json"});
+				res.end('{"response":1}');
+			}
+	 	} else {
+      res.writeHead(500);
+      res.end('Sorry, unknown or bad query received: '+query+' ..\n');
+	 	}
   // serve Web page
   } else {
 
