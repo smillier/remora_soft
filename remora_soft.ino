@@ -1,4 +1,4 @@
-  // **********************************************************************************
+// **********************************************************************************
 // Programmateur Fil Pilote et Suivi Conso
 // **********************************************************************************
 // Copyright (C) 2014 Thibault Ducret
@@ -12,6 +12,7 @@
 //           15/09/2015 Charles-Henri Hallard : Ajout compatibilité ESP8266
 //           02/12/2015 Charles-Henri Hallard : Ajout API WEB ESP8266 et Remora V1.3
 //           04/01/2016 Charles-Henri Hallard : Ajout Interface WEB GUIT
+//           04/03/2017 Manuel Hervo          : Ajout des connexions TCP Asynchrones
 //
 // **********************************************************************************
 
@@ -46,8 +47,10 @@
   #include <FS.h>
   #include <ESP8266WiFi.h>
   #include <ESP8266HTTPClient.h>
-  #include <ESP8266WebServer.h>
-  #include <ESP8266mDNS.h>
+  // #include <ESP8266WebServer.h>
+  // #include <ESP8266mDNS.h>
+  #include <ESPAsyncTCP.h>
+  #include <ESPAsyncWebServer.h>
   #include <WiFiUdp.h>
   #include <ArduinoOTA.h>
   #include <Wire.h>
@@ -86,9 +89,7 @@ int my_cloud_disconnect = 0;
 
 #ifdef ESP8266
   // ESP8266 WebServer
-  ESP8266WebServer server(80);
-  // Udp listener for OTA
-  //WiFiUDP OTA;
+  AsyncWebServer server(80);
   // Use WiFiClient class to create a connection to WEB server
   WiFiClient client;
   // RGB LED (1 LED)
@@ -104,6 +105,7 @@ int my_cloud_disconnect = 0;
   volatile boolean task_jeedom = false;
 
   bool ota_blink;
+  bool reboot = false;
 
   /******************************************************************************************************/
   /*                                          TIME                                                      */
@@ -272,6 +274,7 @@ int WifiHandleConn(boolean setup = false)
       delay(50);
       LedRGBOFF();
       delay(150);
+      DebugF(".");
       --timeout;
     }
 
@@ -301,10 +304,19 @@ int WifiHandleConn(boolean setup = false)
 
       // protected network
       DebugF(" avec la clé '");
-      Debug(DEFAULT_WIFI_AP_PASS);
+      if (*config.ap_psk) {
+        Debug(config.ap_psk);
+      } else {
+        Debug(DEFAULT_WIFI_AP_PASS);
+      }
       Debugln("'");
       Debugflush();
-      WiFi.softAP(DEFAULT_HOSTNAME, DEFAULT_WIFI_AP_PASS);
+
+      if (*config.ap_psk) {
+        WiFi.softAP(DEFAULT_HOSTNAME, config.ap_psk);
+      } else {
+        WiFi.softAP(DEFAULT_HOSTNAME, DEFAULT_WIFI_AP_PASS);
+      }
       WiFi.mode(WIFI_AP_STA);
 
       DebugF("IP address   : "); Debugln(WiFi.softAPIP());
@@ -315,10 +327,14 @@ int WifiHandleConn(boolean setup = false)
     _wdt_feed();
 
     // Set OTA parameters
-    ArduinoOTA.setPort(DEFAULT_OTA_PORT);
-    ArduinoOTA.setHostname(DEFAULT_HOSTNAME);
-    ArduinoOTA.setPassword(DEFAULT_OTA_PASS);
-    ArduinoOTA.begin();
+     ArduinoOTA.setPort(DEFAULT_OTA_PORT);
+     ArduinoOTA.setHostname(DEFAULT_HOSTNAME);
+     if (*config.ota_auth) {
+       ArduinoOTA.setPassword(config.ota_auth);
+     }/* else {
+       ArduinoOTA.setPassword(DEFAULT_OTA_PASS);
+     }*/
+     ArduinoOTA.begin();
 
     // just in case your sketch sucks, keep update OTA Available
     // Trust me, when coding and testing it happens, this could save
@@ -499,8 +515,10 @@ void setup()
 
     waitUntil(Particle.connected);
 
+  #elif defined(DEBUG)
+    Serial1.begin(115200);
   #endif
-  #ifdef DEBUG_INIT
+  #if defined DEBUG_INIT || !defined MOD_TELEINFO
     DEBUG_SERIAL.begin(115200);
   #endif
 
@@ -590,8 +608,10 @@ void mysetup()
 
   #elif defined (ESP8266)
 
-    // Init de la téléinformation
-    Serial.begin(1200, SERIAL_7E1);
+    #ifdef MOD_TELEINFO
+      // Init de la téléinformation
+      Serial.begin(1200, SERIAL_7E1);
+    #endif
 
     // Clear our global flags
     config.config = 0;
@@ -629,9 +649,29 @@ void mysetup()
       DebuglnF("");
     }
 
+    // Set OTA parameters
+    ArduinoOTA.setPort(DEFAULT_OTA_PORT);
+    ArduinoOTA.setHostname(DEFAULT_HOSTNAME);
+    ArduinoOTA.setPassword(DEFAULT_OTA_PASS);
+
     // Read Configuration from EEP
     if (readConfig()) {
         DebuglnF("Good CRC, not set!");
+        if (strlen(config.jeedom.host) > 0 && strlen(config.jeedom.url) > 0
+          && strlen(config.jeedom.apikey) > 0 && (config.jeedom.freq > 0 && config.jeedom.freq < 86400)) {
+          // Emoncms Update if needed
+          Tick_jeedom.detach();
+          Tick_jeedom.attach(config.jeedom.freq, Task_jeedom);
+        }
+        if (strlen(config.ota_auth) > 0) {
+          ArduinoOTA.setPassword(config.ota_auth);
+        }
+        if (strlen(config.host) > 0) {
+          ArduinoOTA.setHostname(config.host);
+        }
+        if (config.ota_port > 0) {
+          ArduinoOTA.setPort(config.ota_port);
+        }
     } else {
       // Reset Configuration
       resetConfig();
@@ -648,8 +688,25 @@ void mysetup()
     // Connection au Wifi ou Vérification
     WifiHandleConn(true);
 
+    ArduinoOTA.begin();
+
+    // just in case your sketch sucks, keep update OTA Available
+    // Trust me, when coding and testing it happens, this could save
+    // the need to connect FTDI to reflash
+    // Usefull just after 1st connexion when called from setup() before
+    // launching potentially buggy main()
+    for (uint8_t i=0; i<= 10; i++) {
+      LedRGBON(COLOR_MAGENTA);
+      delay(100);
+      LedRGBOFF();
+      delay(200);
+      ArduinoOTA.handle();
+    }
     // OTA callbacks
     ArduinoOTA.onStart([]() {
+      if (ArduinoOTA.getCommand() == U_SPIFFS) {
+        SPIFFS.end();
+      }
       LedRGBON(COLOR_MAGENTA);
       DebugF("\r\nUpdate Started..");
       ota_blink = true;
@@ -678,23 +735,25 @@ void mysetup()
       else if (error == OTA_CONNECT_ERROR) DebuglnF("Connect Failed");
       else if (error == OTA_RECEIVE_ERROR) DebuglnF("Receive Failed");
       else if (error == OTA_END_ERROR) DebuglnF("End Failed");
-      ESP.restart();
+      //reboot = true;
     });
 
     // handler for uptime
-    server.on("/uptime", [&](){
+    server.on("/uptime", HTTP_GET, [](AsyncWebServerRequest *request) {
       String response = "";
       response += FPSTR("{\r\n");
       response += F("\"uptime\":");
       response += uptime;
       response += FPSTR("\r\n}\r\n") ;
-      server.send ( 200, "text/json", response );
+      request->send(200, "text/json", response);
     });
 
-    server.on("/config_form.json", handleFormConfig);
+    server.on("/config_form.json", HTTP_POST, handleFormConfig);
     server.on("/factory_reset",handleFactoryReset );
     server.on("/reset", handleReset);
     server.on("/tinfo", tinfoJSON);
+    server.on("/relais", relaisJSON);
+    server.on("/delestage", delestageJSON);
     server.on("/tinfo.json", tinfoJSONTable);
     server.on("/system.json", sysJSONTable);
     server.on("/config.json", confJSONTable);
@@ -755,66 +814,20 @@ void mysetup()
     });
 
     // handler for the hearbeat
-    server.on("/hb.htm", HTTP_GET, [&](){
-        server.sendHeader("Connection", "close");
-        server.sendHeader("Access-Control-Allow-Origin", "*");
-        server.send(200, "text/html", R"(OK)");
+    server.on("/hb.htm", HTTP_GET, [](AsyncWebServerRequest *request) {
+      AsyncWebServerResponse *response = request->beginResponse(200, "text/html", R"(OK)");
+      response->addHeader("Connection", "close");
+      response->addHeader("Access-Control-Allow-Origin", "*");
+      request->send(response);
     });
 
     // handler for the /update form POST (once file upload finishes)
-    server.on("/update", HTTP_POST,
-      // handler once file upload finishes
-      [&]() {
-        server.sendHeader("Connection", "close");
-        server.sendHeader("Access-Control-Allow-Origin", "*");
-        server.send(200, "text/plain", (Update.hasError())?"FAIL":"OK");
-        ESP.restart();
-      },
-      // handler for upload, get's the sketch bytes,
-      // and writes them through the Update object
-      [&]() {
-        HTTPUpload& upload = server.upload();
-
-        if(upload.status == UPLOAD_FILE_START) {
-          uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-          WiFiUDP::stopAll();
-          Debugf("Update: %s\n", upload.filename.c_str());
-          LedRGBON(COLOR_MAGENTA);
-          ota_blink = true;
-
-          //start with max available size
-          if(!Update.begin(maxSketchSpace))
-            Update.printError(DEBUG_SERIAL);
-
-        } else if(upload.status == UPLOAD_FILE_WRITE) {
-          if (ota_blink) {
-            LedRGBON(COLOR_MAGENTA);
-          } else {
-            LedRGBOFF();
-          }
-          ota_blink = !ota_blink;
-          Debug(".");
-          if(Update.write(upload.buf, upload.currentSize) != upload.currentSize)
-            Update.printError(DEBUG_SERIAL);
-
-        } else if(upload.status == UPLOAD_FILE_END) {
-          //true to set the size to the current progress
-          if(Update.end(true)) {
-            Debugf("Update Success: %u\nRebooting...\n", upload.totalSize);
-          } else {
-            Update.printError(DEBUG_SERIAL);
-          }
-
-          LedRGBOFF();
-
-        } else if(upload.status == UPLOAD_FILE_ABORTED) {
-          Update.end();
-          LedRGBOFF();
-          DebuglnF("Update was aborted");
-        }
-        delay(0);
-      }
-    );
+    server.on("/update", HTTP_POST, [](AsyncWebServerRequest *request) {
+      reboot = !Update.hasError();
+      AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", reboot ? "OK" : "FAIL");
+      response->addHeader("Connection", "close");
+      request->send(response);
+    }, handle_fw_upload);
 
     server.onNotFound(handleNotFound);
 
@@ -1014,6 +1027,14 @@ void loop()
     first_setup = false;
   }
 
+  #ifdef ESP8266
+  /* Reboot handler */
+  if (reboot) {
+    delay(REBOOT_DELAY);
+    ESP.restart();
+  }
+  #endif
+
   // Gérer notre compteur de secondes
   if (millis() - previousMillis > 1000) {
     // Ceci arrive toute les secondes écoulées
@@ -1126,7 +1147,7 @@ void loop()
     currentcloudstate = Spark.connected();
   #elif defined (ESP8266)
     // recupération de l'état de connexion au Wifi
-    currentcloudstate = WiFi.status()==WL_CONNECTED ? true:false;
+    currentcloudstate = WiFi.status()==WL_CONNECTED ? true : false;
   #endif
 
   // La connexion cloud vient de chager d'état ?
@@ -1169,7 +1190,7 @@ void loop()
   // Connection au Wifi ou Vérification
   #ifdef ESP8266
     // Webserver
-    server.handleClient();
+    //server.handleClient();
     ArduinoOTA.handle();
 
     if (task_emoncms) {

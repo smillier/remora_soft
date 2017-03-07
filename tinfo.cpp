@@ -64,7 +64,7 @@ void ADPSCallback(uint8_t phase)
     DebuglnF("ADPS");
   } else {
     DebugF("ADPS Phase ");
-    Debugln('0' + phase);
+    Debugln("0" + phase);
   }
 
   // nous avons une téléinfo fonctionelle
@@ -84,7 +84,7 @@ void DataCallback(ValueList * me, uint8_t flags)
 {
   // Do whatever you want there
   Debug(me->name);
-  Debug('=');
+  DebugF("=");
   Debug(me->value);
 
   //Debug(" Flags=0x");
@@ -113,12 +113,12 @@ void DataCallback(ValueList * me, uint8_t flags)
     //    Ajout de la gestion du relais aux heures creuses
     //=============================================================
     if (fnctRelais == FNCT_RELAIS_AUTO && lastPtec != ptec) {
-      Debug("PTEC: ");
+      //Debug("PTEC: ");
       if (ptec == PTEC_HC) {
-        Debugln(" HC");
+        //Debugln(" HC");
         relais("1");
       } else {
-        Debugln(" HP");
+        //Debugln(" HP");
         relais("0");
       }
       lastPtec = (int)ptec;
@@ -130,6 +130,7 @@ void DataCallback(ValueList * me, uint8_t flags)
   if (!strcmp(me->name, "IINST"))  myiInst   = atoi(me->value);
   if (!strcmp(me->name, "HCHC"))   myindexHC = atol(me->value);
   if (!strcmp(me->name, "HCHP"))   myindexHP = atol(me->value);
+  if (ptec == PTEC_HP && !strcmp(me->name, "BASE"))  myindexHP = atol(me->value);
   if (!strcmp(me->name, "IMAX"))   myimax    = atoi(me->value);
 
   // Isousc permet de connaitre l'intensité max pour le delestage
@@ -228,7 +229,7 @@ bool tinfo_setup(bool wait_data)
 {
   bool ret = false;
 
-  Debug("Initializing Teleinfo...");
+  DebugF("Initializing Teleinfo...");
   Debugflush();
 
   #ifdef SPARK
@@ -277,8 +278,8 @@ bool tinfo_setup(bool wait_data)
   }
 
   ret = (status & STATUS_TINFO)?true:false;
-  Debug("Init Teleinfo ");
-  Debugln(ret?"OK!":"Erreur!");
+  DebugF("Init Teleinfo ");
+  Debugln(ret ? "OK!" : "Erreur!");
 
   return ret;
 }
@@ -304,7 +305,7 @@ void tinfo_loop(void)
     if ( millis()-tinfo_last_frame>TINFO_FRAME_TIMEOUT*1000) {
       // Indiquer qu'elle n'est pas présente
       status &= ~STATUS_TINFO;
-      Debugln("Teleinfo absente/perdue!");
+      DebuglnF("Teleinfo absente/perdue!");
     }
 
   // Nous n'avions plus de téléinfo
@@ -316,7 +317,7 @@ void tinfo_loop(void)
       LedRGBON(COLOR_RED);
       tinfo_last_frame = millis();
       tinfo_led_timer = millis();
-      Debugln("Teleinfo toujours absente!");
+      DebuglnF("Teleinfo toujours absente!");
     }
   }
 

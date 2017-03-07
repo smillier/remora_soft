@@ -101,7 +101,7 @@ void displayTeleinfo(void)
   } else if (fnctRelais == FNCT_RELAIS_FORCE) {
     dFnctRelais = 'F';
   }
-  display.printf("%s  %c%c", etatFP, dFnctRelais, etatrelais+'0' );
+  display.printf("%s %c%c", etatFP, dFnctRelais, etatrelais+'0' );
 
   // Bargraphe de puissance
   display.drawVerticalBargraph(114,0,12,40,1, percent);
@@ -193,7 +193,7 @@ bool display_setup(void)
     ret = true;
   }
 
-  Serial.flush();
+  Debugflush();
 
   return (ret);
 }

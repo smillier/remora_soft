@@ -27,6 +27,8 @@ var startTime = Date.now();
 var ws = require('websocket').server;
 var temperature=20;
 var humidity=50;
+var teleinfo = false;
+
 
 
 var config = {
@@ -196,60 +198,103 @@ function isEmptyObject(obj) {
 
 dispatcher.onError(function(req, res) {
   var uri = url.parse(req.url).pathname;
-  var filePath = '.' + uri;
-  var extname = path.extname(filePath);
-  var url_parts = url.parse(req.url, true);
-  var query = url_parts.query;
-  var contentType ;
+	var filePath = '.' + uri;
+	var extname = path.extname(filePath);
+	var url_parts = url.parse(req.url, true);
+	var query = url_parts.query;
+	var contentType ;
 
-  console.log(util.inspect({query: query}));
+ 	console.log(util.inspect({query: query}));
 
-  // Check first Query posted http://ip/?toto=titi
-  if (!isEmptyObject(query)) {
+		// Check first Query posted http://ip/?toto=titi
+		if (!isEmptyObject(query)) {
 
-    if (query.fp != undefined && query.fp.length==7){
-      console.log("FP="+query.fp);
-      for (var i=1; i<=7; i++) {
-        fp["fp"+i] = query.fp.charAt(i-1);
-      }
-      console.log( util.inspect({fp: fp}));
-      res.writeHead(200, {"Content-Type": "text/json"});
-      res.end('{"response":0}');
+		 	if (query.fp != undefined && query.fp.length==7){
+		 		console.log("FP="+query.fp);
+		 		for (var i=1; i<=7; i++) {
+		 			fp["fp"+i] = query.fp.charAt(i-1);
+		 		}
+		 		console.log( util.inspect({fp: fp}));
+			  res.writeHead(200, {"Content-Type": "text/json"});
+			  res.end('{"response":0}');
 
-    } else if  (query.setfp != undefined && query.setfp.length==2) {
-      console.log("setfp="+query.setfp);
-      var i = query.setfp.charAt(0);
-      var o = query.setfp.charAt(1).toUpperCase();
+		 	} else if  (query.setfp != undefined && query.setfp.length==2) {
+		 		console.log("setfp="+query.setfp);
+		 		var i = query.setfp.charAt(0);
+		 		var o = query.setfp.charAt(1).toUpperCase();
 
-      res.writeHead(200, {"Content-Type": "text/json"});
+			  res.writeHead(200, {"Content-Type": "text/json"});
 
-      if (i>='1' && i<='7' && (o=='C'||o=='A'||o=='E'||o=='H'||o=='1'||o=='2') ) {
-        fp["fp"+i] = o;
-        res.end('{"response":0}');
-        console.log( util.inspect({fp: fp}));
-      } else {
-        res.end('{"response":1}');
-      }
+		 		if (i>='1' && i<='7' && (o=='C'||o=='A'||o=='E'||o=='H'||o=='1'||o=='2') ) {
+		 			fp["fp"+i] = o;
+			  	res.end('{"response":0}');
+			 		console.log( util.inspect({fp: fp}));
+		 		} else {
+				  res.end('{"response":1}');
+				}
 
-    } else if (query.frelais != undefined && query.frelais.length == 1) {
-      console.log("frelais: ", query.frelais);
-      if (query.frelais >= 0 && query.frelais <= 2) {
-        res.writeHead(200, {"Content-Type": "text/json"});
-        relais.fnct_relais = query.frelais;
-        if (query.frelais >= 0 && query.frelais <= 1) {
-          relais.relais = query.frelais;
-        } else {
-          relais.relais = Math.floor(Math.random() * 2);
-        }
-        res.end('{"response":0}');
-      } else {
-        res.writeHead(412, {"Content-Type": "text/json"});
-        res.end('{"response":1}');
-      }
-    } else {
-      res.writeHead(500);
-      res.end('Sorry, unknown or bad query received: '+query+' ..\n');
-    }
+			} else if (query.frelais != undefined && query.frelais.length == 1) {
+				console.log("frelais: ", query.frelais);
+				if (query.frelais >= 0 && query.frelais <= 2) {
+			  	res.writeHead(200, {"Content-Type": "text/json"});
+			  	relais.fnct_relais = query.frelais;
+			  	if (query.frelais >= 0 && query.frelais <= 1) {
+			  		relais.relais = query.frelais;
+			  	} else {
+			  		relais.relais = Math.floor(Math.random() * 2);
+			  	}
+			  	res.end('{"response":0}');
+				} else {
+					res.writeHead(412, {"Content-Type": "text/json"});
+					res.end('{"response":1}');
+				}
+			} else if (query.relais != undefined && query.relais.length == 1) {
+				console.log('relais: ', query.relais);
+				if (query.relais >= 0 && query.relais <= 1) {
+					res.writeHead(200, {"Content-Type": "text/json"});
+					relais.relais = query.relais;
+			  	res.end('{"response":0}');
+				} else {
+					res.writeHead(412, {"Content-Type": "text/json"});
+					res.end('{"response":1}');
+				}
+		 	} else {
+        res.writeHead(500);
+        res.end('Sorry, unknown or bad query received: '+query+' ..\n');
+		 	}
+
+		// serve Web page
+		} else {
+
+			if (filePath == './') {
+  			filePath = './index.htm';
+			}
+			contentType = mime.lookup(filePath);
+
+			// Stream out he file
+			fs.readFile(filePath, function(error, content) {
+		    if (error) {
+		      if(error.code == 'ENOENT'){
+		        fs.readFile('./404.html', function(error, content) {
+		          res.writeHead(200, { 'Content-Type': contentType });
+		          res.end(content, 'utf-8');
+							console.log("ENOENT "+filePath+ ' => '+contentType);
+		        });
+		      }
+		      else {
+		        res.writeHead(500);
+		        res.end('Sorry, check with the site admin for error: '+error.code+' ..\n');
+		        res.end();
+						console.log("Error "+filePath+ ' => '+contentType);
+		      }
+		    }
+		    else {
+		      res.writeHead(200, { 'Content-Type': contentType });
+		      res.end(content, 'utf-8');
+					console.log("Sent "+filePath+ ' => '+contentType);
+		    }
+		  });
+		}
 
   // serve Web page
   } else {
@@ -292,19 +337,19 @@ function rnd(low, high) {
 }
 
 function rTemp() {
-  temperature = (rnd(-20,20) + 20) / 100.0;
-  return temperature;
+	temperature = (rnd(-20,20) + 20) / 100.0;
+	return temperature;
 }
 
 function rHum() {
-  humidity = (rnd(-20,20) + 50)/100.0;
+	humidity = (rnd(-20,20) + 50)/100.0;
  return humidity;
 }
 
 function sensors() {
-  var sensors = { "si7021":[ {"temperature":rTemp(),  "humidity":rHum(),  "seen":1} ],
-                   "sht10":[ {"temperature":rTemp(),   "humidity":rHum(), "seen":1} ] }
-  return sensors;
+	var sensors =	{	"si7021":[ {"temperature":rTemp(),	"humidity":rHum(),	"seen":1}	],
+									 "sht10":[ {"temperature":rTemp(),	 "humidity":rHum(),	"seen":1}	]	}
+	return sensors;
 }
 
 function log(con, msg) {
@@ -313,18 +358,23 @@ function log(con, msg) {
 }
 
 dispatcher.onGet('/tinfo.json', function(req, res) {
-  require('fs').readFile('./tinfo.json', function(err, file) {
-    if (err) {
-      //errorListener(req, res);
-      return;
-    }
-    res.writeHeader(200, {
-      "Content-Type": "text/json"
-    });
-    res.write(file, 'binary');
-    res.end();
-  });
-})
+	if (teleinfo) {
+		require('fs').readFile('./tinfo.json', function(err, file) {
+			if (err) {
+				//errorListener(req, res);
+				return;
+			}
+			res.writeHeader(200, {
+				"Content-Type": "text/json"
+			});
+			res.write(file, 'binary');
+			res.end();
+		});
+	} else {
+		res.writeHeader(404, {"Content-Type": "text/json"});
+		res.end(JSON.stringify({result: "Teleinfo non activée"}));
+	}
+});
 
 dispatcher.onGet("/sensors", function(req, res) {
       res.writeHead(200, {"Content-Type": "text/json"});
@@ -457,30 +507,29 @@ dispatcher.onGet("/holidays", function(req, res) {
 });
 
 dispatcher.onGet("/?", function(req, res) {
-      //Store the data from the fields in your data store.
-      //The data store could be a file or database or any other store based
-      //on your application.
-      var fields = [];
-      var form = new formidable.IncomingForm();
-      form.on('field', function (field, value) {
-          console.log(field);
-          console.log(value);
-          fields[field] = value;
-      });
+			//Store the data from the fields in your data store.
+			//The data store could be a file or database or any other store based
+			//on your application.
+			var fields = [];
+			var form = new formidable.IncomingForm();
+			form.on('field', function (field, value) {
+			    console.log(field);
+			    console.log(value);
+			    fields[field] = value;
+			});
 
-      form.on('end', function () {
-        res.writeHead(200, {"Content-Type": "text/json"});
-        res.end('{"response":0}');
-      });
-      form.parse(req);
-
+			form.on('end', function () {
+			  res.writeHead(200, {"Content-Type": "text/json"});
+ 			  res.end('{"response":0}');
+			});
+			form.parse(req);
 });
 
 dispatcher.onGet("/wifiscan.json", function(req, res) {
-      setTimeout(function() {
-                    res.writeHead(200, {"Content-Type": "text/json"});
-                    res.end(JSON.stringify(wifiscan));
-                  }, 1000, req, res);
+			setTimeout(function() {
+	      						res.writeHead(200, {"Content-Type": "text/json"});
+  	    						res.end(JSON.stringify(wifiscan));
+									}, 1000, req, res);
 });
 
 dispatcher.onGet("/hb", function(req, res) {
@@ -492,47 +541,47 @@ var server = http.createServer(handleRequest);
 var wsSrv = new ws({ httpServer: server });
 
 wsSrv.on('request', function(request) {
-  var connection = request.accept('', request.origin);
-  console.log("+++ Websocket client connected!");
-  clearInterval(interval);
+	var connection = request.accept('', request.origin);
+	console.log("+++ Websocket client connected!");
+	clearInterval(interval);
 
-  connection.on('message', function(message) {
-    console.log('WS ' + util.inspect(message, false, null));
+	connection.on('message', function(message) {
+		console.log('WS ' + util.inspect(message, false, null));
 
-    if (message.type === 'utf8') {
-      var msg = message.utf8Data.split(':');
-      var value = msg[1];
-      msg = msg[0]
-      console.log('WS  msg="' + msg + '" value="'+value+'"');
-      // Command message
-      if ( msg.charAt(0)=='$' )
-      {
-        clearInterval(interval);
+		if (message.type === 'utf8') {
+			var msg = message.utf8Data.split(':');
+			var value = msg[1];
+			msg = msg[0]
+			console.log('WS  msg="' + msg + '" value="'+value+'"');
+			// Command message
+			if ( msg.charAt(0)=='$' )
+			{
+				clearInterval(interval);
 
-        if (msg==='$system') {
-          interval = setInterval(function(){connection.sendUTF(JSON.stringify({message:"system", data:system()}));}, 1000);
-          connection.sendUTF(JSON.stringify({message:"system", data:system()}));
-          //connection.sendUTF('\'{message:"sensors", data:[{"na":"Uptime","va":"17"},{"na":"Board Version","va":"1.0.0"},{"na":"Compile le","va":"Jan 20 2016 18:54:14"}]}\'');
-        } else if (msg==='$sensors') {
-          interval = setInterval(function(){connection.sendUTF(JSON.stringify({message:"sensors", data:sensors()}));},value*1000);
-          connection.sendUTF(JSON.stringify({message:"sensors", data:sensors()}));
-        }
-      } else {
-        connection.sendUTF("Reveived your raw message '" + msg + "'");
+				if (msg==='$system') {
+					interval = setInterval(function(){connection.sendUTF(JSON.stringify({message:"system", data:system()}));}, 1000);
+					connection.sendUTF(JSON.stringify({message:"system", data:system()}));
+					//connection.sendUTF('\'{message:"sensors", data:[{"na":"Uptime","va":"17"},{"na":"Board Version","va":"1.0.0"},{"na":"Compile le","va":"Jan 20 2016 18:54:14"}]}\'');
+				} else if (msg==='$sensors') {
+					interval = setInterval(function(){connection.sendUTF(JSON.stringify({message:"sensors", data:sensors()}));},value*1000);
+					connection.sendUTF(JSON.stringify({message:"sensors", data:sensors()}));
+				}
+			} else {
+				connection.sendUTF("Reveived your raw message '" + msg + "'");
 
-        //log(connection, "Reveived your raw message '" + msg + "'");
-      }
+				//log(connection, "Reveived your raw message '" + msg + "'");
+			}
 
-    }
-    else if (message.type === 'binary') {
-      console.log('Received Binary Message of ' + message.binaryData.length + ' bytes');
-      connection.sendBytes(message.binaryData);
-    }
-  });
+		}
+		else if (message.type === 'binary') {
+			console.log('Received Binary Message of ' + message.binaryData.length + ' bytes');
+			connection.sendBytes(message.binaryData);
+		}
+	});
 
-  connection.on('close', function(reasonCode, description) {
-    console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
-  });
+	connection.on('close', function(reasonCode, description) {
+		console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
+	});
 });
 
 //Lets start our server
