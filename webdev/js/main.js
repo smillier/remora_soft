@@ -336,19 +336,50 @@
         $('body').removeClass('loaded'); // On affiche le loader
         // On récupère l'état de toutes les zones
         $.getJSON('/holidays', function(data) {
+          // Une date de retour est définit
           if (data.response > 0) {
+            /**
+             * Convertit un objet Date en string
+             *
+             * @param ({Object}) date Objet Date
+             * @return (string) la date au format YYYY-MM-DD
+             */
             function formatDate(date) {
-              var elts = [date.getFullYear()];
-              var month = date.getMonth()+1;
+              if (debug) console.log('formatDate: ', date);
+              var year = date.getFullYear(),
+                  month = date.getMonth()+1,
+                  day = date.getDate();
+
               if (month < 10) {month = '0' + month;}
-              elts.push(month);
-              var day = date.getDate();
               if (day < 10) {day = '0' + day;}
-              elts.push(day);
-              return elts.join('-');
+
+              return year + '-' + month + '-' + day;
             }
+
+            /**
+             * Convertit un objet Date en string
+             *
+             * @param ({Object}) date Objet Date
+             * @return (string) l'heure au format HH:mm
+             */
+            function formatTime(date) {
+              if (debug) console.log('formatTime: ', date);
+              var hours = date.getHours(),
+                  minutes = date.getMinutes();
+
+              if (hours < 10) {hours = '0' + hours;}
+              if (minutes < 10) {minutes = '0' + minutes;}
+
+              return hours + ':' + minutes;
+            }
+            // On transforme le timestamp UNIX en millisecondes
             var backTimestamp = new Date(data.response * 1000);
-            $('#holidays').val(formatDate(backTimestamp));
+            // On remplit le champ date
+            $('#holidays_date').val(formatDate(backTimestamp));
+            // On remplit le champ time
+            $('#holidays_time').val(formatTime(backTimestamp));
+            // On definit la fonction de click du bouton suppression de la date
+            // et on l'affiche
             $('#delete_hld').off('click').click(delete_hld).show();
           } else {
             $('#info-holiday').text('Aucune date configurée').show();
@@ -359,20 +390,27 @@
       }
     });
 
+    /**
+     * Handler pour le bouton supprimer du formulaire des absences
+     */
     function delete_hld(e) {
       if (e.preventDefault) {
         e.preventDefault();
       }
       $.getJSON('/holidays?seconds=0')
         .done( function(msg, textStatus, xhr) {
-          $('#holidays').val('');
+          // On remet les champs à vide
+          $('input.holidays').val('');
+          // On masque le bouton de suppression
           $('#delete_hld').hide();
+          // On remet à jour le formulaire
           $('.nav-tabs a[href=#tab_holidays]').tab('show');
+          // On affiche un message d'informations
           $('#info-holiday').text('Aucune date configurée').show();
-          Notify(2, 'ok', 'success', 'Enregistrement effectué', xhr.status+' '+msg);
+          Notify(2, 'ok', 'success', 'Enregistrement effectué', 'La date de retour a bien été supprimée');
         })
         .fail( function(xhr, textStatus, errorThrown) {
-          Notify(4, 'remove', 'danger', 'Erreur lors de l\'enregistrement', xhr.status+' '+errorThrown);
+          Notify(4, 'remove', 'danger', 'Erreur lors de l\'enregistrement', xhr.status + ' ' + errorThrown);
         });
     }
 
@@ -508,17 +546,55 @@
       // everything looks good!
       if (!e.isDefaultPrevented()) {
         e.preventDefault();
-        console.log("Form Holidays Submit");
-        var backDate = $('#holidays').val();
-        var backTimestamp = parseInt(new Date(backDate).getTime() / 1000);
+        if (debug) console.log("Form Holidays Submit");
+        /**
+         * Convertit une date et une heure au format
+         * string en millisecondes depuis 01/01/1970
+         *
+         * @param (string) date La date au format YYYY-MM-DD
+         * @param (string) time L'heure au format HH:mm
+         * @return number
+         */
+        function getTimestampFromString(date, time) {
+          var year, month, day, hours, minutes, elts;
+          if (debug) console.log('getTimestampFromString(%s - %s)', date, time);
 
+          elts = date.split('-');
+          year = parseInt(elts[0], 10);
+          month = parseInt(elts[1], 10) - 1;
+          day = parseInt(elts[2], 10);
+
+          elts = time.split(':');
+          hours = parseInt(elts[0], 10);
+          minutes = parseInt(elts[1], 10);
+
+          return new Date(year, month, day, hours, minutes).getTime();
+        }
+        var backDate = $('#holidays_date').val(),
+            backTime = $('#holidays_time').val();
+        // Controle des valeurs des champs date et time
+        if (typeof backDate !== 'string' || backDate === '' ||
+          typeof backTime !== 'string' || backTime === '')
+        {
+          Notify(4, 'remove', 'danger', 'Erreur lors de l\'enregistrement', 'Veuillez renseigner tous les champs');
+          return;
+        }
+        // Recuperation de la date de retour en format timestamp UNIX
+        var backTimestamp = parseInt(getTimestampFromString(backDate, backTime) / 1000);
+        if (debug) console.log('backTimestamp: ', backTimestamp);
+        // Envoi de la requete au serveur pour définir la date de retour
         $.getJSON('/holidays?seconds=' + backTimestamp)
           .done( function(msg, textStatus, xhr) {
+            // La requete a bien été traité par le serveur
             if (msg.response == 0) {
-              Notify(2, 'ok', 'success', 'Enregistrement effectué', xhr.status);
+              Notify(2, 'ok', 'success', 'Enregistrement effectué', 'La date de retour a bien été enregistrée');
+              // On definit la fonction de click du bouton suppression de la date
+              // et on l'affiche
               $('#delete_hld').off('click').click(delete_hld).show();
+              // On masque le champ d'informations
               $('#info-holiday').text('').hide();
             } else {
+              // Une erreur s'est produite
               Notify(4, 'remove', 'danger', 'Erreur lors de l\'enregistrement', xhr.status);
             }
           })
