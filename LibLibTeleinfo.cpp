@@ -258,7 +258,7 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
       #endif
 
       // Create new node with size to store strings
-      if ((newNode = (ValueList  *) malloc(size)) == NULL) {
+      if ((newNode = (ValueList  *) malloc(size)) == NULL)
         return ( (ValueList *) NULL );
 
       // get our buffer Safe

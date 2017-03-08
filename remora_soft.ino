@@ -752,25 +752,23 @@ void mysetup()
     server.on("/factory_reset",handleFactoryReset );
     server.on("/reset", handleReset);
     server.on("/tinfo", tinfoJSON);
-    server.on("/relais", relaisJSON);
-    server.on("/delestage", delestageJSON);
     server.on("/tinfo.json", tinfoJSONTable);
     server.on("/system.json", sysJSONTable);
     server.on("/config.json", confJSONTable);
     server.on("/spiffs.json", spiffsJSONTable);
     server.on("/wifiscan.json", wifiScanJSON);
-    server.on("/holidays", [&]() {
-      Debugln("holidays request");
+    server.on("/holidays", [](AsyncWebServerRequest *request) {
+      DebuglnF("holidays request");
       #ifdef MOD_TIME
-        if (!server.hasArg("seconds")) {
+        if (!request->hasParam("seconds")) {
           String response = FPSTR("{\r\n");
           response += F("\"response\":");
           response += backFromHolidays;
           response += FPSTR("\r\n}\r\n") ;
-          server.send(200, "text/json", response);
+          request->send(200, "text/json", response);
         } else {
-          DebugF("Seconds: "); Debugln(server.arg("seconds"));
-          backFromHolidays = DateTime(server.arg("seconds").toInt()).secondstime();
+          DebugF("Seconds: "); Debugln(request->getParam("seconds")->value());
+          backFromHolidays = DateTime(request->getParam("seconds")->value().toInt()).secondstime();
           char cmd[NB_FILS_PILOTES+1] = "";
           uint8_t i = 0;
           // Si la durée avant le retour est supérieur à 2 jours, on coupe tout
@@ -806,8 +804,8 @@ void mysetup()
             // On remet le chauffage en route
             for (uint8_t i = 0; i < NB_FILS_PILOTES; i++) {
               cmd[i] = saveFP[i];
-              saveFP[i] = '';
             }
+//            saveFP[NB_FILS_PILOTES+1] = "";
             backFromHolidays = 0;
           }
           //DebugF("cmd: "); Debugln(cmd);
@@ -819,12 +817,13 @@ void mysetup()
           response += F("\"response\":");
           response += ret;
           response += FPSTR("\r\n}\r\n") ;
-          server.send(200, "text/json", response);
+          request->send(200, "text/json", response);
         }
       #else
-        server.sendHeader("Connection", "close");
-        server.sendHeader("Access-Control-Allow-Origin", "*");
-        server.send(404, "text/plain", "MOD_TIME unactive");
+        AsyncWebServerResponse *response = request->beginResponse(404, "text/plain", "MODE_TIME unactive");
+        response->addHeader("Connection", "close");
+        response->addHeader("Access-Control-Allow-Origin", "*");
+        request->send(response);
       #endif
     });
 

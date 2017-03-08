@@ -731,16 +731,14 @@ Input   : -
 Output  : -
 Comments: -
 ====================================================================== */
-void relaisJSON(/*String & response*/)
+void relaisJSON(String & response)
 {
-  String response = "";
   response = FPSTR(FP_JSON_START);
   response+= "\"relais\": ";
   response+= String(etatrelais);
   response+= ",\r\n\"fnct_relais\": ";
   response+= String(fnctRelais);
   response+= FPSTR(FP_JSON_END);
-  server.send ( 200, "text/json", response );
 }
 
 /* ======================================================================
@@ -750,7 +748,7 @@ Input   : -
 Output  : -
 Comments: -
 ====================================================================== */
-void delestageJSON(/*String & response*/)
+void delestageJSON(String & response)
 {
     response = FPSTR(FP_JSON_START);
     #ifdef MOD_ADPS
