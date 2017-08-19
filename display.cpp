@@ -157,7 +157,11 @@ void drawFrameWifi(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, i
   // see http://blog.squix.org/2015/05/esp8266-nodemcu-how-to-create-xbm.html
   // on how to create xbm files
   display->drawXbm(x + (128-WiFi_width)/2, y, WiFi_width, WiFi_height, WiFi_bits);
-  display->drawString(x + 64, y + WiFi_height+4, WiFi.localIP().toString());
+  if (WiFi.getMode() == WIFI_STA) {
+    display->drawString(x + 64, y + WiFi_height+4, WiFi.localIP().toString());
+  } else {
+    display->drawString(x + 64, y + WiFi_height+4, WiFi.softAPIP().toString());
+  }
   //ui->disableIndicator();
 }
 
@@ -358,9 +362,9 @@ void drawFrameRF(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int
         // display bargraph on lcd
         display->drawProgressBar( x + 62, 4, 64 , 12, percent);
 
-        //display->setFont(Roboto_Condensed_12);
+        display->setFont(Roboto_Condensed_12);
         display->setTextAlignment(TEXT_ALIGN_LEFT);
-        /*
+
         line++; *buff='\0';
         if (sensorData.temp != SENSOR_NOT_A_TEMP) {
           sprintf_P(buff+strlen(buff), PSTR("%.1f°C  "), sensorData.temp/100.0f );
@@ -385,11 +389,11 @@ void drawFrameRF(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int
         display->setTextAlignment(TEXT_ALIGN_CENTER);
         line++; *buff='\0';
         if (sensorData.lux != SENSOR_NOT_A_LUX) {
-          sprintf_P(buff+strlen(buff), PSTR("%.0f Lux  "), sensorData.lux/10.0f );
+          sprintf_P(buff+strlen(buff), PSTR("%.0f Lux  "), (float)sensorData.lux/10.0f );
         }
         if (sensorData.hum != SENSOR_NOT_A_HUM) {
-          sprintf_P(buff+strlen(buff), PSTR("%.0f %%RH"), sensorData.hum/10.0f );
-        }*/
+          sprintf_P(buff+strlen(buff), PSTR("%.1f %%RH"), (float)sensorData.hum/10.0f );
+        }
         display->drawString(x + 64, y + line * 16, buff);
 
         display->setFont(Roboto_Condensed_12);

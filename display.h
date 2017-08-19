@@ -37,6 +37,7 @@ extern FrameCallback frames[];
   #define DISPLAY_FRAME_COUNT 4
 #endif
 #define DISPLAY_FPS 50 // Time to display a frame
+#define RF_FRAME_INDEX 3
 
 
 // Function exported for other source file
