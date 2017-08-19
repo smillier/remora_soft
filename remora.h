@@ -27,9 +27,9 @@
 #define REMORA_BOARD_V13  // Version 1.3
 
 //  Définir ici les modules utilisés sur la carte Remora
-//#define MOD_RF69      /* Module RF  */
+#define MOD_RF69      /* Module RF  */
 #define MOD_OLED      /* Afficheur  */
-#define MOD_TELEINFO  /* Teleinfo   */
+//#define MOD_TELEINFO  /* Teleinfo   */
 //#define MOD_RF_OREGON   /* Reception des sondes orégon */
 #define MOD_ADPS          /* Délestage */
 
@@ -99,6 +99,7 @@
   #include <SPI.h>
   #include <SSD1306Wire.h>
   #include <OLEDDisplayUi.h>
+  #include <ArduinoJson.h>
 
 extern "C" {
 #include "user_interface.h"
@@ -115,7 +116,7 @@ extern "C" {
   #define _yield  yield
   #define _wdt_feed ESP.wdtFeed
   #define DEBUG_SERIAL  Serial
-  //#define DEBUG_INIT
+  #define DEBUG_INIT
   #define REBOOT_DELAY    100     /* Delay for rebooting once reboot flag is set */
 #endif
 
@@ -125,18 +126,20 @@ extern "C" {
 // debugging, this should not interfere with main sketch or other
 // libraries
 #ifdef DEBUG
-#define Debug(x)    DEBUG_SERIAL.print(x)
-#define Debugln(x)  DEBUG_SERIAL.println(x)
-#define DebugF(x)   DEBUG_SERIAL.print(F(x))
-#define DebuglnF(x) DEBUG_SERIAL.println(F(x))
-#define Debugf(...) DEBUG_SERIAL.printf(__VA_ARGS__)
-#define Debugflush  DEBUG_SERIAL.flush
+#define Debug(x)      DEBUG_SERIAL.print(x)
+#define Debugln(x)    DEBUG_SERIAL.println(x)
+#define DebugF(x)     DEBUG_SERIAL.print(F(x))
+#define DebuglnF(x)   DEBUG_SERIAL.println(F(x))
+#define Debugf(...)   DEBUG_SERIAL.printf(__VA_ARGS__)
+#define DebugfF(...)  DEBUG_SERIAL.printf_P(__VA_ARGS__)
+#define Debugflush    DEBUG_SERIAL.flush
 #else
 #define Debug(x)
 #define Debugln(x)
 #define DebugF(x)
 #define DebuglnF(x)
 #define Debugf(...)
+#define DebugfF(...)
 #define Debugflush()
 #endif
 
@@ -187,8 +190,8 @@ extern "C" {
   //#define LedRGBON(x) {}
 
   // RFM69 Pin mapping
-  #define RF69_CS   15
-  #define RF69_IRQ  2
+  #define RF69_CS   2
+  #define RF69_IRQ  15
 #endif
 
 // Ces modules ne sont pas disponibles sur les carte 1.0 et 1.1
@@ -272,6 +275,7 @@ extern unsigned long uptime;
   extern bool   reboot; /* Flag to reboot the ESP */
   extern bool   ota_blink;
   extern bool   got_first;
+
 #endif
 
 

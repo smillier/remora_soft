@@ -58,6 +58,7 @@
   #include <BlynkSimpleEsp8266.h>
   #include <SSD1306Wire.h>
   #include <OLEDDisplayUi.h>
+  #include <ArduinoJson.h>
   #include "./LibMCP23017.h"
   #include "./LibULPNode_RF_Protocol.h"
   #include "./LibLibTeleinfo.h"
@@ -705,8 +706,14 @@ void mysetup()
 
   #ifdef MOD_RF69
     // Initialisation RFM69 Module
-    if (rfm_setup())
+    Debug("Initializing RFM69...");
+    Debugflush();
+    if (rfm_setup()) {
+      DebuglnF("OK!");
       status |= STATUS_RFM; // Statut RFM ajouté
+    } else {
+      DebuglnF("Not Found!");
+    }
   #endif
 
   // Feed the dog
