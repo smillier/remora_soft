@@ -87,14 +87,16 @@
 #define CFG_FORM_GW  FPSTR("wifi_gw");
 #define CFG_FORM_MSK FPSTR("wifi_msk");
 
+#define CFG_RFM_MAX_NODES   254
+
 #pragma pack(push)  // push current alignment to stack
 #pragma pack(1)     // set alignment to 1 byte boundary
 
 // Config for emoncms
 // 128 Bytes
-typedef struct 
+typedef struct
 {
-  char  host[CFG_EMON_HOST_SIZE+1]; 		// FQDN 
+  char  host[CFG_EMON_HOST_SIZE+1]; 		// FQDN
   char  apikey[CFG_EMON_APIKEY_SIZE+1]; // Secret
   char  url[CFG_EMON_URL_SIZE+1];  			// Post URL
   uint16_t port;    								    // Protocol port (HTTP/HTTPS)
@@ -105,9 +107,9 @@ typedef struct
 
 // Config for jeedom
 // 256 Bytes
-typedef struct 
+typedef struct
 {
-  char  host[CFG_JDOM_HOST_SIZE+1];     // FQDN 
+  char  host[CFG_JDOM_HOST_SIZE+1];     // FQDN
   char  apikey[CFG_JDOM_APIKEY_SIZE+1]; // Secret
   char  url[CFG_JDOM_URL_SIZE+1];       // Post URL
   char  adco[CFG_JDOM_ADCO_SIZE+1];     // Identifiant compteur
@@ -116,17 +118,26 @@ typedef struct
   uint8_t filler[90];                   // in case adding data in config avoiding loosing current conf by bad crc*/
 } _jeedom;
 
+// Network RFM Node ID
+// 16 Bytes
+typedef struct
+{
+  uint32_t chipid;      // Chip ID of node
+  uint8_t  nodeid;      // Node ID
+  uint8_t  filler[11];  // in case adding data in config avoiding loosing current conf by bad crc*/
+} _rfm_network_nodeid;
+
 // Config saved into eeprom
 // 1024 bytes total including CRC
-typedef struct 
+typedef struct
 {
-  char  ssid[CFG_SSID_SIZE+1]; 		 // SSID     
+  char  ssid[CFG_SSID_SIZE+1]; 		 // SSID
   char  psk[CFG_PSK_SIZE+1]; 		   // Pre shared key
-  char  host[CFG_HOSTNAME_SIZE+1]; // Hostname 
+  char  host[CFG_HOSTNAME_SIZE+1]; // Hostname
   char  ap_psk[CFG_PSK_SIZE+1];    // Access Point Pre shared key
   char  ota_auth[CFG_PSK_SIZE+1];  // OTA Authentication password
-  uint32_t config;           		   // Bit field register 
-  uint16_t ota_port;         		   // OTA port 
+  uint32_t config;           		   // Bit field register
+  uint16_t ota_port;         		   // OTA port
   uint8_t  filler[131];      		   // in case adding data in config avoiding loosing current conf by bad crc
   _emoncms emoncms;                // Emoncms configuration
   _jeedom  jeedom;                 // jeedom configuration
@@ -138,16 +149,20 @@ typedef struct
 // Exported variables/object instancied in main sketch
 // ===================================================
 extern _Config config;
+extern _rfm_network_nodeid nodeids[CFG_RFM_MAX_NODES]; // Node IDs Network RFM69
 
 #pragma pack(pop)
- 
+
 // Declared exported function from route.cpp
 // ===================================================
 bool readConfig(bool clear_on_error=true);
 bool saveConfig(void);
 void showConfig(void);
 void resetConfig(void);
+size_t check_config_file(const char * cfg_file);
+bool read_config_rfm69(void);
+bool write_config_rfm69(void);
 
-#endif // ESP8266 
+#endif // ESP8266
 #endif // CONFIG_h
 
