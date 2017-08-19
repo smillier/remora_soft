@@ -22,6 +22,8 @@
 #ifndef ULPN_RF_PROTOCOL_H
 #define ULPN_RF_PROTOCOL_H
 
+#include "./Remora.h"
+
 // Symbolic names for currently supported platform types
 #define RF_GATEWAY_PLATFORM_ARDUINO  1
 #define RF_GATEWAY_PLATFORM_PARTICLE 2  // Any Particle platform
@@ -323,9 +325,10 @@ typedef struct
 // dhcp format in payload
 typedef struct
 {
-  uint8_t code;      // code
-  uint8_t networkid; // network ID
-  uint8_t nodeid;    // node ID
+  uint8_t   code;      // code
+  uint8_t   networkid; // network ID
+  uint8_t   nodeid;    // node ID
+  uint32_t  chipid;    // Chip ID
 } s_dhcp;
 
 // Dummy payload, used to be able to handle any possible payload

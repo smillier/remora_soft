@@ -296,7 +296,7 @@ char * add_json_data(char * str, char * json)
 
   // Some checking on size, just in case
   if ( l + strlen(json) < sizeof(json_str))
-    sprintf_P(&str[l], PSTR(",%s"), json);
+    sprintf_P(&str[l], PSTR(", %s"), json);
 
   return str;
 }
@@ -355,7 +355,7 @@ uint8_t decode_received_data(uint8_t nodeid, int8_t rssi, uint8_t len, uint8_t c
 
   // Start our buffer string
   if (nodeid)
-    sprintf_P(json_str, PSTR("{\"id\":%d,\"rssi\":%d"), nodeid, rssi);
+  sprintf_P(json_str, PSTR("{\"id\":%d, \"rssi\":%d"), nodeid, rssi);
   else
     sprintf_P(json_str, PSTR("{\"rssi\":%d"), rssi);
 
@@ -380,6 +380,11 @@ uint8_t decode_received_data(uint8_t nodeid, int8_t rssi, uint8_t len, uint8_t c
       sprintf_P(pbuf, PSTR("\"myrssi\":%d"), rssi);
       add_json_data(json_str, pbuf);
     }
+  } else if ( (c==RF_PL_DHCP_REQUEST || c==RF_PL_DHCP_OFFER) && len==sizeof(s_dhcp)) {
+    if (c==RF_PL_DHCP_REQUEST) {
+      sprintf_P(pbuf, PSTR("\"chipid\":%d"), ((s_dhcp*)pdat)->chipid);
+      add_json_data(json_str, pbuf);
+    }
   // payload Packet with datas
   // we need at least size of payload > 2
   // 1 payload command + 1 sensor type + 1 sensor data)
@@ -398,6 +403,7 @@ uint8_t decode_received_data(uint8_t nodeid, int8_t rssi, uint8_t len, uint8_t c
     // Loop through all data contained into the payload
     // discard 1st byte on each, which is header data code
     do {
+      //DebugF("data_type: "); DEBUG_SERIAL.print(data_type,HEX); Debugln();
       // each sensor type can have 4 values sent,
       char str_idx[] = " ";
       data_size = 0;
@@ -465,7 +471,7 @@ uint8_t decode_received_data(uint8_t nodeid, int8_t rssi, uint8_t len, uint8_t c
         // Unknown data code, so we can't check data value
         // nor size, so we decide to discard the
         // end of this frame
-        ULPNP_DebugF("Parsing error");
+        ULPNP_DebuglnF("Parsing error");
         error = true;
       }
 
@@ -508,7 +514,7 @@ uint8_t decode_received_data(uint8_t nodeid, int8_t rssi, uint8_t len, uint8_t c
     uint8_t * p = (uint8_t *) ppayload;
 
     // send raw values
-    strcat(json_str, ",\"raw\":\"");
+    strcat(json_str, ", \"raw\":\"");
 
     // Add each received value
     while (len--)
