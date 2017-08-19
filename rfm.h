@@ -24,8 +24,8 @@
 // The Network ID takes values from 0-255
 #define RFM69_NODEID    1     // Node ID used for this unit
 #define RFM69_NETWORKID 69    // the network ID we are on
-#define RFM69_FREQUENCY 43400 // RFM69 434.00MHz
-#define RFM69_TXPWR     13    // +13dB (set to 14..20 for RFM69HW)
+#define RFM69_FREQUENCY 43300 // RFM69 434.00MHz
+#define RFM69_TXPWR     20    // +13dB (set to 14..20 for RFM69HW)
 #define RFM69_MODEM_MAX 26    // Number of modem config values MAX strored in flash RH_RH69 driver
 #define RFM69_MODEMCFG  RH_RF69::GFSK_Rb250Fd250  // RadioHead default modem config
 
@@ -37,6 +37,11 @@
 #define RF_RESP     2   // Just send and wait response
 
 #define RF_LED_BLINK_MS  150 // Time of RGB LED blink
+
+#define SENSOR_NOT_A_TEMP NULL
+#define SENSOR_NOT_A_HUM  NULL
+#define SENSOR_NOT_A_BAT  NULL
+#define SENSOR_NOT_A_LUX  NULL
 
 
 // data received by RF module
@@ -57,6 +62,15 @@ typedef struct
   uint8_t  buffer[RH_RF69_MAX_MESSAGE_LEN];
 } RFData;
 
+// Data of latest sensor value received
+typedef struct SensorData {
+  int16_t  temp;
+  uint16_t hum;  
+  uint16_t lux; 
+  int8_t   rssi;
+  uint16_t bat; // Battery Voltage Value (in mv)
+} _SensorData;
+
 // Variables exported to other source file
 // ========================================
 // define RF var for whole project
@@ -64,6 +78,7 @@ extern unsigned long  rf_rgb_led_timer;
 extern RH_RF69        driver;
 extern RFData         rfData;     // data received
 extern unsigned long  packet_last_seen;// second since last packet received
+extern _SensorData    sensorData; // sensor data received
 
 // Function exported for other source file
 // =======================================

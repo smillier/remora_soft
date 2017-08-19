@@ -26,6 +26,7 @@ unsigned long packet_last_seen=0;// second since last packet received
 // independent from module received (RF12 or RF69)
 // used to display or send to serial
 RFData rfData;
+_SensorData sensorData; // sensor data received
 
 // Linked list of nodes seens
 NodeList nodes_list;
@@ -147,23 +148,18 @@ bool rfm_setup(void)
 {
   bool ret = false;
 
-  Debug("Initializing RFM69...");
-  Debugflush();
-
   // RF Radio initialization
   // =======================
   // Defaults after RadioHead init are
   // 434.0MHz
   // modulation GFSK_Rb250Fd250, +13dbM
   // No encryption
-  if (!driver.init()) {
-    Debugln("Not found!");
-  } else {
-    Debugln("OK!");
-
+  if (driver.init()) {
+    ret = true;
+    driver.setFrequency( (float) RFM69_FREQUENCY /100.0f);
     // If you are using a high power RF69, you *must* set a Tx power in the
     // range 14 to 20 like this:
-    driver.setTxPower(20);
+    driver.setTxPower(RFM69_TXPWR);
 
     // set driver parameters
     driver.setThisAddress(RFM69_NODEID);  // filtering address when receiving
@@ -175,9 +171,13 @@ bool rfm_setup(void)
     nodes_list.nodeid   = 0 ;
     nodes_list.rssi     = 0 ;
     nodes_list.lastseen = 0 ;
+
+    sensorData.temp = SENSOR_NOT_A_TEMP;
+    sensorData.hum  = SENSOR_NOT_A_HUM;
+    sensorData.bat  = SENSOR_NOT_A_BAT;
+    sensorData.lux  = SENSOR_NOT_A_LUX;
   }
 
-  Debugflush();
   return (ret);
 
 }
@@ -191,18 +191,18 @@ Comments: -
 ====================================================================== */
 void rfm_loop(void)
 {
-
-  got_first = false;
   //static unsigned long packet_last_seen=0;// second since last packet received
   uint8_t packetReceived = 0;
   unsigned long node_last_seen;  // Second since we saw this node
   unsigned long currentMillis = millis();
+  RFData data;
 
   // Data received from driver ?
   if (driver.available()) {
     node_last_seen = rfm_receive_data();
     packet_last_seen = uptime;
     packetReceived = true;
+    data = rfData;
     got_first = true;
   }
 
@@ -261,6 +261,8 @@ void rfm_loop(void)
     // code as been set to 0 by decode_received_data
     cmd = decode_received_data(rfData.nodeid, rfData.rssi, rfData.size, cmd, rfData.buffer);
 
+    //DebugF("2 cmd: "); DEBUG_SERIAL.print(cmd,HEX); DebugF(" - DHCP_REQUEST cmd: "); DEBUG_SERIAL.print(RF_PL_DHCP_REQUEST,HEX); Debugln();
+    //Debugflush();
    // special ping packet, we need to answer back
    if ( cmd==RF_PL_PING ) {
      RFPingPayload * ppl = (RFPingPayload *) rfData.buffer;
@@ -289,16 +291,107 @@ void rfm_loop(void)
      DEBUG_SERIAL.print(ppl->rssi,DEC);
      DebuglnF("dB)");
    }
+  // Respond to DHCP_REQUEST for send new ID at node
+  else if (cmd == RF_PL_DHCP_REQUEST) {
+    // Dirty global to display
+    StaticJsonBuffer<256> jsonBuffer;
+    JsonObject& root = jsonBuffer.parseObject(json_str);
+
+    if (!root.success()) {
+      DebuglnF("JSON parseObject() failed");
+    } else {
+      DebugF("Received...");
+      uint16_t nodeid = 0;
+      // Save sensor value for display later
+      if (root.containsKey("chipid")) {
+        Debugf("chipid=%s", root["chipid"].asString());
+        uint32_t chipid = root["chipid"].as<unsigned long>();
+        nodeid = get_node_id();
+      }
+      s_dhcp * ppl = (s_dhcp *) rfData.buffer;
+
+      ppl->code = RF_PL_DHCP_OFFER;
+      ppl->nodeid = nodeid; // TODO: Ajouter la gestion dynamique d'affectation d'identifiant
+      ppl->networkid = RFM69_NETWORKID;
+
+      driver.setHeaderId(rfData.seqid);
+      driver.setHeaderFlags(RH_FLAGS_NONE);
+
+      delay(2);
+      driver.send((uint8_t *) ppl, (uint8_t) sizeof(s_dhcp));
+      DebuglnF("nodeid sent, wait packet sent");
+      driver.waitPacketSent();
+
+      // Start line with a # (comment)
+      // indicate external parser that it's just debug information
+      DebugF("\r\n# -> ");
+      DEBUG_SERIAL.print(rfData.nodeid, DEC);
+      DebugF(" DHCP OFFER (");
+      DEBUG_SERIAL.print(rfData.rssi, DEC);
+      DebuglnF("dB)");
+    }
+  }
+
+   // known Payload ? send frame to serial
+   // known Payload ? send frame to serial
+   else if (cmd) {
+    uint8_t post_err = 0;
+
+    // This is not debug, should be printed, it's the data
+    Serial.println(json_str);
+    Serial.flush();
+
+    // Dirty global to display
+    StaticJsonBuffer<256> jsonBuffer;
+    JsonObject& root = jsonBuffer.parseObject(json_str);
+
+    sensorData.temp = SENSOR_NOT_A_TEMP;
+    sensorData.hum  = SENSOR_NOT_A_HUM;
+    sensorData.bat  = SENSOR_NOT_A_BAT;
+    sensorData.lux  = SENSOR_NOT_A_LUX;
+
+    if (!root.success()) {
+      DebuglnF("JSON parseObject() failed");
+    } else {
+      DebugF("Received...");
+
+      // Save sensor value for display later
+      if (root.containsKey("temp")) {
+        Debugf("temp=%s", root["temp"].asString());
+        sensorData.temp = root["temp"].as<double>() * 100;
+      }
+      if (root.containsKey("hum") ) {
+        Debugf(" hum=%s", root["hum"].asString());
+        sensorData.hum  = root["hum"].as<double>() * 10;
+      }
+      if (root.containsKey("bat") ) {
+        Debugf(" bat=%s", root["bat"].asString());
+        sensorData.bat  = root["bat"].as<double>() * 1000;
+      }
+      if (root.containsKey("lux") ) {
+        Debugf(" lux=%s", root["lux"].asString());
+        sensorData.lux  = root["lux"].as<double>() * 10;
+      }
+      DebuglnF(" ...OK!");
+    }
+
+    // ArduinoJson parsing broke our JSON str, redo
+    //decode_received_data(0, rfData.rssi, rfData.size, cmd, rfData.buffer);
+
+    Serial.println(json_str);
+
+    #ifdef MOD_OLED
+    if (status & STATUS_OLED) {
+      // switch to RF Frame immediatly
+      ui->switchToFrame(RF_FRAME_INDEX);
+      ui->update();
+    }
+    #endif
+  }
 
    // Start blue led
    LedRGBON(COLOR_BLUE);
    rf_rgb_led_timer=millis();
-
-   // known Payload ? send frame to serial
-   if (cmd) {
-     Debugln(json_str);
-   }
-
 
    // Display Results only if something new received
    // As display on OLED is quite long, this avoid time out
