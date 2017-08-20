@@ -1,7 +1,7 @@
 {
-    "ssid":"myssid",
-    "psk":"mypsk",
-    "host":"WifInfo",
+    "ssid":"Livebox-0479",
+    "psk":"AA258FE563CEA84BDAC",
+    "host":"Remora_D8DEBE",
     "ap_psk":"",
     "emon_host":"emoncms.org",
     "emon_port":"80",

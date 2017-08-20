@@ -48,6 +48,7 @@ stream.once('open', function(fd) {
   console.log('Concataining already minified .js files');
   concat([
     'js/jquery-2.1.4.min.js',
+    'js/jquery-ui.min.js',
     'js/bootstrap.min.js',
     'js/bootstrap-table.min.js',
     'js/bootstrap-table-fr-FR.min.js',
@@ -72,6 +73,7 @@ console.log('Concataining already minified .css files');
 concat([
   'css/bootstrap.min.css',
   'css/bootstrap-table.min.css',
+  'css/jquery-ui.min.css',
   'css/remora.min.css'
 ], cssfile, function() {
             var gzip = zlib.createGzip();

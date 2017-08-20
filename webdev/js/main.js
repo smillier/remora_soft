@@ -362,6 +362,14 @@
       if (debug) console.log('#tab_scan_data data loaded', data);
       //$(this).hide();
       if (data.status == 'OK') {
+        if (debug) console.log('#tab_scan_data: result OK');
+        var networks = [];
+        for (var i = 0; i < data.result.length; i++) {
+          networks.push({value: data.result[i].ssid, label: data.result[i].ssid + " (RSSI: " + data.result[i].rssi + ")"});
+        }
+        $('#ssid').autocomplete({
+          source: networks
+        });
         $('#tab_scan_data').bootstrapTable('load', data.result);
       }
     });

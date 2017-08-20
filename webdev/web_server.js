@@ -114,7 +114,7 @@ var spiffs = {
 	]
 }
 
-var wifiscan = [
+var wifiscan = {"result":[
 	{"ssid":"FreeWifi_secure","rssi":-59,"enc":"????","chan":1},
 	{"ssid":"HOME-FREEBOX","rssi":-60,"enc":"WPA2","chan":1},
 	{"ssid":"FreeWifi","rssi":-60,"enc":"Open","chan":1},
@@ -122,7 +122,7 @@ var wifiscan = [
 	{"ssid":"HP-Print-3D-Deskjet 3520 series","rssi":-77,"enc":"Open","chan":6},
 	{"ssid":"Livebox-0479","rssi":-93,"enc":"Auto","chan":6},
 	{"ssid":"HOME-HOTSPOT","rssi":-60,"enc":"WPA2","chan":9}
-	]
+	],"status":"OK"};
 
 
 function system() {

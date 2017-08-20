@@ -178,10 +178,10 @@
                   <div class="panel-collapse collapse in" id="col_cfg">
                     <div class="panel-body">
                       <div class="form-group">
-                        <label class="col-sm-3 control-label">Réseau Wifi</label>
+                        <label class="col-sm-3 control-label">Réseau Wifi <span style="margin-left:10px" class="glyphicon glyphicon-info-sign" title="Le champ SSID est complété, tapez les premières lettres de votre réseau"></span></label>
                         <div class="col-sm-9">
                           <div class="input-group">
-                            <input type="text" class="form-control" id="ssid" name="ssid" maxlength="32" value="" placeholder="Nom de votre réseau Wifi">
+                            <input type="text" class="form-control" id="ssid" name="ssid" maxlength="32" value="" placeholder="Nom de votre réseau Wifi (autocompleté)">
                             <div class="input-group-btn">
                               <button class="btn btn-default dropdown-toggle" type="button" id="btn_scan" data-toggle="modal" data-target="#tab_scan">&nbsp;<span class="glyphicon glyphicon-zoom-in"></span></button>
                             </div>
@@ -544,7 +544,9 @@
                   <tr>
                     <th class="col-sm-5" data-field="ssid" data-sortable="true">SSID</th>
                     <th class="col-sm-4" data-field="signal" data-align="center" data-formatter="RSSIFormatter">Qualité</th>
-                    <th class="col-sm-3" data-field="rssi" data-sortable="true" data-sort-order="asc" data-align="center">RSSI (dBm)</th>
+                    <!--<th class="col-sm-3" data-field="rssi" data-sortable="true" data-sort-order="asc" data-align="center">RSSI (dBm)</th>-->
+                    <th class="col-sm-2" data-field="enc" data-align="center">Cryptage</th>
+                    <th class="col-sm-1" data-field="chan" data-align="center">Chan</th>
                   </tr>
                 </thead>
               </table>
