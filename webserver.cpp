@@ -558,55 +558,41 @@ Comments: -
 ====================================================================== */
 void wifiScanJSON(AsyncWebServerRequest *request)
 {
-  String response = "";
-  bool first = true;
-  int scanStatus = WiFi.scanComplete();
+  WiFi.scanNetworksAsync([request](int numNetworks) {
+    String buff;
+    AsyncJsonResponse * response = new AsyncJsonResponse(false);
+    JsonObject& root = response->getRoot();
+    JsonArray& arr = root.createNestedArray("result");
 
-  // Just to debug where we are
-  DebugF("Serving /wifiscan page...");
+    // Just to debug where we are
+    DebugF("Serving /wifiscan page...");
+    
+    for (uint8_t i = 0; i < numNetworks; ++i) {
 
-  // Json start
-  response += F("{\r\n");
+      switch(WiFi.encryptionType(i)) {
+        case ENC_TYPE_NONE: buff = "Open";  break;
+        case ENC_TYPE_WEP:  buff = "WEP";   break;
+        case ENC_TYPE_TKIP: buff = "WPA";   break;
+        case ENC_TYPE_CCMP: buff = "WPA2";  break;
+        case ENC_TYPE_AUTO: buff = "Auto";  break;
+        default:            buff = "????";  break;
+      }
 
-  //int n = WiFi.scanNetworks();
-  if (scanStatus == WIFI_SCAN_FAILED) {
-    WiFi.scanNetworks(true);
-    response += F("\"status\": \"Scan in progess\"");
-  } else if (scanStatus >= 0) {
-    response += F("\"result\": [");
-    for (uint8_t i = 0; i < scanStatus; ++i) {
-      int8_t rssi = WiFi.RSSI(i);
+      Debugf("[%d] '%s' Encryption=%s Channel=%d\r\n", i, WiFi.SSID(i).c_str(), buff.c_str(), WiFi.channel(i));
   
-      uint8_t percent;
-  
-      // dBm to Quality
-      if(rssi<=-100)      percent = 0;
-      else if (rssi>=-50) percent = 100;
-      else                percent = 2 * (rssi + 100);
-  
-      if (first)
-        first = false;
-      else
-        response += F(",");
-  
-      response += F("{\"ssid\":\"");
-      response += WiFi.SSID(i);
-      response += F("\",\"rssi\":") ;
-      response += rssi;
-      response += FPSTR(FP_JSON_END);
+      JsonObject& item = arr.createNestedObject();
+      item[FPSTR(FP_SSID)]       = WiFi.SSID(i);
+      item[FPSTR(FP_RSSI)]       = WiFi.RSSI(i);
+      item[FPSTR(FP_ENCRYPTION)] = buff;
+      item[FPSTR(FP_CHANNEL)]    = WiFi.channel(i);
     }
-    response += F("],\"status\": \"OK\"");
-    WiFi.scanDelete();
-  }
-
-  // Json end
-  response += FPSTR("}\r\n");
-
-  Debugln(response);
-
-  DebugF("sending...");
-  request->send(200, "application/json", response);
-  DebuglnF("Ok!");
+    root[FPSTR(FP_STATUS)] = FPSTR(FP_OK);
+  
+    DebugF("sending...");
+    response->setLength();
+    request->send(response); 
+    DebuglnF("Ok!");
+  }, false);
 }
 
 

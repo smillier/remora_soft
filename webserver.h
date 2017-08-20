@@ -30,6 +30,13 @@
 extern char response[];
 extern uint16_t response_idx;
 
+const char FP_SSID[]        PROGMEM = "ssid";
+const char FP_RSSI[]        PROGMEM = "rssi";
+const char FP_ENCRYPTION[]  PROGMEM = "enc";
+const char FP_CHANNEL[]     PROGMEM = "chan";
+const char FP_STATUS[]      PROGMEM = "status";
+const char FP_OK[]          PROGMEM = "OK";
+
 // declared exported function from webserver.cpp
 // ===================================================
 void handleFormConfig(AsyncWebServerRequest *request);
