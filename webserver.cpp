@@ -250,6 +250,36 @@ void tinfoJSONTable(AsyncWebServerRequest *request)
 }
 
 /* ======================================================================
+Function: getClientAddresses
+Purpose : Return string containing addresses IP of clients connected
+Input   : Response String
+Output  : -
+Comments: -
+====================================================================== */
+String getClientAddresses(void)
+{
+  String ips;
+  struct station_info *stat_info;
+
+  struct ip_addr *IPaddress;
+  IPAddress address;
+  
+  stat_info = wifi_softap_get_station_info();
+
+  while (stat_info != NULL) 
+  {
+    IPaddress = &stat_info->ip;
+    address = IPaddress->addr;
+    ips += address.toString();
+    if (stat_info->next) {
+      ips += ", ";
+    }
+    stat_info = stat_info->next;
+  }
+  return ips;
+}
+
+/* ======================================================================
 Function: getSysJSONData
 Purpose : Return JSON string containing system data
 Input   : Response String
@@ -334,6 +364,40 @@ void getSysJSONData(String & response)
   sprintf_P( buffer, PSTR("%d mV"), adc);
   response += buffer ;
   response += "\"},\r\n";
+
+  WiFiMode_t wifiMode = WiFi.getMode();
+  String ip;
+  response += "{\"na\":\"WiFi Mode\",\"va\":\"";
+  sprintf_P( buffer, PSTR("%s"), (wifiMode == WIFI_AP || wifiMode == WIFI_AP_STA) ? "Access Point" : "Station");
+  response += buffer ;
+  response += "\"},\r\n";
+
+  if (wifiMode == WIFI_AP || wifiMode == WIFI_AP_STA) {
+    ip = WiFi.softAPIP().toString().c_str();
+    response += "{\"na\":\"WiFi MAC\",\"va\":\"";
+    sprintf_P( buffer, PSTR("%s"), WiFi.softAPmacAddress().c_str());
+    response += buffer ;
+    response += "\"},\r\n";
+    
+    response += "{\"na\":\"WiFi IP\",\"va\":\"";
+    response += ip;
+    response += "\"},\r\n";
+    
+    response += "{\"na\":\"WiFi Num Clients\",\"va\":\"";
+    sprintf_P( buffer, PSTR("%d (%s)"), WiFi.softAPgetStationNum(), getClientAddresses().c_str());
+    response += buffer ;
+    response += "\"},\r\n";
+  } else if (wifiMode == WIFI_STA) {
+    ip = WiFi.localIP().toString().c_str();
+    response += "{\"na\":\"WiFi MAC\",\"va\":\"";
+    sprintf_P( buffer, PSTR("%s"), WiFi.macAddress().c_str());
+    response += buffer ;
+    response += "\"},\r\n";
+    
+    response += "{\"na\":\"WiFi IP\",\"va\":\"";
+    response += ip;
+    response += "\"},\r\n";
+  }
 
   FSInfo info;
   SPIFFS.info(info);
