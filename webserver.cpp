@@ -256,28 +256,26 @@ Input   : Response String
 Output  : -
 Comments: -
 ====================================================================== */
-String getClientAddresses(void)
+/*void getClientAddresses(char *ips)
 {
-  String ips;
   struct station_info *stat_info;
-
-  struct ip_addr *IPaddress;
   IPAddress address;
   
   stat_info = wifi_softap_get_station_info();
+  uint8_t l = 0;
 
   while (stat_info != NULL) 
   {
-    IPaddress = &stat_info->ip;
-    address = IPaddress->addr;
-    ips += address.toString();
-    if (stat_info->next) {
-      ips += ", ";
+    address = ((ip_addr *)(&stat_info->ip))->addr;
+    l = strlen(ips);
+    if (l > 0) {
+      sprintf_P(&ips[l], PSTR(", %u.%u.%u.%u"), address[0], address[1], address[2], address[3]);
+    } else {
+      sprintf_P(&ips[l], PSTR("%u.%u.%u.%u"), address[0], address[1], address[2], address[3]);
     }
     stat_info = stat_info->next;
   }
-  return ips;
-}
+}*/
 
 /* ======================================================================
 Function: getSysJSONData
@@ -382,10 +380,13 @@ void getSysJSONData(String & response)
     response += "{\"na\":\"WiFi IP\",\"va\":\"";
     response += ip;
     response += "\"},\r\n";
-    
+
+    //char ipClients[128];
+    //getClientAddresses(ipClients);
     response += "{\"na\":\"WiFi Num Clients\",\"va\":\"";
-    sprintf_P( buffer, PSTR("%d (%s)"), WiFi.softAPgetStationNum(), getClientAddresses().c_str());
-    response += buffer ;
+    //sprintf_P( buffer, PSTR("%d (%s)"), WiFi.softAPgetStationNum(), ipClients);
+    sprintf_P( buffer, PSTR("%d"), WiFi.softAPgetStationNum());
+    response += buffer;
     response += "\"},\r\n";
   } else if (wifiMode == WIFI_STA) {
     ip = WiFi.localIP().toString().c_str();
