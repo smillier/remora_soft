@@ -255,6 +255,10 @@
   }
 
   $(function() {
+    var $tabSysData = $('#tab_sys_data'),
+        $tabTinfoData = $('#tab_tinfo_data'),
+        $tabFsData = $('#tab_fs_data'),
+        $tabScanData = $('#tab_scan_data');
 
     $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
       clearTimeout(Timer_sys);
@@ -269,10 +273,10 @@
         window.location.hash = target;
 
       if (target == '#tab_tinfo') {
-        loadData($('#tab_tinfo_data'), '/tinfo.json');
+        loadData($tabTinfoData, '/tinfo.json');
         // $('#tab_tinfo_data').bootstrapTable('refresh',{silent:true, url:'/tinfo.json'});
       } else if (target == '#tab_sys') {
-        loadData($('#tab_sys_data'), '/system.json');
+        loadData($tabSysData, '/system.json');
         // $('#tab_sys_data').bootstrapTable('refresh',{silent:true, url:'/system.json'});
       } else if (target == '#tab_fs') {
         $.getJSON( "/spiffs.json", function(spiffs_data) {
@@ -281,7 +285,7 @@
           used = spiffs_data.spiffs[0].Used;
           freeram = spiffs_data.spiffs[0].Ram;
 
-          $('#tab_fs_data').bootstrapTable('load', spiffs_data.files, {silent:true, showLoading:true});
+          $tabFsData.bootstrapTable('load', spiffs_data.files, {silent:true, showLoading:true});
 
           pe = parseInt(used*100/total);
           if (isNaN(pe))
@@ -306,7 +310,7 @@
           })
           .fail(function() { console.error( "error while requestiong configuration data" ); })
 
-        $('#tab_scan_data').bootstrapTable('refresh',{silent:true, showLoading:true, url:'/wifiscan.json'});
+        $tabScanData.bootstrapTable('refresh',{silent:true, showLoading:true, url:'/wifiscan.json'});
       }
       // Onglet de gestion des zones
       else if (target == '#tab_fp') {
@@ -364,29 +368,20 @@
       }
     });
 
+    // Fonction permettant de tester si la page est affichée
     var pageHidden = function($element, timeoutID) {
+      // Si la page n'est pas affichée, on reteste dans 1 seconde
+      // sans appel à l'API
       if (document[hidden]) {
         timeoutID = setTimeout(pageHidden, 1000, $element, timeoutID);
-      } else {
+      }
+      // Sinon, on recharge le tableau
+      else {
         if (debug) console.log('page à nouveau visible');
         timeoutID = setTimeout(loadData, 1000, $element);
       }
     };
-    /*
-    // Fonction permettant de tester si la page est affichée
-    var interDataHidden = function() {
-      // Si la page n'est pas affichée, on reteste dans 1 seconde
-      // sans appel à l'API
-      if (document[hidden]) {
-        Timer_tinfo=setTimeout(interDataHidden, 1000);
-      } else {
-        // Sinon, on recharge le tableau
-        if (debug) console.log('page tinfo à nouveau visible');
-        // Timer_tinfo=setTimeout(function(){$('#tab_tinfo_data').bootstrapTable('refresh',{silent: true})},1000);
-        Timer_tinfo = setTimeout(loadData, 1000, $('#tab_tinfo_data'));
-      }
-    };*/
-    $('#tab_tinfo_data')
+    $tabTinfoData
       .on('load-success.bs.table', function (e, data) {
         if (debug) console.log('#tab_tinfo_data loaded', e, data);
         if ($('.nav-tabs .active > a').attr('href')=='#tab_tinfo') {
@@ -394,11 +389,10 @@
           if (document[hidden]) {
             if (debug) console.log('page tinfo cachée');
             clearTimeout(Timer_tinfo);
-            pageHidden($('#tab_tinfo_data'), Timer_tinfo);
+            pageHidden($tabTinfoData, Timer_tinfo);
           } else {
             // Sinon, on recharge le tableau
-            Timer_tinfo = setTimeout(loadData, 1000, $('#tab_tinfo_data'));
-            // Timer_tinfo=setTimeout(function(){$('#tab_tinfo_data').bootstrapTable('refresh',{silent: true})},1000);
+            Timer_tinfo = setTimeout(loadData, 1000, $tabTinfoData);
           }
         }
       }).on('load-error.bs.table', function (e, status, res) {
@@ -407,37 +401,21 @@
           $('#tab_tinfo_data .no-records-found td').html("Télé-information désactivée");
         }
       });
-    /*
-    // Fonction permettant de tester si la page est affichée
-    var interSysHidden = function() {
-      // Si la page n'est pas affichée, on reteste dans 1 seconde
-      // sans appel à l'API
-      if (document[hidden]) {
-        // if (debug) console.log('page sys cachée');
-        Timer_sys=setTimeout(interSysHidden, 1000);
-      } else {
-        // Sinon, on recharge le tableau
-        if (debug) console.log('page sys à nouveau visible');
-        Timer_sys = setTimeout(loadData, 1000, $('#tab_sys_data'));
-        // Timer_sys=setTimeout(function(){$('#tab_sys_data').bootstrapTable('refresh',{silent: true})},1000);
-      }
-    };*/
-    $('#tab_sys_data').on('load-success.bs.table', function (e, data) {
+    $tabSysData.on('load-success.bs.table', function (e, data) {
       if (debug) console.log('#tab_sys_data loaded');
       if ($('.nav-tabs .active > a').attr('href')=='#tab_sys') {
         // Si la page n'est plus affichée, on ne fait plus d'appel à l'API
         if (document[hidden]) {
           if (debug) console.log('page sys cachée');
           clearTimeout(Timer_sys);
-          pageHidden($('#tab_sys_data'), Timer_sys);
+          pageHidden($tabSysData, Timer_sys);
         } else {
           // Sinon, on recharge le tableau
-          Timer_sys = setTimeout(loadData, 1000, $('#tab_sys_data'));
-          // Timer_sys=setTimeout(function(){$('#tab_sys_data').bootstrapTable('refresh',{silent: true})},1000);
+          Timer_sys = setTimeout(loadData, 1000, $tabSysData);
         }
       }
-    })
-    $('#tab_fs_data')
+    });
+    $tabFsData
       .on('load-success.bs.table', function (e, data) {
         if (debug) console.log('#tab_fs_data loaded');
       })
@@ -445,7 +423,7 @@
         if (debug) console.log('Event: load-error.bs.table on tab_fs_data', e, status, res);
           // myTimer=setInterval(function(){myRefresh()},5000);
       });
-    $('#tab_scan_data').on('load-success.bs.table', function (e, data) {
+    $tabScanData.on('load-success.bs.table', function (e, data) {
       if (debug) console.log('#tab_scan_data data loaded', data);
       //$(this).hide();
       if (data.status == 'OK') {
@@ -457,7 +435,7 @@
         $('#ssid').autocomplete({
           source: networks
         });
-        $('#tab_scan_data').bootstrapTable('load', data.result);
+        $tabScanData.bootstrapTable('load', data.result);
       }
     });
     $('#tab_scan').on('click-row.bs.table', function (e, name, args) {
@@ -467,7 +445,7 @@
       $('#tab_scan').modal('hide');
     });
     $('#btn_scan').click(function () {
-      $('#tab_scan_data').bootstrapTable('refresh',{url:'/wifiscan.json',showLoading:false,silent:true});
+      $tabScanData.bootstrapTable('refresh',{url:'/wifiscan.json',showLoading:false,silent:true});
     });
     $('#btn_reset').click(function () {
       $.post('/factory_reset');
