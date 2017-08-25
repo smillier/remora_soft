@@ -1,5 +1,5 @@
 /*
-* Project: Remora = v1.3.3
+* Project: Remora = v1.3.4
 * Description: IHM Web for Remora
 * Author: Charles Henri Hallard, Thibaud, Manuel Hervo
 * License: MIT License
