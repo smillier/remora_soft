@@ -12,7 +12,28 @@
   var Timer_sys,
       Timer_tinfo,
       elapsed = 0,
-      debug = true;
+      debug = false,
+      hidden, visibilityChange, visibilityState;
+  
+  // Détection préalable des préfixes pour chaque moteur
+  // et stockage de leur nom dans des variables
+  if (typeof document.hidden !== 'undefined') {
+    hidden = 'hidden';
+    visibilityChange = 'visibilitychange';
+    visibilityState = 'visibilityState';
+  } else if (typeof document.mozHidden !== 'undefined') {
+    hidden = 'mozHidden';
+    visibilityChange = 'mozvisibilitychange';
+    visibilityState = 'mozVisibilityState';
+  } else if (typeof document.msHidden !== 'undefined') {
+    hidden = 'msHidden';
+    visibilityChange = 'msvisibilitychange';
+    visibilityState = 'msVisibilityState';
+  } else if (typeof document.webkitHidden !== 'undefined') {
+    hidden = 'webkitHidden';
+    visibilityChange = 'webkitvisibilitychange';
+    visibilityState = 'webkitVisibilityState';
+  }
 
   function Notify(mydelay, myicon, mytype, mytitle, mymsg) {
     $('body').addClass('loaded');
@@ -225,6 +246,14 @@
     $icon.append('<i class="icon ' + img + '"></i>');
   }
 
+  var loadData = function($element, pathData) {
+    var options = {silent: true};
+    if (typeof pathData == 'string') {
+      options.url = pathData;
+    }
+    $element.bootstrapTable('refresh', options);
+  }
+
   $(function() {
 
     $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
@@ -240,9 +269,11 @@
         window.location.hash = target;
 
       if (target == '#tab_tinfo') {
-        $('#tab_tinfo_data').bootstrapTable('refresh',{silent:true, url:'/tinfo.json'});
+        loadData($('#tab_tinfo_data'), '/tinfo.json');
+        // $('#tab_tinfo_data').bootstrapTable('refresh',{silent:true, url:'/tinfo.json'});
       } else if (target == '#tab_sys') {
-        $('#tab_sys_data').bootstrapTable('refresh',{silent:true, url:'/system.json'});
+        loadData($('#tab_sys_data'), '/system.json');
+        // $('#tab_sys_data').bootstrapTable('refresh',{silent:true, url:'/system.json'});
       } else if (target == '#tab_fs') {
         $.getJSON( "/spiffs.json", function(spiffs_data) {
           var pb, pe, cl;
@@ -333,11 +364,42 @@
       }
     });
 
+    var pageHidden = function($element, timeoutID) {
+      if (document[hidden]) {
+        timeoutID = setTimeout(pageHidden, 1000, $element, timeoutID);
+      } else {
+        if (debug) console.log('page à nouveau visible');
+        timeoutID = setTimeout(loadData, 1000, $element);
+      }
+    };
+    /*
+    // Fonction permettant de tester si la page est affichée
+    var interDataHidden = function() {
+      // Si la page n'est pas affichée, on reteste dans 1 seconde
+      // sans appel à l'API
+      if (document[hidden]) {
+        Timer_tinfo=setTimeout(interDataHidden, 1000);
+      } else {
+        // Sinon, on recharge le tableau
+        if (debug) console.log('page tinfo à nouveau visible');
+        // Timer_tinfo=setTimeout(function(){$('#tab_tinfo_data').bootstrapTable('refresh',{silent: true})},1000);
+        Timer_tinfo = setTimeout(loadData, 1000, $('#tab_tinfo_data'));
+      }
+    };*/
     $('#tab_tinfo_data')
       .on('load-success.bs.table', function (e, data) {
         if (debug) console.log('#tab_tinfo_data loaded', e, data);
         if ($('.nav-tabs .active > a').attr('href')=='#tab_tinfo') {
-          Timer_tinfo=setTimeout(function(){$('#tab_tinfo_data').bootstrapTable('refresh',{silent: true})},1000);
+          // Si la page n'est plus affichée, on ne fait plus d'appel à l'API
+          if (document[hidden]) {
+            if (debug) console.log('page tinfo cachée');
+            clearTimeout(Timer_tinfo);
+            pageHidden($('#tab_tinfo_data'), Timer_tinfo);
+          } else {
+            // Sinon, on recharge le tableau
+            Timer_tinfo = setTimeout(loadData, 1000, $('#tab_tinfo_data'));
+            // Timer_tinfo=setTimeout(function(){$('#tab_tinfo_data').bootstrapTable('refresh',{silent: true})},1000);
+          }
         }
       }).on('load-error.bs.table', function (e, status, res) {
         if (debug) console.log('Event: load-error.bs.table on tab_tinfo_data', e, status, res);
@@ -345,10 +407,35 @@
           $('#tab_tinfo_data .no-records-found td').html("Télé-information désactivée");
         }
       });
+    /*
+    // Fonction permettant de tester si la page est affichée
+    var interSysHidden = function() {
+      // Si la page n'est pas affichée, on reteste dans 1 seconde
+      // sans appel à l'API
+      if (document[hidden]) {
+        // if (debug) console.log('page sys cachée');
+        Timer_sys=setTimeout(interSysHidden, 1000);
+      } else {
+        // Sinon, on recharge le tableau
+        if (debug) console.log('page sys à nouveau visible');
+        Timer_sys = setTimeout(loadData, 1000, $('#tab_sys_data'));
+        // Timer_sys=setTimeout(function(){$('#tab_sys_data').bootstrapTable('refresh',{silent: true})},1000);
+      }
+    };*/
     $('#tab_sys_data').on('load-success.bs.table', function (e, data) {
       if (debug) console.log('#tab_sys_data loaded');
-      if ($('.nav-tabs .active > a').attr('href')=='#tab_sys')
-      Timer_sys=setTimeout(function(){$('#tab_sys_data').bootstrapTable('refresh',{silent: true})},1000);
+      if ($('.nav-tabs .active > a').attr('href')=='#tab_sys') {
+        // Si la page n'est plus affichée, on ne fait plus d'appel à l'API
+        if (document[hidden]) {
+          if (debug) console.log('page sys cachée');
+          clearTimeout(Timer_sys);
+          pageHidden($('#tab_sys_data'), Timer_sys);
+        } else {
+          // Sinon, on recharge le tableau
+          Timer_sys = setTimeout(loadData, 1000, $('#tab_sys_data'));
+          // Timer_sys=setTimeout(function(){$('#tab_sys_data').bootstrapTable('refresh',{silent: true})},1000);
+        }
+      }
     })
     $('#tab_fs_data')
       .on('load-success.bs.table', function (e, data) {

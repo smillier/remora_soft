@@ -27,7 +27,7 @@ var startTime = Date.now();
 var ws = require('websocket').server;
 var temperature=20;
 var humidity=50;
-var teleinfo = false;
+var teleinfo = true;
 
 
 
