@@ -151,7 +151,7 @@ var app;
           url: '/hb.htm',
           timeout: 900,
           success: function(data, textStatus, XMLHttpRequest) {
-            if (debug) console.log(data);
+            if (a.debug) console.log(data);
             if (data === 'OK') {
               $('#mdl_wait').modal('hide');
               clearInterval(thistimer);
@@ -675,7 +675,7 @@ var app;
       }
       if (ok) {
         $btn.removeClass('hide');
-        label = 'Mise à jour Micro-Logiciel';
+        var label = 'Mise à jour Micro-Logiciel';
         if (name.search(/spiffs/) >= 0) {
           label = 'Mise à jour SPIFFS';
         }
