@@ -18,6 +18,7 @@ var concat = require('concat-files');
 var zlib = require('zlib');
 var fs = require('fs');
 
+var pjson = require('./package.json');
 
 var jsfile = "js/remora.js";
 var cssfile = "css/remora.css";
@@ -41,7 +42,7 @@ stream.once('open', function(fd) {
     "js/validator.js",
     'js/main.js'
   ]);
-
+  uglified.code = uglified.code.replace(/@remora_version/, pjson.version);
   stream.write(uglified.code);
   stream.end();
 

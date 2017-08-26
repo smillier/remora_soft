@@ -223,12 +223,12 @@ dispatcher.onError(function(req, res) {
 		 		var i = query.setfp.charAt(0);
 		 		var o = query.setfp.charAt(1).toUpperCase();
 
-			  res.writeHead(200, {"Content-Type": "text/json"});
+			  	res.writeHead(200, {"Content-Type": "text/json"});
 
 		 		if (i>='1' && i<='7' && (o=='C'||o=='A'||o=='E'||o=='H'||o=='1'||o=='2') ) {
 		 			fp["fp"+i] = o;
-			  	res.end('{"response":0}');
-			 		console.log( util.inspect({fp: fp}));
+			  		setTimeout(function() {res.end('{"response":0}');}, 1000, res);
+	 				console.log( util.inspect({fp: fp}));
 		 		} else {
 				  res.end('{"response":1}');
 				}
@@ -366,6 +366,16 @@ dispatcher.onGet("/spiffs", function(req, res) {
 dispatcher.onGet("/config", function(req, res) {
       res.writeHead(200, {"Content-Type": "text/json"});
       res.end(JSON.stringify(config));
+});
+var config_form = true;
+dispatcher.onPost("/config_form.json", function(req, res) {
+	var code = 200;
+	if (!config_form) {
+		code = 412;
+	}
+	res.writeHead(code, {'Content-Type': 'text/plain'});
+	res.end('OK');	
+	config_form = !config_form;
 });
 
 dispatcher.onGet("/fp", function(req, res) {
