@@ -1,4 +1,4 @@
-# Logiciel Remora V2.0 [![Build Status](https://travis-ci.org/AuFilElec/remora_soft.svg?branch=platformio)](https://travis-ci.org/AuFilElec/remora_soft)
+# Logiciel Remora V2.0 [![Build Status](https://travis-ci.org/AuFilElec/remora_soft.svg?branch=dev-2.0)](https://travis-ci.org/AuFilElec/remora_soft)
 
 Le logiciel Remora_soft fonctionne sur les [cartes Remora](https://github.com/thibdct/programmateur-fil-pilote-wifi/).
 
