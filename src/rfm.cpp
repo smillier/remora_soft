@@ -20,11 +20,13 @@
 
 
 unsigned long rf_rgb_led_timer = 0;
+unsigned long packet_last_seen = 0;   // second since last packet received
+
 
 // data received by RF module
 // independent from module received (RF12 or RF69)
 // used to display or send to serial
-RFData data;
+RFData rfData;
 
 // Linked list of nodes seens
 NodeList nodes_list;
@@ -60,49 +62,49 @@ unsigned long rfm_receive_data(void)
   rf_rgb_led_timer = millis();
 
   // Fill known values
-  data.size    = sizeof(data.buffer);
-  data.groupid = RFM69_NETWORKID;
-  data.ack = '\0';  // default no ack
+  rfData.size    = sizeof(rfData.buffer);
+  rfData.groupid = RFM69_NETWORKID;
+  rfData.ack = '\0';  // default no ack
 
   // grab the frame received
-  if (driver.recv(data.buffer, &data.size)) {
+  if (driver.recv(rfData.buffer, &rfData.size)) {
     bool  known_node = false;
     int   nb_node;
     int   current;
     uint8_t toid;
 
     // Get header data
-    data.nodeid = driver.headerFrom();
+    rfData.nodeid = driver.headerFrom();
     toid        = driver.headerTo();
-    data.seqid  = driver.headerId();
-    data.flags  = driver.headerFlags();
-    data.rssi   = driver.lastRssi();
+    rfData.seqid  = driver.headerId();
+    rfData.flags  = driver.headerFlags();
+    rfData.rssi   = driver.lastRssi();
 
     // Are we authorized to send response ?
     // This is in case of multiple gateways with same ID
     //if (!(config.mode & CFG_RF69_NOSEND)) {
     if (true) {
       // Sender explicitly requested a ACK ?
-      if (data.flags & RF_PAYLOAD_REQ_ACK) {
+      if (rfData.flags & RF_PAYLOAD_REQ_ACK) {
         //DebugF("Frame from ");
-        //Debug(data.nodeid);
+        //Debug(rfData.nodeid);
         //DebugF(" to ");
         //Debug(toid);
         //DebugF(" want ACK ");
 
         // Never ACK on broadcast address or a already ACK response
-        if (toid!=RH_BROADCAST_ADDRESS && !(data.flags & RH_FLAGS_ACK)) {
+        if (toid!=RH_BROADCAST_ADDRESS && !(rfData.flags & RH_FLAGS_ACK)) {
           //DebugF("Me=");
           //Debug(toid);
           //DebugF(" Sending ACK to ");
-          //Debug(data.nodeid);
+          //Debug(rfData.nodeid);
 
           // Header is now ACK response (set) and no more ACK Request (clear)
           driver.setHeaderFlags(RH_FLAGS_ACK, RF_PAYLOAD_REQ_ACK);
-          driver.setHeaderId(data.seqid);
-          driver.setHeaderTo(data.nodeid);
+          driver.setHeaderId(rfData.seqid);
+          driver.setHeaderTo(rfData.nodeid);
           driver.setHeaderFrom(toid);
-          data.ack = '!';
+          rfData.ack = '!';
 
           // We have powerfull speed CPU, but Wait slave to setup the receiver for
           // ACK reception
@@ -112,7 +114,7 @@ unsigned long rfm_receive_data(void)
           #endif
 
           // Send the response packet
-          driver.send(&data.ack, sizeof(data.ack));
+          driver.send(&rfData.ack, sizeof(rfData.ack));
           driver.waitPacketSent();
 
           // ACK makes led to green
@@ -126,7 +128,7 @@ unsigned long rfm_receive_data(void)
     // Prepare our last seen value
     node_last_seen = uptime;
 
-    ll_Add(&nodes_list, data.groupid, data.nodeid, data.rssi, &node_last_seen);
+    ll_Add(&nodes_list, rfData.groupid, rfData.nodeid, rfData.rssi, &node_last_seen);
     //ll_Dump(&nodes_list, g_second);
 
   } // revcfrom()
@@ -190,9 +192,6 @@ Comments: -
 ====================================================================== */
 void rfm_loop(void)
 {
-
-  static uint8_t got_first = false;
-  static unsigned long packet_last_seen=0;// second since last packet received
   uint8_t packetReceived = 0;
   unsigned long node_last_seen;  // Second since we saw this node
   unsigned long currentMillis = millis();
@@ -202,12 +201,13 @@ void rfm_loop(void)
     node_last_seen = rfm_receive_data();
     packet_last_seen = uptime;
     packetReceived = true;
+    got_first = true;
   }
 
   // received data ?
   if (packetReceived) {
     // command code
-    uint8_t cmd = data.buffer[0];
+    uint8_t cmd = rfData.buffer[0];
     unsigned long seen = uptime-node_last_seen;
 
     #define DEBUG_VERBOSE
@@ -217,15 +217,15 @@ void rfm_loop(void)
       Debug(uptime);
       DebugF(")");
 
-      if (data.flags & RF_PAYLOAD_REQ_ACK)
+      if (rfData.flags & RF_PAYLOAD_REQ_ACK)
         DebugF(" ACKED");
 
 
-      DebugF(" <- node:");  DEBUG_SERIAL.print(data.nodeid,DEC);
-      DebugF(" size:");     Debug(data.size);
+      DebugF(" <- node:");  DEBUG_SERIAL.print(rfData.nodeid,DEC);
+      DebugF(" size:");     Debug(rfData.size);
       DebugF(" type:");     DEBUG_SERIAL.print(decode_frame_type(cmd));
       DebugF(" (0x");       DEBUG_SERIAL.print(cmd,HEX);
-      DebugF(") RSSI:");    DEBUG_SERIAL.print(data.rssi,DEC);
+      DebugF(") RSSI:");    DEBUG_SERIAL.print(rfData.rssi,DEC);
       DebugF("dB  seen :");
       Debug(timeAgo(seen));
 
@@ -239,8 +239,8 @@ void rfm_loop(void)
       DebugF("\r\n# buffer:");
 
       char buff[4];
-      for (uint8_t i=0; i<data.size; i++) {
-        sprintf_P(buff, PSTR(" %02X"), data.buffer[i]);
+      for (uint8_t i=0; i<rfData.size; i++) {
+        sprintf_P(buff, PSTR(" %02X"), rfData.buffer[i]);
         Debug(buff);
       }
 
@@ -255,32 +255,32 @@ void rfm_loop(void)
     // return command code validated by payload type size received
     // so if we had a command and the payload does not match
     // code as been set to 0 by decode_received_data
-    cmd = decode_received_data(data.nodeid, data.rssi, data.size, cmd, data.buffer);
+    cmd = decode_received_data(rfData.nodeid, rfData.rssi, rfData.size, cmd, rfData.buffer);
 
    // special ping packet, we need to answer back
    if ( cmd==RF_PL_PING ) {
-     RFPingPayload * ppl = (RFPingPayload *) data.buffer;
+     RFPingPayload * ppl = (RFPingPayload *) rfData.buffer;
 
      // prepare send back response
      ppl->command = RF_PL_PINGBACK;
      ppl->vbat = 0;
-     ppl->rssi = data.rssi; // RSSI of node
+     ppl->rssi = rfData.rssi; // RSSI of node
      ppl->status = 0;
 
-     driver.setHeaderId(data.seqid);
+     driver.setHeaderId(rfData.seqid);
      driver.setHeaderFlags(RH_FLAGS_NONE);
 
      // We're on a fast gateway, let node some time
      // To node to set to receive mode before sending response
      delay(2);
-     driver.setHeaderTo(data.nodeid);
+     driver.setHeaderTo(rfData.nodeid);
      driver.send((uint8_t *) ppl, (uint8_t) sizeof(RFPingPayload)) ;
      driver.waitPacketSent();
 
      // Start line with a # (comment)
      // indicate external parser that it's just debug information
      DebugF("\r\n# -> ");
-     DEBUG_SERIAL.print(data.nodeid,DEC);
+     DEBUG_SERIAL.print(rfData.nodeid,DEC);
      DebugF(" PINGBACK (");
      DEBUG_SERIAL.print(ppl->rssi,DEC);
      DebuglnF("dB)");
