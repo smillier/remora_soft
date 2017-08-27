@@ -74,6 +74,24 @@ Pour activer un module, il vous suffit de décommenter la ligne du module dans l
 | MOD_RF69      | Module radio avec les éléments RF69 (en cours de développement) |
 | MOD_RF_OREGON | Module radio des sondes Oregon (pas encore géré) |
 
+## Les codes couleurs LED RGB
+
+- <span style="background-color:orange;">Orange</span>:
+	- Durant la connexion WiFi
+	- Durant la mise à jour d'une trame teleinfo
+- <span style="background-color:magenta;color:white;">Magenta</span>:
+ 	- Durant l'initialisation de l'OTA
+ 	- Durant un upload OTA
+ 	- Durant un upload via l'interface Web
+- <span style="background-color:red;color:white;">Rouge</span>:
+	- En cas d'erreur
+	- Lorsque la téléinfo n'est pas trouvée
+- <span style="background-color:green;color:white;">Vert</span>:
+	- Lorsque les modules ont été initialisés
+	- Lorsqu'une nouvelle trame de téléinfo est récupérée
+- <span style="background-color:yellow;">Jaune</span>:
+	- Lorsque l'initialisation est terminée
+
 ## API Exposées (ESP8266 NodeMCU / Wemos)
 
 Toutes les API se font via des requêtes HTTP sur le Remora. Il existe deux formats possibles si l'on veut récupérer des données ou exécuter des action avec le Remora. Chaque requête se verra retourner des données (ou un code de bonne éxécution) au format JSON.
