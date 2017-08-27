@@ -9,43 +9,70 @@ Cette version logicielle est compatible avec la version matérielle [1.2](https:
 ### Environnement de compilation et d'upload
 
 - Installer l'environnement [Platformio](http://platformio.org/), au choix:
- - La version [IDE](http://platformio.org/platformio-ide)
- - Ou la version [Core](http://docs.platformio.org/en/latest/installation.html)
+  - La version [IDE](http://platformio.org/platformio-ide)
+  - Ou la version [Core](http://docs.platformio.org/en/latest/installation.html)
 - Installer les plateformes suivantes:
- - espressif8266: `platformio platform install espressif8266 --with-package=tool-mkspiffs`
- - espressif8266_stage: `platformio platform install https://github.com/platformio/platform-espressif8266.git#feature/stage`
+  - **espressif8266**: `platformio platform install espressif8266 --with-package=tool-mkspiffs`
+  - **espressif8266_stage**: `platformio platform install https://github.com/platformio/platform-espressif8266.git#feature/stage`
 
 ### Compilation et upload
 
 - Compiler les sources pour votre carte:
- - Wemos d1 mini: `platformio run --environment d1_mini`
- - NodeMCU 1.0: `platformio run --environment nodemcuv2`
+  - **Wemos d1 mini**: `platformio run --environment d1_mini`
+  - **NodeMCU 1.0**: `platformio run --environment nodemcuv2`
 
 - Lancer l'upload des sources:
- - Wemos d1 mini: `platformio run --environment d1_mini --target upload --upload-port COM??`
- - NodeMCU 1.0: `platformio run --environment nodemcuv2 --target upload --upload-port COM??`
+  - **Wemos d1 mini**: `platformio run --environment d1_mini --target upload --upload-port COM??`
+  - **NodeMCU 1.0**: `platformio run --environment nodemcuv2 --target upload --upload-port COM??`
 
 - Compiler le SPIFFS:
- - Wemos d1 mini: `platformio run --environment d1_mini_spiffs --target buildfs`
- - NodeMCU 1.0: `platformio run --environment nodemcuv2_spiffs --target buildfs`
+  - **Wemos d1 mini**: `platformio run --environment d1_mini_spiffs --target buildfs`
+  - **NodeMCU 1.0**: `platformio run --environment nodemcuv2_spiffs --target buildfs`
 
 - Lancer l'upload SPIFFS (les fichiers WEB)
- - Wemos d1 mini: `platformio run --environment d1_mini_spiffs --target uploadfs`
- - NodeMCU 1.0: `platformio run --environment nodemcuv2_spiffs --target uploadfs`
-
-**Attention**, pour pouvoir uploader via le cable USB, la téléinfo ne doit pas être connectée (en OTA pas de soucis avec ça) car le port série est partagé. Donc soit il faut la débrancher, soit il faut sortir le module NodeMCU/Wemos du support.
+  - **Wemos d1 mini**: `platformio run --environment d1_mini_spiffs --target uploadfs`
+  - **NodeMCU 1.0**: `platformio run --environment nodemcuv2_spiffs --target uploadfs`
 
 ### Update via OTA
-- Wemos d1 mini: `platformio run --environment d1_mini --target upload --upload-port IP_ADDRESS_HERE or mDNS_NAME.local`
-- NodeMCU 1.0: `platformio run --environment nodemcuv2 --target upload --upload-port IP_ADDRESS_HERE or mDNS_NAME.local`
+- Upload sources
+  - **Wemos d1 mini**: `platformio run --environment d1_mini --target upload --upload-port IP_ADDRESS_HERE or mDNS_NAME.local`
+  - **NodeMCU 1.0**: `platformio run --environment nodemcuv2 --target upload --upload-port IP_ADDRESS_HERE or mDNS_NAME.local`
+- Upload SPIFFS
+  - **Wemos d1 mini**: `platformio run --environment d1_mini_spiffs --target uploadfs --upload-port IP_ADDRESS_HERE or mDNS_NAME.local`
+  - **NodeMCU 1.0**: `platformio run --environment nodemcuv2_spiffs --target uploadfs --upload-port IP_ADDRESS_HERE or mDNS_NAME.local`
+
+**Attention**, pour pouvoir uploader via le cable USB, la téléinfo ne doit pas être connectée (en OTA pas de soucis) car le port série est partagé. Donc, soit il faut la débrancher, soit il faut sortir le module NodeMCU/Wemos du support, ou bien déconnecter le jumper *JP2* sur l'adaptateur.
 
 ## Debug
 
 Pour les mêmes raisons, et afin d'afficher les informations de debug dans une console, celle-ci doit être configurée à la même vitesse que la téléinfo (car c'est le même port série) donc 1200 bps, parité paire et 7 bits de data, or **cette configuration n'est pas possible dans le moniteur série de l'Arduino**. Il faut alors prendre un autre terminal comme putty, coolterm, ...
 
+### Wemos d1 mini
 
-## API Exposée (ESP8266 NodeMCU / Wemos)
------------------------------
+Sur le **Wemos d1 mini**, il vous est possible d'utiliser le port série TX1 (pin: D4) à 115200 bps. Pour cela, il vous faut définir la variable `DEBUG_SERIAL` à **Serial1** et décommenter la ligne `DEBUG_INIT` dans le fichier [remora.h](https://github.com/AuFilElec/remora_soft/blob/platformio/src/remora.h).
+Branchez un adaptateur USB TTL sur votre Wemos (*Adaptateur*: GND et RX => *Wemos*: GND et D4).
+
+## Les versions de carte Remora
+
+En fonction de la carte que vous possédez, il vous faut définir la version dans le fichier [remora.h](https://github.com/AuFilElec/remora_soft/blob/platformio/src/remora.h).
+
+Variables: `REMORA_BOARD_V1X` allant de 1.0 à 1.4 actuellement.
+
+## Les modules de la Remora
+
+Les modules vous permettent d'activer certaines fonctionnalités au sein de la Remora.
+
+Pour activer un module, il vous suffit de décommenter la ligne du module dans le fichier [remora.h](https://github.com/AuFilElec/remora_soft/blob/platformio/src/remora.h).
+
+| Modules 		| Description |
+| ------------- | ----------- |
+| MOD_TELEINFO  | Module de récupération de la téléinformation du compteur Enedis (EDF) |
+| MOD_ADPS      | Module de gestion du délestage |
+| MOD_OLED      | Module de l'afficheur OLED |
+| MOD_RF69      | Module radio avec les éléments RF69 (en cours de développement) |
+| MOD_RF_OREGON | Module radio des sondes Oregon (pas encore géré) |
+
+## API Exposées (ESP8266 NodeMCU / Wemos)
 
 Toutes les API se font via des requêtes HTTP sur le Remora. Il existe deux formats possibles si l'on veut récupérer des données ou exécuter des action avec le Remora. Chaque requête se verra retourner des données (ou un code de bonne éxécution) au format JSON.
 
@@ -80,16 +107,19 @@ Voici les différents modes de fonctionnement du relais que vous pourrez trouver
 Les API d'intérrogation se présentent sous la forme
 `http://adresse_ip_du_remora/ma_donnee` et la/les donnée(s) sont retournées au format JSON (j'ai volontairement supprimé certains sauts de lignes de sortie pour une meilleure lecture)
 
+#### Système
 - Durée de fonctionnement en secondes depuis le dernier reboot/reset/allumage `http://ip_du_remora/uptime`
 ````shell
     ~ # curl http://192.168.1.201/uptime
     { "uptime": 120 }
 ````
+#### Relais
 - Etat du relais et du mode de fonctionnement `http://ip_du_remora/relais`
 ````shell
     ~ # curl http://192.168.1.201/relais
     { "relais": 0, "fnct_relais": 2 }
 ````
+#### Délestage
 - Etat du délestage `http://ip_du_remora/delestage`
 ````shell
 		~ # curl http://192.168.1.201/delestage
@@ -100,6 +130,7 @@ Si le délestage est désactivé `http://ip_du_remora/delestage`
 		~ # curl http://192.168.1.201/delestage
 		{ "etat": "désactivé" }
 ````
+#### Fil pilote
 - Etat d'un fil pilote `http://ip_du_remora/fpn` avec n = numéro du fil pilote (1 à 7)
 ````shell
 		~ # curl http://192.168.1.201/fp3
@@ -118,6 +149,7 @@ Si le délestage est désactivé `http://ip_du_remora/delestage`
 		"fp7": "C"
 		}
 ````
+#### Téléinfo
 - Récupérer une étiquette Téléinfo par non nom `http://ip_du_remora/Nom_Etiquette`
 ````shell
 		~ # curl http://192.168.1.201/PAPP
@@ -157,6 +189,7 @@ Les API d'action se presentent sous la forme
 
 Note, il est possible d'enchainer les actions en une requête mais un seul code d'erreur sera retourné pour l'ensemble, si une des commandes échoue, il faudra intérroger afin de savoir laquelle n'a pas fonctionnée.
 
+#### Système
 - Faire un reset (reboot) `http://ip_du_remora/reset`
 ````shell
 		# curl http://192.168.1.201/reset
@@ -168,7 +201,7 @@ Note, il est possible d'enchainer les actions en une requête mais un seul code 
 		# curl http://192.168.1.201/factory_reset
 		OK, Redémarrage en cours
 ````
-
+#### Relais
 - Activer le relais `http://ip_du_remora/?relais=1`
 ````shell
 		# curl http://192.168.1.201/?relais=1
@@ -204,6 +237,7 @@ Il est aussi possible de forcer le relais jusqu'au prochain changement de pério
 		# curl http://192.168.1.201/?relais=1
 		{ "response": 0 }
 ````
+#### Fil pilote
 - selectionne le mode d'un des fils pilotes `http://ip_du_remora/?setfp=na` avec n=numéro du fil pilote et a=le mode à positionner (non sensible à la casse)
   Fil pilote 1 en arret
 ````shell
