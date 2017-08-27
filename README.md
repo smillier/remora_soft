@@ -1,70 +1,50 @@
-Version Logicielle pour toutes les versions du matériel [![Build Status](https://travis-ci.org/AuFilElec/remora_soft.svg?branch=platformio)](https://travis-ci.org/AuFilElec/remora_soft)
-=======================================================
+# Logiciel Remora [![Build Status](https://travis-ci.org/AuFilElec/remora_soft.svg?branch=platformio)](https://travis-ci.org/AuFilElec/remora_soft)
 
-Cette version logicielle est compatible avec la version matérielle [1.2][1] ainsi que les anciennes versions des cartes electroniques. Elle est aussi compatible avec les cartes à base d'ESP8266 via un [adaptateur][5]
+Le logiciel Remora_soft fonctionne sur les [cartes Remora](https://github.com/thibdct/programmateur-fil-pilote-wifi/).
 
-Installation (Particle)
------------------------
+Cette version logicielle est compatible avec la version matérielle [1.2](https://github.com/thibdct/programmateur-fil-pilote-wifi/tree/master/Mat%C3%A9riel/1.2), [1.3](https://github.com/thibdct/programmateur-fil-pilote-wifi/tree/master/Mat%C3%A9riel/1.3) et [1.4][1]. Elle est compatible avec les cartes à base d'ESP8266 via un [adaptateur][5]
 
-- Télécharger l'environnement de développement [Particle-Dev][2] puis lancer l'IDE.
-- Télécharger l'archive du repo logiciel [github][3] et le copier sur votre disque dur puis le décompresser
-- Une fois l'IDE ouvert, menu File/Open et ouvrir le dossier programmateur-fil-pilote-wifi-master\Logiciel\remora
-- Dans le menu Particle/Log in to Particle Cloud, entrez vos identifiants Particle pour vous connecter
-- Dans le menu Particle/Select Device selectionnez votre Spark Core ou Particle Photon
-- Ouvrir ensuite depuis l'IDE les fichers remora.ino et remora.h
-- Selectionner la version de carte utilisé dans le fichier remora.h (les defines REMORA_BOARD_Vxx)
-- Selectionner les modules utilisés dans le fichier remora.h (les defines MOD_xxxx)
-- Selectionner l'onglet remora.ino
-- Lancer la compilation+upload (icone éclair en haut à gauche)
-- Si vous avez une erreur de type "App code was invalid" durant la compilation, supprimer le ficher README.md du dossier
+## Installation (Arduino ESP8266 NodeMCU / Wemos)
 
-Installation (Arduino ESP8266 NodeMCU)
---------------------------------------
+### Environnement de compilation et d'upload
 
-- Suivre la procédure détaillée [ici](https://github.com/esp8266/Arduino), Attention ~~Arduino 1.6.5 pas 1.6.6~~ Maintenant c'est compatible Arduino 1.6.7 et je vous conseille d'utiliser la version git
-- Installer le plugins SPIFFS pour l'IDE Arduino comme indiqué [ici](https://github.com/esp8266/arduino-esp8266fs-plugin)
-- Lancer l'IDE Arduino
-- Installer la librairie [NeoPixelBus](https://github.com/Makuna/NeoPixelBus) depuis l'IDE Menu Sketch / Include Library / Manage Library => NeoPixelBus by Makuna
-- Installer la librairie [Blynk](https://github.com/blynkkk/blynk-library) depuis l'IDE Menu Sketch / Include Library / Manage Library / Blynk by Volodymyr Shymanskyy
-- Installer la bibliothèque [ESPAsyncTCP](https://github.com/me-no-dev/ESPAsyncTCP) depuis l'IDE. Télécharger la dernière release au format *zip*, puis Menu **Croquis** / **Inclure une bibliothèque** / **Ajouter la bibliothèque .ZIP**
-- Installer la bibliothèque [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer) depuis l'IDE. Télécharger la dernière release au format *zip*, puis Menu **Croquis** / **Inclure une bibliothèque** / **Ajouter la bibliothèque .ZIP**
-- Installer la librairie [ArduinoJson](https://github.com/bblanchon/ArduinoJson) depuis l'IDE Menu Sketch / Include Library / Manage Library => ArduinoJson
-- Lancer ensuite l'IDE Arduino et ouvrir depuis celui-ci le ficher `remora_soft.ino`
-- Selectionner la version de carte utilisé dans le fichier [remora.h](https://github.com/hallard/remora_soft/blob/master/remora.h#L22-L26) (les defines REMORA_BOARD_Vxx)
-- Selectionner les modules utilisés dans le fichier [remora.h](https://github.com/hallard/remora_soft/blob/master/remora.h#L28-L32) (les defines MOD_xxxx)
-- choisir dans l'IDE Arduino Menu Tools / Board => **NodeMCU 1.0 (ESP12E-Module)** ainsi que le bon serial port
-- choisir dans l'IDE Arduino Menu Tools / CPU Frequency => **160MHz**
-- choisir dans l'IDE Arduino Menu Tools / Flash Size => **4M (1M SPIFFS)**
-- mettre votre SSID et mot de passe Wifi dans le fichier remora.h.
-`DEFAULT_WIFI_AP_PASS` est le mot de passe de connection Wifi au remora quand celui ci se positionne en point d'accès (lorsqu'il n'arrive pas à se connecter à vôtre Wifi par exemple) son IP est alors 192.168.4.1
-````arduino
-		// Définir ici les identifiants de
-		// connexion à votre réseau Wifi
-		// =====================================
-		#define DEFAULT_WIFI_SSID "VotreSSID"
-		#define DEFAULT_WIFI_PASS "VotreClé"
-		#define DEFAULT_WIFI_AP_PASS "Remora_WiFi"
-		// =====================================
-````
-- Lancer l'upload SPIFFS (les fichiers WEB) Menu Tools / ESP8266 Sketch Data Upload (c'est assez long)
-- Lancer la compilation + upload (CTRL-U)
+- Installer l'environnement [Platformio](http://platformio.org/), au choix:
+ - La version [IDE](http://platformio.org/platformio-ide)
+ - Ou la version [Core](http://docs.platformio.org/en/latest/installation.html)
+- Installer les plateformes suivantes:
+ - espressif8266: `platformio platform install espressif8266 --with-package=tool-mkspiffs`
+ - espressif8266_stage: `platformio platform install https://github.com/platformio/platform-espressif8266.git#feature/stage`
 
-**Attention**, pour pouvoir uploader via le cable USB, la téléinfo ne doit pas être connectée (en OTA pas de soucis avec ça) car le port série est partagé. Donc soit il faut la débrancher soit il faut sortir le module NodeMCU du support.
+### Compilation et upload
+
+- Compiler les sources pour votre carte:
+ - Wemos d1 mini: `platformio run --environment d1_mini`
+ - NodeMCU 1.0: `platformio run --environment nodemcuv2`
+
+- Lancer l'upload des sources:
+ - Wemos d1 mini: `platformio run --environment d1_mini --target upload --upload-port COM??`
+ - NodeMCU 1.0: `platformio run --environment nodemcuv2 --target upload --upload-port COM??`
+
+- Compiler le SPIFFS:
+ - Wemos d1 mini: `platformio run --environment d1_mini_spiffs --target buildfs`
+ - NodeMCU 1.0: `platformio run --environment nodemcuv2_spiffs --target buildfs`
+
+- Lancer l'upload SPIFFS (les fichiers WEB)
+ - Wemos d1 mini: `platformio run --environment d1_mini_spiffs --target uploadfs`
+ - NodeMCU 1.0: `platformio run --environment nodemcuv2_spiffs --target uploadfs`
+
+**Attention**, pour pouvoir uploader via le cable USB, la téléinfo ne doit pas être connectée (en OTA pas de soucis avec ça) car le port série est partagé. Donc soit il faut la débrancher, soit il faut sortir le module NodeMCU/Wemos du support.
+
+### Update via OTA
+- Wemos d1 mini: `platformio run --environment d1_mini --target upload --upload-port IP_ADDRESS_HERE or mDNS_NAME.local`
+- NodeMCU 1.0: `platformio run --environment nodemcuv2 --target upload --upload-port IP_ADDRESS_HERE or mDNS_NAME.local`
+
+## Debug
 
 Pour les mêmes raisons, et afin d'afficher les informations de debug dans une console, celle-ci doit être configurée à la même vitesse que la téléinfo (car c'est le même port série) donc 1200 bps, parité paire et 7 bits de data, or **cette configuration n'est pas possible dans le moniteur série de l'Arduino**. Il faut alors prendre un autre terminal comme putty, coolterm, ...
 
-- La procédure OTA (télédéversement sans fil) est disponible [ici][8]
 
-
-API Exposée (Particle)
-----------------------
-
-Toutes les API se font via des requêtes HTTP sur le cloud Particle.
-
-A documenter!
-
-
-API Exposée (ESP8266 NodeMCU)
+## API Exposée (ESP8266 NodeMCU / Wemos)
 -----------------------------
 
 Toutes les API se font via des requêtes HTTP sur le Remora. Il existe deux formats possibles si l'on veut récupérer des données ou exécuter des action avec le Remora. Chaque requête se verra retourner des données (ou un code de bonne éxécution) au format JSON.
@@ -72,7 +52,9 @@ Toutes les API se font via des requêtes HTTP sur le Remora. Il existe deux form
 Toute requête sera donc adressée sous la forme
 `http://adresse_ip_du_remora/requete_plus_ou_moins_longue` dans les exemples ci dessous l'adresse IP de mon Remora est la 192.168.1.201, veillez à bien la changer pour mettre la vôtre. Les exemples ont été exécutés depuis la ligne de commande avec curl mais ils pourraient l'être depuis la barre d'addresse de votre navigateur.
 
-**Les Etats de fil pilote**
+### Les différents états
+
+#### Les Etats de fil pilote
 
 Les différents états possibles de fil pilote dans l'API correspondent à la notation suivante, une lettre représente l'état lu ou le mode à positionner tel que :
 ```
@@ -84,7 +66,7 @@ H = Hors gel
 2 = Eco-2 (non géré pour le moment)
 ```
 
-**Les Etats du mode de fonctionnement du relais**
+#### Les Etats du mode de fonctionnement du relais
 
 Voici les différents modes de fonctionnement du relais que vous pourrez trouver dans l'API:
 ```
@@ -93,9 +75,9 @@ Voici les différents modes de fonctionnement du relais que vous pourrez trouver
 2: automatique
 ```
 
-**Les API d'intérrogation**
+### Les API d'intérrogation
 
-Les API d'intérrogation se presentent sous la forme
+Les API d'intérrogation se présentent sous la forme
 `http://adresse_ip_du_remora/ma_donnee` et la/les donnée(s) sont retournées au format JSON (j'ai volontairement supprimé certains sauts de lignes de sortie pour une meilleure lecture)
 
 - Durée de fonctionnement en secondes depuis le dernier reboot/reset/allumage `http://ip_du_remora/uptime`
@@ -165,7 +147,7 @@ Si le délestage est désactivé `http://ip_du_remora/delestage`
 A noter la présence de certaines étiquettes virtuelles commencant par un `_`
 
 
-**Les API d'action**
+### Les API d'action
 
 Les API d'action se presentent sous la forme
 `http://adresse_ip_du_remora/?action=ma_donnee`, notez la différence avec les intérrogations, le `?`. Le résultat est retourné au format JSON avec un code réponse, il est :
@@ -271,8 +253,7 @@ Il est aussi possible de forcer le relais jusqu'au prochain changement de pério
 ````
 Erreur car les modes ECO-1 et ECO-1 ne sont pas gérés pour le moment.
 
-A faire
--------
+## A faire
 
 - Mettre des icones plus sympas sur l'afficheur
 - Gérer les retour de sondes RF, pour le moment seules les trames sont affichées sur la serial, rien n'est encore fait
@@ -280,8 +261,8 @@ A faire
 - pour le moment seul les [OLED][4] I2C sont gérés
 - tout autre idée est bienvenue
 
-Historiques des Modifications
------------------------------
+## Historiques des Modifications
+
 16/02/2015 : Ajout délestage cascadocyclique / Possibilité de ne récupérer l'état que d'un seul fil pilote
 
 14/04/2015 : Ajout d'une variable spark pour la teleinfo. Passage en un seul appel pour script jeedom. Les variables d'origine restent utilisables.
@@ -300,8 +281,9 @@ Historiques des Modifications
 
 04/03/2017 : Ajout des connexions TCP Asynchrones
 
-Exemple
--------
+27/08/2017 : Modification de la structure du code source pour s'adapter à l'environnement Platformio
+
+## Exemple
 
 Pour les photos la téléinfo n'était pas branchée sur la carte, c'est pour celà que les compteurs et le bargraphe sont à 0
 
@@ -313,11 +295,8 @@ Avec la téléinfo branchée sur la carte, le bargraph indique la puissance inst
 <img align="center" src="https://github.com/thibdct/programmateur-fil-pilote-wifi/blob/master/Logiciel/images/remora03.jpg" alt="Bottom" width="45%" height="45%">
 
 
-[1]: https://github.com/thibdct/programmateur-fil-pilote-wifi/tree/master/Mat%C3%A9riel/1.2
-[2]: https://www.particle.io/dev
-[3]: https://github.com/hallard/remora_soft/archive/master.zip
+[1]: https://github.com/AuFilElec/remora_hard/
 [4]: http://www.ebay.com/itm/291216700457
 [5]: https://github.com/hallard/Particle2NodeMCU/blob/master/README.md
-[6]: https://community.hallard.me/topic/92/nouvelle-version-remora-compatible-esp8266
+[6]: https://community.ch2i.eu/topic/92/nouvelle-version-remora-compatible-esp8266
 [7]: https://github.com/thibdct/programmateur-fil-pilote-wifi/tree/master/Mat%C3%A9riel/1.3
-[8]: http://hallard.me/esp8266-ota/

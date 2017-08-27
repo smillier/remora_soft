@@ -56,5 +56,7 @@ install:
 before_script:
   - npm install -g gulp-cli
 script:
-  - platformio run
+  - platformio run -e d1_mini
   - platformio run -e d1_mini_spiffs -t buildfs
+  - platformio run -e nodemcuv2
+  - platformio run -e nodemcuv2_spiffs -t buildfs
