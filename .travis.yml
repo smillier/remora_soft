@@ -51,6 +51,8 @@ before_install:
 install:
   - npm install
   - sudo pip install -U platformio
+  - platformio platform install espressif8266 --with-package=tool-mkspiffs
+  - platformio platform install espressif8266_stage
 before_script:
   - npm install -g gulp-cli
 script:
