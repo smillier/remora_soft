@@ -30,7 +30,7 @@
 #define MOD_ADPS          /* Délestage */
 
 // Version logicielle remora
-#define REMORA_VERSION "1.3.4"
+#define REMORA_VERSION "2.0.0-beta"
 
 // Définir ici votre authentification blynk, cela
 // Activera automatiquement blynk http://blynk.cc
@@ -39,7 +39,7 @@
 // Librairies du projet remora Pour Particle
 #ifdef ESP8266
   #if defined (REMORA_BOARD_V10) || defined (REMORA_BOARD_V11)
-  #error "La version ESP8266 NodeMCU n'est pas compatible avec les cartes V1.1x"
+  #error "La version ESP8266 NodeMCU n'est pas compatible avec les cartes < V1.2"
   #endif
 
   // Définir ici les identifiants de
