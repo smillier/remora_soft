@@ -76,20 +76,20 @@ Pour activer un module, il vous suffit de décommenter la ligne du module dans l
 
 ## Les codes couleurs LED RGB
 
-- <span style="background-color:orange;">Orange</span>:
+- ![Orange](https://placehold.it/25/ffa500/000000?text=+)
 	- Durant la connexion WiFi
 	- Durant la mise à jour d'une trame teleinfo
-- <span style="background-color:magenta;color:white;">Magenta</span>:
+- ![Magenta](https://placehold.it/25/ff00ff/000000?text=+)
  	- Durant l'initialisation de l'OTA
  	- Durant un upload OTA
  	- Durant un upload via l'interface Web
-- <span style="background-color:red;color:white;">Rouge</span>:
+- ![Rouge](https://placehold.it/25/ff0000/000000?text=+)
 	- En cas d'erreur
 	- Lorsque la téléinfo n'est pas trouvée
-- <span style="background-color:green;color:white;">Vert</span>:
+- ![Vert](https://placehold.it/25/00ff00/000000?text=+)
 	- Lorsque les modules ont été initialisés
 	- Lorsqu'une nouvelle trame de téléinfo est récupérée
-- <span style="background-color:yellow;">Jaune</span>:
+- ![Jaune](https://placehold.it/25/ffff00/000000?text=+)
 	- Lorsque l'initialisation est terminée
 
 ## API Exposées (ESP8266 NodeMCU / Wemos)
