@@ -88,9 +88,6 @@ void displayTeleinfo(void)
   // etat des fils pilotes
   display.setCursor(0,32);
   display.setTextSize(2);
-  #ifdef SPARK
-  display.printf("%02d:%02d:%02d",Time.hour(),Time.minute(),Time.second());
-  #endif
 
   display.setCursor(0,48);
   // On transcrit l'état de fonctionnement du relais en une lettre

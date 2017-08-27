@@ -245,9 +245,7 @@ void rfm_loop(void)
       }
 
       DebugF("  ");
-      #ifdef SPARK
-        Debug(System.freeMemory());
-      #else
+      #ifdef ESP8266
         Debug(ESP.getFreeHeap());
       #endif
       DebuglnF(" Bytes free ");

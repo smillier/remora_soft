@@ -15,11 +15,6 @@
 #ifndef REMORA_H_
 #define REMORA_H_
 
-// Spark Core main firmware include file
-#ifdef SPARK
-#include "application.h"
-#endif
-
 // Définir ici le type de carte utilisé
 //#define REMORA_BOARD_V10  // Version 1.0
 //#define REMORA_BOARD_V11  // Version 1.1
@@ -39,35 +34,6 @@
 // Définir ici votre authentification blynk, cela
 // Activera automatiquement blynk http://blynk.cc
 //#define BLYNK_AUTH "YourBlynkAuthToken"
-
-// Librairies du projet remora Pour Particle
-#ifdef SPARK
-  #include "../lib/LibMCP23017.h"
-  #include "../lib/LibSSD1306.h"
-  #include "../lib/LibGFX.h"
-  #include "../lib/LibULPNode_RF_Protocol.h"
-  #include "../lib/LibLibTeleinfo.h"
-  //#include "WebServer.h"
-
-  #include "display.h"
-  #include "i2c.h"
-  #include "pilotes.h"
-  #include "rfm.h"
-  #include "tinfo.h"
-  #include "linked_list.h"
-  #include "route.h"
-  #include "../lib/LibRadioHead.h"
-  #include "../lib/LibRH_RF69.h"
-  #include "../lib/LibRHDatagram.h"
-  #include "../lib/LibRHReliableDatagram.h"
-
-  //#include "OLED_local.h"
-  //#include "mfGFX_local.h"
-
-  #define _yield()  Particle.process()
-  #define _wdt_feed {}
-  #define DEBUG_SERIAL  Serial
-#endif
 
 // Librairies du projet remora Pour Particle
 #ifdef ESP8266
@@ -154,23 +120,7 @@ extern "C" {
 #include "webclient.h"
 
 // RGB LED related MACROS
-#if defined (SPARK)
-  #define COLOR_RED     255,   0,   0
-  #define COLOR_ORANGE  255, 127,   0
-  #define COLOR_YELLOW  255, 255,   0
-  #define COLOR_GREEN     0, 255,   0
-  #define COLOR_CYAN      0, 255, 255
-  #define COLOR_BLUE      0,   0, 255
-  #define COLOR_MAGENTA 255,   0, 255
-
-  #define LedRGBOFF() RGB.color(0,0,0)
-  #define LedRGBON(x) RGB.color(x)
-
-  // RFM69 Pin mapping
-  #define RF69_CS  SS // default SPI SS Pin
-  #define RF69_IRQ 2
-
-#elif defined (ESP8266)
+#if defined (ESP8266)
   #define COLOR_RED     rgb_brightness, 0, 0
   #define COLOR_ORANGE  rgb_brightness, rgb_brightness>>1, 0
   #define COLOR_YELLOW  rgb_brightness, rgb_brightness, 0
@@ -243,12 +193,6 @@ extern "C" {
 // status global de l'application
 extern uint16_t status;
 extern unsigned long uptime ;
-
-
-#ifdef SPARK
-  // Particle WebServer
-  //extern WebServer server("", 80);
-#endif
 
 #ifdef ESP8266
 

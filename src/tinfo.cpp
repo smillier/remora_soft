@@ -170,8 +170,6 @@ void NewFrame(ValueList * me)
 
   #if defined (ESP8266)
     //sprintf( buff, "New Frame (%ld Bytes free)", ESP.getFreeHeap() );
-  #elif defined (SPARK)
-    //sprintf( buff, "New Frame (%ld Bytes free)", System.freeMemory());
   #else
     //sprintf( buff, "New Frame");
   #endif
@@ -200,8 +198,6 @@ void UpdatedFrame(ValueList * me)
 
   #if defined (ESP8266)
     //sprintf( buff, "Updated Frame (%ld Bytes free)", ESP.getFreeHeap() );
-  #elif defined (SPARK)
-    //sprintf( buff, "Updated Frame (%ld Bytes free)", System.freeMemory());
   #else
     //sprintf( buff, "Updated Frame");
   #endif
@@ -210,8 +206,6 @@ void UpdatedFrame(ValueList * me)
   //On publie toutes les infos teleinfos dans un seul appel :
   sprintf(mytinfo,"{\"papp\":%u,\"iinst\":%u,\"isousc\":%u,\"ptec\":%u,\"indexHP\":%u,\"indexHC\":%u,\"imax\":%u,\"ADCO\":%u}",
                     mypApp,myiInst,myisousc,ptec,myindexHP,myindexHC,myimax,mycompteur);
-  // Posibilité de faire une pseudo serial avec la fonction suivante :
-  //Spark.publish("Teleinfo",mytinfo);
 
   // nous avons une téléinfo fonctionelle
   status |= STATUS_TINFO;
@@ -231,10 +225,6 @@ bool tinfo_setup(bool wait_data)
 
   Debug("Initializing Teleinfo...");
   Debugflush();
-
-  #ifdef SPARK
-    Serial1.begin(1200);  // Port série RX/TX on serial1 for Spark
-  #endif
 
   // reset du timeout de detection de la teleinfo
   tinfo_last_frame = millis();
@@ -257,18 +247,9 @@ bool tinfo_setup(bool wait_data)
       char c;
       // Envoyer le contenu de la serial au process teleinfo
       // les callback mettront le status à jour
-      #ifdef SPARK
-        if ( Serial1.available()) {
-          c = Serial1.read();
-          //Debug(c);
-          //Debugflush();
-          tinfo.process(c);
-        }
-      #else
+      #ifdef ESP8266
         if (Serial.available()) {
           c = Serial.read();
-          //Debug(c);
-          //Debugflush();
           tinfo.process(c);
         }
       #endif
@@ -325,13 +306,7 @@ void tinfo_loop(void)
   // On prendra maximum 8 caractères par passage
   // les autres au prochain tour, çà evite les
   // long while bloquant pour les autres traitements
-  #ifdef SPARK
-    while (Serial1.available() && nb_char<8) {
-      c = (Serial1.read());
-      tinfo.process(c);
-      nb_char++;
-    }
-  #else
+  #ifdef ESP8266
     while (Serial.available() && nb_char<8) {
       c = (Serial.read());
       tinfo.process(c);
