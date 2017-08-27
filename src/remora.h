@@ -65,6 +65,10 @@
   #include <WiFiUdp.h>
   #include <Ticker.h>
   #include <NeoPixelBus.h>
+  #include <Wire.h>
+  #include <SPI.h>
+  #include <SSD1306Wire.h>
+  #include <OLEDDisplayUi.h>
 
 extern "C" {
 #include "user_interface.h"
@@ -73,8 +77,6 @@ extern "C" {
   #include <LibMCP23017.h>
   //#include "./RFM69registers.h"
   //#include "./RFM69.h"
-  #include <LibSSD1306.h>
-  #include <LibGFX.h>
   #include <LibULPNode_RF_Protocol.h>
   #include <LibLibTeleinfo.h>
   #include <LibRadioHead.h>
@@ -213,8 +215,9 @@ extern unsigned long uptime ;
 
   extern Ticker Tick_emoncms;
   extern Ticker Tick_jeedom;
-  extern bool   reboot; /* Flag to reboot the ESP */
+  extern bool   reboot;     // Flag to reboot the ESP
   extern bool   ota_blink;
+  extern bool   got_first;  // Data reception flag
 #endif
 
 
