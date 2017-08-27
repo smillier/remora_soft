@@ -47,6 +47,8 @@ Cette version logicielle est compatible avec la version matérielle [1.2](https:
 
 Pour les mêmes raisons, et afin d'afficher les informations de debug dans une console, celle-ci doit être configurée à la même vitesse que la téléinfo (car c'est le même port série) donc 1200 bps, parité paire et 7 bits de data, or **cette configuration n'est pas possible dans le moniteur série de l'Arduino**. Il faut alors prendre un autre terminal comme putty, coolterm, ...
 
+N'oubliez pas de décommenter la variable `DEBUG` dans le fichier [remora.h](https://github.com/AuFilElec/remora_soft/blob/platformio/src/remora.h), pour activer le debug.
+
 ### Wemos d1 mini
 
 Sur le **Wemos d1 mini**, il vous est possible d'utiliser le port série TX1 (pin: D4) à 115200 bps. Pour cela, il vous faut définir la variable `DEBUG_SERIAL` à **Serial1** et décommenter la ligne `DEBUG_INIT` dans le fichier [remora.h](https://github.com/AuFilElec/remora_soft/blob/platformio/src/remora.h).
