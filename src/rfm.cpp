@@ -14,9 +14,9 @@
 // **********************************************************************************
 
 #include "./linked_list.h"
-#include "./LibULPNode_RF_Protocol.h"
+#include <LibULPNode_RF_Protocol.h>
 #include "./rfm.h"
-#include "./LibRH_RF69.h"
+#include <LibRH_RF69.h>
 
 
 unsigned long rf_rgb_led_timer = 0;

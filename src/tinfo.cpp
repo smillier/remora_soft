@@ -13,6 +13,7 @@
 // **********************************************************************************
 
 #include "tinfo.h"
+#include <LibLibTeleinfo.h>
 
 #ifdef MOD_TELEINFO
 // Instanciation de l'objet Téléinfo

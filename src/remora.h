@@ -42,11 +42,11 @@
 
 // Librairies du projet remora Pour Particle
 #ifdef SPARK
-  #include "LibMCP23017.h"
-  #include "LibSSD1306.h"
-  #include "LibGFX.h"
-  #include "LibULPNode_RF_Protocol.h"
-  #include "LibLibTeleinfo.h"
+  #include "../lib/LibMCP23017.h"
+  #include "../lib/LibSSD1306.h"
+  #include "../lib/LibGFX.h"
+  #include "../lib/LibULPNode_RF_Protocol.h"
+  #include "../lib/LibLibTeleinfo.h"
   //#include "WebServer.h"
 
   #include "display.h"
@@ -56,10 +56,10 @@
   #include "tinfo.h"
   #include "linked_list.h"
   #include "route.h"
-  #include "LibRadioHead.h"
-  #include "LibRH_RF69.h"
-  #include "LibRHDatagram.h"
-  #include "LibRHReliableDatagram.h"
+  #include "../lib/LibRadioHead.h"
+  #include "../lib/LibRH_RF69.h"
+  #include "../lib/LibRHDatagram.h"
+  #include "../lib/LibRHReliableDatagram.h"
 
   //#include "OLED_local.h"
   //#include "mfGFX_local.h"
@@ -88,13 +88,14 @@
   #include "Arduino.h"
   #include <EEPROM.h>
   #include <FS.h>
+  #include <Hash.h>
   #include <ESP8266WiFi.h>
   #include <ESP8266HTTPClient.h>
-  // #include <ESP8266WebServer.h>
+  #include <ESP8266mDNS.h>
   #include <ESPAsyncTCP.h>
   #include <ESPAsyncWebServer.h>
   #include <ArduinoJson.h>
-  #include <AsyncJson.h>
+  // #include <AsyncJson.h>
   #include <WiFiUdp.h>
   #include <Ticker.h>
   #include <NeoPixelBus.h>
@@ -103,15 +104,15 @@ extern "C" {
 #include "user_interface.h"
 }
 
-  #include "./LibMCP23017.h"
+  #include <LibMCP23017.h>
   //#include "./RFM69registers.h"
   //#include "./RFM69.h"
-  #include "./LibSSD1306.h"
-  #include "./LibGFX.h"
-  #include "./LibULPNode_RF_Protocol.h"
-  #include "./LibLibTeleinfo.h"
-  #include "./LibRadioHead.h"
-  #include "./LibRHReliableDatagram.h"
+  #include <LibSSD1306.h>
+  #include <LibGFX.h>
+  #include <LibULPNode_RF_Protocol.h>
+  #include <LibLibTeleinfo.h>
+  #include <LibRadioHead.h>
+  #include <LibRHReliableDatagram.h>
 
   #define _yield  yield
   #define _wdt_feed ESP.wdtFeed

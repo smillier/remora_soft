@@ -24,6 +24,7 @@
 
 // Include main project include file
 #include "remora.h"
+#include <AsyncJson.h>
 
 // Exported variables/object instanciated in main sketch
 // =====================================================
@@ -44,8 +45,8 @@ void handleFactoryReset(AsyncWebServerRequest *request);
 void handleReset(AsyncWebServerRequest *request);
 void tinfoJSON(AsyncWebServerRequest *request);
 void tinfoJSONTable(AsyncWebServerRequest *request);
-void sysJSONTable(AsyncWebServerRequest *request);
-void confJSONTable(AsyncWebServerRequest *request);
+String sysJSONTable(AsyncWebServerRequest *request);
+String confJSONTable(AsyncWebServerRequest *request);
 void spiffsJSONTable(AsyncWebServerRequest *request);
 void wifiScanJSON(AsyncWebServerRequest *request);
 void handleNotFound(AsyncWebServerRequest *request);

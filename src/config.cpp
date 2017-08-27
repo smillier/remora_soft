@@ -248,4 +248,23 @@ void resetConfig(void)
   saveConfig();
 }
 
+/* ======================================================================
+Function: resetBoard
+Purpose : do a board reset
+Input   : -
+Output  : -
+Comments: -
+====================================================================== */
+void resetBoard(void) {
+
+  // Default boot pin mode, be sure to avoid potential lockup at boot
+  pinMode(0, INPUT);
+  pinMode(2, INPUT);
+  pinMode(15, INPUT);
+  ESP.reset();
+
+  // Should never arrive there
+  while (true);
+}
+
 #endif // ESP8266

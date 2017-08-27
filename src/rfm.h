@@ -17,7 +17,7 @@
 #define RFM_h
 
 #include "remora.h"
-#include "LibRH_RF69.h"
+#include <LibRH_RF69.h>
 
 // You will need to initialize the radio by telling it what ID it has and what network it's on
 // The NodeID takes values from 1-127, 0 is reserved for sending broadcast messages (send to all nodes)

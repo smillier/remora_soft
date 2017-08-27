@@ -15,6 +15,7 @@
 //           04/03/2017 Manuel Hervo          : Ajout des connexions TCP Asynchrones
 //
 // **********************************************************************************
+#include "Arduino.h"
 
 // Tout est inclus dans le fichier remora.h
 // Pour activer des modules spécifiques ou
@@ -45,10 +46,11 @@
 #ifdef ESP8266
   #include <EEPROM.h>
   #include <FS.h>
+  #include <Hash.h>
   #include <ESP8266WiFi.h>
   #include <ESP8266HTTPClient.h>
   // #include <ESP8266WebServer.h>
-  // #include <ESP8266mDNS.h>
+  #include <ESP8266mDNS.h>
   #include <ESPAsyncTCP.h>
   #include <ESPAsyncWebServer.h>
   #include <WiFiUdp.h>
@@ -58,13 +60,13 @@
   #include <Ticker.h>
   #include <NeoPixelBus.h>
   #include <BlynkSimpleEsp8266.h>
-  #include "./LibMCP23017.h"
-  #include "./LibSSD1306.h"
-  #include "./LibGFX.h"
-  #include "./LibULPNode_RF_Protocol.h"
-  #include "./LibLibTeleinfo.h"
-  #include "./LibRadioHead.h"
-  #include "./LibRHReliableDatagram.h"
+  #include <LibMCP23017.h>
+  #include <LibSSD1306.h>
+  #include <LibGFX.h>
+  #include <LibULPNode_RF_Protocol.h>
+  #include <LibLibTeleinfo.h>
+  #include <LibRadioHead.h>
+  #include <LibRHReliableDatagram.h>
 #endif
 
 

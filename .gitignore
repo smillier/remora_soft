@@ -8,6 +8,7 @@ bootstrap-3.3.5-dist/
 index_dropzone.htm
 precache.html
 
+webdev/js/remora.min.js
 
 *.pydevproject
 .project
@@ -221,3 +222,5 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+.pioenvs
+.piolibdeps

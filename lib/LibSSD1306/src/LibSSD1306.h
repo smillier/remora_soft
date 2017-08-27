@@ -30,7 +30,7 @@ History : 15/01/2015 Charles-Henri Hallard (http://hallard.me)
 #include "application.h"
 #endif
 
-#include "./LibGFX.h"
+#include <LibGFX.h>
 
 
 #define BLACK 0

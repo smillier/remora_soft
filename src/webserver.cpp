@@ -250,34 +250,6 @@ void tinfoJSONTable(AsyncWebServerRequest *request)
 }
 
 /* ======================================================================
-Function: getClientAddresses
-Purpose : Return string containing addresses IP of clients connected
-Input   : Response String
-Output  : -
-Comments: -
-====================================================================== */
-/*void getClientAddresses(char *ips)
-{
-  struct station_info *stat_info;
-  IPAddress address;
-  
-  stat_info = wifi_softap_get_station_info();
-  uint8_t l = 0;
-
-  while (stat_info != NULL) 
-  {
-    address = ((ip_addr *)(&stat_info->ip))->addr;
-    l = strlen(ips);
-    if (l > 0) {
-      sprintf_P(&ips[l], PSTR(", %u.%u.%u.%u"), address[0], address[1], address[2], address[3]);
-    } else {
-      sprintf_P(&ips[l], PSTR("%u.%u.%u.%u"), address[0], address[1], address[2], address[3]);
-    }
-    stat_info = stat_info->next;
-  }
-}*/
-
-/* ======================================================================
 Function: getSysJSONData
 Purpose : Return JSON string containing system data
 Input   : Response String
@@ -362,43 +334,6 @@ void getSysJSONData(String & response)
   sprintf_P( buffer, PSTR("%d mV"), adc);
   response += buffer ;
   response += "\"},\r\n";
-
-  WiFiMode_t wifiMode = WiFi.getMode();
-  String ip;
-  response += "{\"na\":\"WiFi Mode\",\"va\":\"";
-  sprintf_P( buffer, PSTR("%s"), (wifiMode == WIFI_AP || wifiMode == WIFI_AP_STA) ? "Access Point" : "Station");
-  response += buffer ;
-  response += "\"},\r\n";
-
-  if (wifiMode == WIFI_AP || wifiMode == WIFI_AP_STA) {
-    ip = WiFi.softAPIP().toString().c_str();
-    response += "{\"na\":\"WiFi MAC\",\"va\":\"";
-    sprintf_P( buffer, PSTR("%s"), WiFi.softAPmacAddress().c_str());
-    response += buffer ;
-    response += "\"},\r\n";
-    
-    response += "{\"na\":\"WiFi IP\",\"va\":\"";
-    response += ip;
-    response += "\"},\r\n";
-
-    //char ipClients[128];
-    //getClientAddresses(ipClients);
-    response += "{\"na\":\"WiFi Num Clients\",\"va\":\"";
-    //sprintf_P( buffer, PSTR("%d (%s)"), WiFi.softAPgetStationNum(), ipClients);
-    sprintf_P( buffer, PSTR("%d"), WiFi.softAPgetStationNum());
-    response += buffer;
-    response += "\"},\r\n";
-  } else if (wifiMode == WIFI_STA) {
-    ip = WiFi.localIP().toString().c_str();
-    response += "{\"na\":\"WiFi MAC\",\"va\":\"";
-    sprintf_P( buffer, PSTR("%s"), WiFi.macAddress().c_str());
-    response += buffer ;
-    response += "\"},\r\n";
-    
-    response += "{\"na\":\"WiFi IP\",\"va\":\"";
-    response += ip;
-    response += "\"},\r\n";
-  }
 
   FSInfo info;
   SPIFFS.info(info);
@@ -623,41 +558,55 @@ Comments: -
 ====================================================================== */
 void wifiScanJSON(AsyncWebServerRequest *request)
 {
-  WiFi.scanNetworksAsync([request](int numNetworks) {
-    String buff;
-    AsyncJsonResponse * response = new AsyncJsonResponse(false);
-    JsonObject& root = response->getRoot();
-    JsonArray& arr = root.createNestedArray("result");
+  String response = "";
+  bool first = true;
+  int scanStatus = WiFi.scanComplete();
 
-    // Just to debug where we are
-    DebugF("Serving /wifiscan page...");
-    
-    for (uint8_t i = 0; i < numNetworks; ++i) {
+  // Just to debug where we are
+  DebugF("Serving /wifiscan page...");
 
-      switch(WiFi.encryptionType(i)) {
-        case ENC_TYPE_NONE: buff = "Open";  break;
-        case ENC_TYPE_WEP:  buff = "WEP";   break;
-        case ENC_TYPE_TKIP: buff = "WPA";   break;
-        case ENC_TYPE_CCMP: buff = "WPA2";  break;
-        case ENC_TYPE_AUTO: buff = "Auto";  break;
-        default:            buff = "????";  break;
-      }
+  // Json start
+  response += F("{\r\n");
 
-      Debugf("[%d] '%s' Encryption=%s Channel=%d\r\n", i, WiFi.SSID(i).c_str(), buff.c_str(), WiFi.channel(i));
+  //int n = WiFi.scanNetworks();
+  if (scanStatus == WIFI_SCAN_FAILED) {
+    WiFi.scanNetworks(true);
+    response += F("\"status\": \"Scan in progess\"");
+  } else if (scanStatus >= 0) {
+    response += F("\"result\": [");
+    for (uint8_t i = 0; i < scanStatus; ++i) {
+      int8_t rssi = WiFi.RSSI(i);
   
-      JsonObject& item = arr.createNestedObject();
-      item[FPSTR(FP_SSID)]       = WiFi.SSID(i);
-      item[FPSTR(FP_RSSI)]       = WiFi.RSSI(i);
-      item[FPSTR(FP_ENCRYPTION)] = buff;
-      item[FPSTR(FP_CHANNEL)]    = WiFi.channel(i);
+      uint8_t percent;
+  
+      // dBm to Quality
+      if(rssi<=-100)      percent = 0;
+      else if (rssi>=-50) percent = 100;
+      else                percent = 2 * (rssi + 100);
+  
+      if (first)
+        first = false;
+      else
+        response += F(",");
+  
+      response += F("{\"ssid\":\"");
+      response += WiFi.SSID(i);
+      response += F("\",\"rssi\":") ;
+      response += rssi;
+      response += FPSTR(FP_JSON_END);
     }
-    root[FPSTR(FP_STATUS)] = FPSTR(FP_OK);
-  
-    DebugF("sending...");
-    response->setLength();
-    request->send(response); 
-    DebuglnF("Ok!");
-  }, false);
+    response += F("],\"status\": \"OK\"");
+    WiFi.scanDelete();
+  }
+
+  // Json end
+  response += FPSTR("}\r\n");
+
+  Debugln(response);
+
+  DebugF("sending...");
+  request->send(200, "application/json", response);
+  DebuglnF("Ok!");
 }
 
 
