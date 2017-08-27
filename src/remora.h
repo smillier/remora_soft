@@ -19,7 +19,8 @@
 //#define REMORA_BOARD_V10  // Version 1.0
 //#define REMORA_BOARD_V11  // Version 1.1
 //#define REMORA_BOARD_V12  // Version 1.2
-#define REMORA_BOARD_V13  // Version 1.3
+//#define REMORA_BOARD_V13  // Version 1.3
+#define REMORA_BOARD_V14  // Version 1.4
 
 //  Définir ici les modules utilisés sur la carte Remora
 //#define MOD_RF69      /* Module RF  */
@@ -168,7 +169,7 @@ extern "C" {
   #define _pinMode(p,v)       mcp.pinMode(p,v)
 
 // Carte 1.3+
-#elif defined (REMORA_BOARD_V13)
+#elif defined (REMORA_BOARD_V13) || defined (REMORA_BOARD_V14)
   #define LED_PIN    8
   #define RELAIS_PIN 9
   #define RELAIS_REVERSE // Decommenter pour inverser le relais (si problème de relais on au lieu de off)
