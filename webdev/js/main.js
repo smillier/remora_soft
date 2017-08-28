@@ -14,7 +14,7 @@ var app;
     settings: {
       version: "@remora_version",
       author: "remora",
-      debug: false,
+      debug: true,
       elapsed: 0,
       url: '',
       full: '',
@@ -37,6 +37,12 @@ var app;
     timers: {
       sys: null,
       tinfo: null,
+    },
+    tries: {
+      tinfo: 0,
+      sys: 0,
+      scan: 0,
+      fs: 0
     },
     /**
      * Cette fonction sert à initialiser l'objet
@@ -379,6 +385,9 @@ var app;
      * @return null
      */
     loadData: function($element, pathData) {
+      var t = app || this,
+          a = t.settings;
+      if (a.debug) console.log('loadData: ', $element.attr('id'));
       var options = {silent: true};
       if (typeof pathData == 'string') {
         options.url = pathData;
@@ -430,11 +439,11 @@ var app;
 
       // Onglet Téléinformation
       if (target == '#tab_tinfo') {
-        app.loadData($tabTinfoData, '/tinfo.json');
+        app.loadData($('#tab_tinfo_data'), '/tinfo.json');
       }
       // Onglet Système
       else if (target == '#tab_sys') {
-        app.loadData($tabSysData, '/system.json');
+        app.loadData($('#tab_sys_data'), '/system.json');
       }
       // Onglet Fichiers
       else if (target == '#tab_fs') {
@@ -534,7 +543,7 @@ var app;
     });
 
     // Callbacks events sur le tableau Téléinformation
-    $tabTinfoData
+    $('#tab_tinfo_data')
       .on('load-success.bs.table', function (e, data) {
         if (app.settings.debug) console.log('#tab_tinfo_data loaded', e, data);
         if ($('.nav-tabs .active > a').attr('href')=='#tab_tinfo') {
@@ -542,10 +551,10 @@ var app;
           if (document[app.settings.hidden]) {
             if (app.settings.debug) console.log('page tinfo cachée');
             clearTimeout(app.timers.tinfo);
-            app.pageHidden($tabTinfoData, app.timers.tinfo);
+            app.pageHidden($('#tab_tinfo_data'), app.timers.tinfo);
           } else {
             // Sinon, on recharge le tableau
-            app.timers.tinfo = setTimeout(app.loadData, 1000, $tabTinfoData);
+            app.timers.tinfo = setTimeout(app.loadData, 1000, $('#tab_tinfo_data'));
           }
         }
       }).on('load-error.bs.table', function (e, status, res) {
@@ -555,19 +564,24 @@ var app;
         }
       });
     // Callbacks events sur le tableau Système
-    $tabSysData.on('load-success.bs.table', function (e, data) {
-      if (app.settings.debug) console.log('#tab_sys_data loaded');
+    $('#tab_sys_data').on('load-success.bs.table', function (e, data) {
+      if (app.settings.debug) console.log('#tab_sys_data loaded', this, e);
       if ($('.nav-tabs .active > a').attr('href')=='#tab_sys') {
+        if (app.settings.debug) console.log('tab is tab_sys');
         // Si la page n'est plus affichée, on ne fait plus d'appel à l'API
         if (document[app.settings.hidden]) {
           if (app.settings.debug) console.log('page sys cachée');
           clearTimeout(app.timers.sys);
-          app.pageHidden($tabSysData, app.timers.sys);
+          app.pageHidden($('#tab_sys_data'), app.timers.sys);
         } else {
           // Sinon, on recharge le tableau
-          app.timers.sys = setTimeout(app.loadData, 1000, $tabSysData);
+          app.timers.sys = setTimeout(app.loadData, 1000, $(this));
         }
       }
+    })
+    .on('load-error.bs.table', function (e, status, res) {
+      if (app.settings.debug) console.log('Event: load-error.bs.table on tab_sys_data', e, status, res);
+        // myTimer=setInterval(function(){myRefresh()},5000);
     });
     // Callbacks events sur le tableau Fichiers
     $tabFsData

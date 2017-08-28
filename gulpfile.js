@@ -34,6 +34,8 @@ const inline = require('gulp-inline');
 const replace = require('gulp-replace');
 const rename = require('gulp-rename');
 const pjson = require('./package.json');
+const debug = require('gulp-debug');
+const concat = require('gulp-concat');
 
 var dest = 'data/';
 
@@ -45,7 +47,7 @@ gulp.task('clean', function() {
 /* Copy static files */
 gulp.task('files', function() {
   return gulp.src([
-    'webdev/fonts/*.{woff,woff2}',
+    'webdev/**/*.{woff,woff2}',
     'webdev/favicon.ico'
   ])
   .pipe(gulp.dest(dest));
@@ -58,26 +60,34 @@ gulp.task('remora_js', function() {
     'webdev/js/validator.js',
     'webdev/js/main.js',
   ])
+  .pipe(concat('remora.min.js'))
   .pipe(uglify())
   .pipe(replace(/@remora_version/, pjson.version))
-  .pipe(rename('remora.min.js'))
   .pipe(gulp.dest('webdev/js'));
 });
 
 gulp.task('js', ['remora_js'], function() {
-  return gulp.src(['webdev/js/*.min.js'])
+  return gulp.src([
+    'webdev/js/jquery-2.1.4.min.js',
+    'webdev/js/jquery-ui.min.js',
+    'webdev/js/bootstrap.min.js',
+    'webdev/js/bootstrap-notify.min.js',
+    'webdev/js/bootstrap-table.min.js',
+    'webdev/js/bootstrap-table-fr-FR.min.js',
+    'webdev/js/remora.min.js'
+  ])
+  .pipe(concat('remora.js'))
   .pipe(uglify())
   .pipe(gzip())
-  .pipe(rename('remora.js.gz'))
-  .pipe(gulp.dest(dest + 'js/'));
+  .pipe(gulp.dest(dest + 'js'));
 });
 
 gulp.task('css', function() {
   return gulp.src('webdev/css/*.min.css')
-  .pipe(cleancss())
+  .pipe(concat('remora.css'))
+  .pipe(cleancss({level: {1: {specialComments: 0}}}))
   .pipe(cssmin())
   .pipe(gzip())
-  .pipe(rename('remora.css.gz'))
   .pipe(gulp.dest(dest + 'css'));
 });
 
