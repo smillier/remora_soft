@@ -234,16 +234,17 @@ String sysJSONTable(AsyncWebServerRequest *request)
 {
   String JsonStr="";
 
-  // If Web request or just string asking, we'll do JSon stuff 
+  // If Web request or just string asking, we'll do JSon stuff
   // in async response,
   AsyncJsonResponse * response = new AsyncJsonResponse(true);
-  JsonArray& arr = response->getRoot(); 
-    
+  response->setContentType("application/json");
+  JsonArray& arr = response->getRoot();
+
   // Web request ?
   if (request) {
-    DebugF("Serving /system page...");
+    DebuglnF("Serving /system page...");
   } else {
-    DebugF("Getting system JSON table...");
+    DebuglnF("Getting system JSON table...");
   }
 
   { JsonObject& item = arr.createNestedObject();
@@ -302,7 +303,7 @@ String sysJSONTable(AsyncWebServerRequest *request)
     item[FPSTR(FP_NA)] = "Chip ID";
     item[FPSTR(FP_VA)] = chipid; }
 
-  char boot_version[7]; 
+  char boot_version[7];
   sprintf_P(boot_version, PSTR("0x%0X"), system_get_boot_version() );
   { JsonObject& item = arr.createNestedObject();
     item[FPSTR(FP_NA)] = "Boot Version";
@@ -320,8 +321,8 @@ String sysJSONTable(AsyncWebServerRequest *request)
     item[FPSTR(FP_NA)] = "Free Size";
     item[FPSTR(FP_VA)] = formatSize(ESP.getFreeSketchSpace()); }
 
-  char analog[8]; 
-  sprintf_P( analog, PSTR("%d mV"), ((1000*analogRead(A0))/1024) );  
+  char analog[8];
+  sprintf_P( analog, PSTR("%d mV"), ((1000*analogRead(A0))/1024) );
   { JsonObject& item = arr.createNestedObject();
     item[FPSTR(FP_NA)] = "Analog";
     item[FPSTR(FP_VA)] = analog; }
@@ -340,10 +341,12 @@ String sysJSONTable(AsyncWebServerRequest *request)
     item[FPSTR(FP_VA)] = wifi_get_channel(); }
 
   if (wifiMode == WIFI_AP || wifiMode == WIFI_AP_STA) {
+
+    String mac = WiFi.softAPmacAddress();
     { JsonObject& item = arr.createNestedObject();
     item[FPSTR(FP_NA)] = "Wifi MAC";
-    item[FPSTR(FP_VA)] = WiFi.softAPmacAddress().c_str(); }
-    
+    item[FPSTR(FP_VA)] = mac; }
+
     ip = WiFi.softAPIP().toString().c_str();
     { JsonObject& item = arr.createNestedObject();
     item[FPSTR(FP_NA)] = "Wifi IP";
@@ -356,10 +359,12 @@ String sysJSONTable(AsyncWebServerRequest *request)
     item[FPSTR(FP_VA)] = (int) WiFi.softAPgetStationNum(); }
     //sprintf_P( buffer, PSTR("%d (%s)"), WiFi.softAPgetStationNum(), ipClients);
   } else if (wifiMode == WIFI_STA) {
+
+    String mac = WiFi.macAddress();
     { JsonObject& item = arr.createNestedObject();
     item[FPSTR(FP_NA)] = "Wifi MAC";
-    item[FPSTR(FP_VA)] = WiFi.macAddress().c_str(); }
-    
+    item[FPSTR(FP_VA)] = mac; }
+
     ip = WiFi.localIP().toString().c_str();
     { JsonObject& item = arr.createNestedObject();
     item[FPSTR(FP_NA)] = "Wifi IP";
@@ -385,18 +390,18 @@ String sysJSONTable(AsyncWebServerRequest *request)
 
   // regarder l'état de tous les fils Pilotes
   char fp;
-  char labFp[15];
-  char valFp[10];
+  String labFp;
+  String valFp;
   for (uint8_t i=1; i<=NB_FILS_PILOTES; i++)
   {
     fp = etatFP[i-1];
-    sprintf_P(labFp, PSTR("Fil Pilote #%d"), (int) i);
-    if      (fp=='E') sprintf_P(valFp, PSTR("Eco"));
-    else if (fp=='A') sprintf_P(valFp, PSTR("Arrêt"));
-    else if (fp=='H') sprintf_P(valFp, PSTR("Hors Gel"));
-    else if (fp=='1') sprintf_P(valFp, PSTR("Conf - 1"));
-    else if (fp=='2') sprintf_P(valFp, PSTR("Conf - 2"));
-    else if (fp=='C') sprintf_P(valFp, PSTR("Confort"));
+    labFp = PSTR("Fil Pilote #") + (String) i;
+    if      (fp=='E') valFp = PSTR("Eco");
+    else if (fp=='A') valFp = PSTR("Arrêt");
+    else if (fp=='H') valFp = PSTR("Hors Gel");
+    else if (fp=='1') valFp = PSTR("Conf - 1");
+    else if (fp=='2') valFp = PSTR("Conf - 2");
+    else if (fp=='C') valFp = PSTR("Confort");
 
     { JsonObject& item = arr.createNestedObject();
       item[FPSTR(FP_NA)] = labFp;
@@ -439,10 +444,10 @@ String sysJSONTable(AsyncWebServerRequest *request)
   // size_t jsonlen ;
   if (request) {
     response->setLength();
-    request->send(response); 
+    request->send(response);
   } else {
     // Send JSon to our string
-    arr.printTo(JsonStr); 
+    arr.printTo(JsonStr);
     // arr.measureLength();
     // Since it's nor a WEB request, we need to manually delete
     // response object so ArduinJSon object is freed
@@ -465,38 +470,41 @@ String confJSONTable(AsyncWebServerRequest *request)
 {
   String JsonStr;
 
-  AsyncJsonResponse * response = new AsyncJsonResponse();
-  JsonObject& root = response->getRoot(); 
+  AsyncJsonResponse * response = new AsyncJsonResponse(false);
+  JsonObject& root = response->getRoot();
 
-  DebugF("Serving /config page...");
+  DebuglnF("Serving /config page...");
 
-  root[FPSTR(CFG_FORM_SSID)] = config.ssid;
-  root[FPSTR(CFG_FORM_PSK)] = config.psk;
-  root[FPSTR(CFG_FORM_HOST)] = config.host;
-  root[FPSTR(CFG_FORM_AP_PSK)] = config.ap_psk;
-  root[FPSTR(CFG_FORM_EMON_HOST)] = config.emoncms.host;
-  root[FPSTR(CFG_FORM_EMON_PORT)] = config.emoncms.port;
-  root[FPSTR(CFG_FORM_EMON_URL)] = config.emoncms.url;
-  root[FPSTR(CFG_FORM_EMON_KEY)] = config.emoncms.apikey;
-  root[FPSTR(CFG_FORM_EMON_NODE)] = config.emoncms.node;
-  root[FPSTR(CFG_FORM_EMON_FREQ)] = config.emoncms.freq;
-  root[FPSTR(CFG_FORM_OTA_AUTH)] = config.ota_auth;
-  root[FPSTR(CFG_FORM_OTA_PORT)] = config.ota_port;
-  root[FPSTR(CFG_FORM_JDOM_HOST)] = config.jeedom.host;
-  root[FPSTR(CFG_FORM_JDOM_PORT)] = config.jeedom.port;
-  root[FPSTR(CFG_FORM_JDOM_URL)] = config.jeedom.url;
-  root[FPSTR(CFG_FORM_JDOM_KEY)] = config.jeedom.apikey;
-  root[FPSTR(CFG_FORM_JDOM_ADCO)] = config.jeedom.adco;
-  root[FPSTR(CFG_FORM_JDOM_FREQ)] = config.jeedom.freq;
+  root[FPSTR(CFG_SSID)]       = config.ssid;
+  root[FPSTR(CFG_PSK)]        = config.psk;
+  root[FPSTR(CFG_HOST)]       = config.host;
+  root[FPSTR(CFG_AP_PSK)]     = config.ap_psk;
+
+  root[FPSTR(CFG_EMON_HOST)]  = config.emoncms.host;
+  root[FPSTR(CFG_EMON_PORT)]  = (String) config.emoncms.port;
+  root[FPSTR(CFG_EMON_URL)]   = config.emoncms.url;
+  root[FPSTR(CFG_EMON_KEY)]   = config.emoncms.apikey;
+  root[FPSTR(CFG_EMON_NODE)]  = (String) config.emoncms.node;
+  root[FPSTR(CFG_EMON_FREQ)]  = (String) config.emoncms.freq;
+
+  root[FPSTR(CFG_OTA_AUTH)]   = config.ota_auth;
+  root[FPSTR(CFG_OTA_PORT)]   = config.ota_port;
+
+  root[FPSTR(CFG_JDOM_HOST)]  = config.jeedom.host;
+  root[FPSTR(CFG_JDOM_PORT)]  = (String) config.jeedom.port;
+  root[FPSTR(CFG_JDOM_URL)]   = config.jeedom.url;
+  root[FPSTR(CFG_JDOM_KEY)]   = config.jeedom.apikey;
+  root[FPSTR(CFG_JDOM_ADCO)]  = config.jeedom.adco;
+  root[FPSTR(CFG_JDOM_FREQ)]  = (String) config.jeedom.freq;
 
   // Web request send response to client
   // size_t jsonlen;
   if (request) {
     response->setLength();
-    request->send(response); 
+    request->send(response);
   } else {
     // Send JSon to our string
-    root.printTo(JsonStr); 
+    root.printTo(JsonStr);
     // jsonlen =  root.measureLength();
     // Since it's nor a WEB request, we need to manually delete
     // response object so ArduinJSon object is freed
@@ -518,14 +526,14 @@ Comments: -
 void spiffsJSONTable(AsyncWebServerRequest *request)
 {
   AsyncJsonResponse * response = new AsyncJsonResponse(false);
-  JsonObject& root = response->getRoot(); 
+  JsonObject& root = response->getRoot();
 
   DebugF("Serving /spiffs page...");
 
   // Loop trough all files
   JsonArray& a_files = root.createNestedArray("files");
   Dir dir = SPIFFS.openDir("/");
-  while (dir.next()) {    
+  while (dir.next()) {
     JsonObject& o_item = a_files.createNestedObject();
     o_item[FPSTR(FP_NA)] = dir.fileName();
     o_item[FPSTR(FP_VA)] = dir.fileSize();
@@ -562,7 +570,7 @@ void wifiScanJSON(AsyncWebServerRequest *request)
 
     // Just to debug where we are
     DebugF("Serving /wifiscan page...");
-    
+
     for (uint8_t i = 0; i < numNetworks; ++i) {
 
       switch(WiFi.encryptionType(i)) {
@@ -575,7 +583,7 @@ void wifiScanJSON(AsyncWebServerRequest *request)
       }
 
       Debugf("[%d] '%s' Encryption=%s Channel=%d\r\n", i, WiFi.SSID(i).c_str(), buff.c_str(), WiFi.channel(i));
-  
+
       JsonObject& item = arr.createNestedObject();
       item[FPSTR(FP_SSID)]       = WiFi.SSID(i);
       item[FPSTR(FP_RSSI)]       = WiFi.RSSI(i);
@@ -583,10 +591,10 @@ void wifiScanJSON(AsyncWebServerRequest *request)
       item[FPSTR(FP_CHANNEL)]    = WiFi.channel(i);
     }
     root[FPSTR(FP_STATUS)] = FPSTR(FP_OK);
-  
+
     DebugF("sending...");
     response->setLength();
-    request->send(response); 
+    request->send(response);
     DebuglnF("Ok!");
   }, false);
 }
@@ -892,7 +900,7 @@ void handle_fw_upload(AsyncWebServerRequest *request, String filename, size_t in
       Debug(".");
     }
   }
-  
+
   if (final) {
     DebuglnF("* Upload Finished.");
     if (Update.end(true)) {
