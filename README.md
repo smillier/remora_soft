@@ -4,6 +4,37 @@ Le logiciel Remora_soft fonctionne sur les [cartes Remora](https://github.com/th
 
 Cette version logicielle est compatible avec la version matérielle [1.2](https://github.com/thibdct/programmateur-fil-pilote-wifi/tree/master/Mat%C3%A9riel/1.2), [1.3](https://github.com/thibdct/programmateur-fil-pilote-wifi/tree/master/Mat%C3%A9riel/1.3) et [1.4][1]. Elle est compatible avec les cartes à base d'ESP8266 via un [adaptateur][5]
 
+## Sommaire
+
+* [Installation (Arduino ESP8266 NodeMCU / Wemos)](#installation-arduino-esp8266-nodemcu--wemos)
+   * [Environnement de compilation et d'upload](#environnement-de-compilation-et-dupload)
+* [Compilation et upload](#compilation-et-upload)
+* [Update via OTA](#update-via-ota)
+* [Debug](#debug)
+   * [Wemos d1 mini](#wemos-d1-mini)
+* [Configuration](#configuration)
+   * [Les versions de carte Remora](#les-versions-de-carte-remora)
+   * [Les modules de la Remora](#les-modules-de-la-remora)
+* [Utilisation](#utilisation)
+   * [Les codes couleurs LED RGB](#les-codes-couleurs-led-rgb)
+   * [API Exposées (ESP8266 NodeMCU / Wemos)](#api-exposées-esp8266-nodemcu--wemos)
+      * [Les différents états](#les-différents-états)
+         * [Les Etats de fil pilote](#les-etats-de-fil-pilote)
+         * [Les Etats du mode de fonctionnement du relais](#les-etats-du-mode-de-fonctionnement-du-relais)
+      * [Les API d'intérrogation](#les-api-dintérrogation)
+         * [Système](#système)
+         * [Relais](#relais)
+         * [Délestage](#délestage)
+         * [Fil pilote](#fil-pilote)
+         * [Téléinfo](#téléinfo)
+      * [Les API d'action](#les-api-daction)
+         * [Système](#système-1)
+         * [Relais](#relais-1)
+         * [Fil pilote](#fil-pilote-1)
+* [A faire](#a-faire)
+* [Historiques des Modifications](#historiques-des-modifications)
+* [Exemple](#exemple)
+
 ## Installation (Arduino ESP8266 NodeMCU / Wemos)
 
 ### Environnement de compilation et d'upload
@@ -15,7 +46,7 @@ Cette version logicielle est compatible avec la version matérielle [1.2](https:
   - **espressif8266**: `platformio platform install espressif8266 --with-package=tool-mkspiffs`
   - **espressif8266_stage**: `platformio platform install https://github.com/platformio/platform-espressif8266.git#feature/stage`
 
-### Compilation et upload
+## Compilation et upload
 
 - Compiler les sources pour votre carte:
   - **Wemos d1 mini**: `platformio run --environment d1_mini`
@@ -33,7 +64,7 @@ Cette version logicielle est compatible avec la version matérielle [1.2](https:
   - **Wemos d1 mini**: `platformio run --environment d1_mini_spiffs --target uploadfs`
   - **NodeMCU 1.0**: `platformio run --environment nodemcuv2_spiffs --target uploadfs`
 
-### Update via OTA
+## Update via OTA
 - Upload sources
   - **Wemos d1 mini**: `platformio run --environment d1_mini --target upload --upload-port IP_ADDRESS_HERE or mDNS_NAME.local`
   - **NodeMCU 1.0**: `platformio run --environment nodemcuv2 --target upload --upload-port IP_ADDRESS_HERE or mDNS_NAME.local`
@@ -54,13 +85,15 @@ N'oubliez pas de décommenter la variable `DEBUG` dans le fichier [remora.h](htt
 Sur le **Wemos d1 mini**, il vous est possible d'utiliser le port série TX1 (pin: D4) à 115200 bps. Pour cela, il vous faut définir la variable `DEBUG_SERIAL` à **Serial1** et décommenter la ligne `DEBUG_INIT` dans le fichier [remora.h](https://github.com/AuFilElec/remora_soft/blob/platformio/src/remora.h).
 Branchez un adaptateur USB TTL sur votre Wemos (*Adaptateur*: GND et RX => *Wemos*: GND et D4).
 
-## Les versions de carte Remora
+## Configuration
+
+### Les versions de carte Remora
 
 En fonction de la carte que vous possédez, il vous faut définir la version dans le fichier [remora.h](https://github.com/AuFilElec/remora_soft/blob/platformio/src/remora.h).
 
 Variables: `REMORA_BOARD_V1X` allant de 1.0 à 1.4 actuellement.
 
-## Les modules de la Remora
+### Les modules de la Remora
 
 Les modules vous permettent d'activer certaines fonctionnalités au sein de la Remora.
 
@@ -74,7 +107,9 @@ Pour activer un module, il vous suffit de décommenter la ligne du module dans l
 | MOD_RF69      | Module radio avec les éléments RF69 (en cours de développement) |
 | MOD_RF_OREGON | Module radio des sondes Oregon (pas encore géré) |
 
-## Les codes couleurs LED RGB
+## Utilisation
+
+### Les codes couleurs LED RGB
 
 - ![Orange](https://placehold.it/25/ffa500/000000?text=+)
 	- Durant la connexion WiFi
@@ -92,16 +127,16 @@ Pour activer un module, il vous suffit de décommenter la ligne du module dans l
 - ![Jaune](https://placehold.it/25/ffff00/000000?text=+)
 	- Lorsque l'initialisation est terminée
 
-## API Exposées (ESP8266 NodeMCU / Wemos)
+### API Exposées (ESP8266 NodeMCU / Wemos)
 
 Toutes les API se font via des requêtes HTTP sur le Remora. Il existe deux formats possibles si l'on veut récupérer des données ou exécuter des action avec le Remora. Chaque requête se verra retourner des données (ou un code de bonne éxécution) au format JSON.
 
 Toute requête sera donc adressée sous la forme
 `http://adresse_ip_du_remora/requete_plus_ou_moins_longue` dans les exemples ci dessous l'adresse IP de mon Remora est la 192.168.1.201, veillez à bien la changer pour mettre la vôtre. Les exemples ont été exécutés depuis la ligne de commande avec curl mais ils pourraient l'être depuis la barre d'addresse de votre navigateur.
 
-### Les différents états
+#### Les différents états
 
-#### Les Etats de fil pilote
+##### Les Etats de fil pilote
 
 Les différents états possibles de fil pilote dans l'API correspondent à la notation suivante, une lettre représente l'état lu ou le mode à positionner tel que :
 ```
@@ -113,7 +148,7 @@ H = Hors gel
 2 = Eco-2 (non géré pour le moment)
 ```
 
-#### Les Etats du mode de fonctionnement du relais
+##### Les Etats du mode de fonctionnement du relais
 
 Voici les différents modes de fonctionnement du relais que vous pourrez trouver dans l'API:
 ```
@@ -122,24 +157,24 @@ Voici les différents modes de fonctionnement du relais que vous pourrez trouver
 2: automatique
 ```
 
-### Les API d'intérrogation
+#### Les API d'intérrogation
 
 Les API d'intérrogation se présentent sous la forme
 `http://adresse_ip_du_remora/ma_donnee` et la/les donnée(s) sont retournées au format JSON (j'ai volontairement supprimé certains sauts de lignes de sortie pour une meilleure lecture)
 
-#### Système
+##### Système
 - Durée de fonctionnement en secondes depuis le dernier reboot/reset/allumage `http://ip_du_remora/uptime`
 ````shell
     ~ # curl http://192.168.1.201/uptime
     { "uptime": 120 }
 ````
-#### Relais
+##### Relais
 - Etat du relais et du mode de fonctionnement `http://ip_du_remora/relais`
 ````shell
     ~ # curl http://192.168.1.201/relais
     { "relais": 0, "fnct_relais": 2 }
 ````
-#### Délestage
+##### Délestage
 - Etat du délestage `http://ip_du_remora/delestage`
 ````shell
 		~ # curl http://192.168.1.201/delestage
@@ -150,7 +185,7 @@ Si le délestage est désactivé `http://ip_du_remora/delestage`
 		~ # curl http://192.168.1.201/delestage
 		{ "etat": "désactivé" }
 ````
-#### Fil pilote
+##### Fil pilote
 - Etat d'un fil pilote `http://ip_du_remora/fpn` avec n = numéro du fil pilote (1 à 7)
 ````shell
 		~ # curl http://192.168.1.201/fp3
@@ -169,7 +204,7 @@ Si le délestage est désactivé `http://ip_du_remora/delestage`
 		"fp7": "C"
 		}
 ````
-#### Téléinfo
+##### Téléinfo
 - Récupérer une étiquette Téléinfo par non nom `http://ip_du_remora/Nom_Etiquette`
 ````shell
 		~ # curl http://192.168.1.201/PAPP
@@ -199,7 +234,7 @@ Si le délestage est désactivé `http://ip_du_remora/delestage`
 A noter la présence de certaines étiquettes virtuelles commencant par un `_`
 
 
-### Les API d'action
+#### Les API d'action
 
 Les API d'action se presentent sous la forme
 `http://adresse_ip_du_remora/?action=ma_donnee`, notez la différence avec les intérrogations, le `?`. Le résultat est retourné au format JSON avec un code réponse, il est :
@@ -209,7 +244,7 @@ Les API d'action se presentent sous la forme
 
 Note, il est possible d'enchainer les actions en une requête mais un seul code d'erreur sera retourné pour l'ensemble, si une des commandes échoue, il faudra intérroger afin de savoir laquelle n'a pas fonctionnée.
 
-#### Système
+##### Système
 - Faire un reset (reboot) `http://ip_du_remora/reset`
 ````shell
 		# curl http://192.168.1.201/reset
@@ -221,7 +256,7 @@ Note, il est possible d'enchainer les actions en une requête mais un seul code 
 		# curl http://192.168.1.201/factory_reset
 		OK, Redémarrage en cours
 ````
-#### Relais
+##### Relais
 - Activer le relais `http://ip_du_remora/?relais=1`
 ````shell
 		# curl http://192.168.1.201/?relais=1
@@ -257,7 +292,7 @@ Il est aussi possible de forcer le relais jusqu'au prochain changement de pério
 		# curl http://192.168.1.201/?relais=1
 		{ "response": 0 }
 ````
-#### Fil pilote
+##### Fil pilote
 - selectionne le mode d'un des fils pilotes `http://ip_du_remora/?setfp=na` avec n=numéro du fil pilote et a=le mode à positionner (non sensible à la casse)
   Fil pilote 1 en arret
 ````shell
