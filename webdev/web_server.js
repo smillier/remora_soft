@@ -48,7 +48,7 @@ var config = {
 "emon_node":0,
 "emon_freq":0,
 "jdom_host":"",
-"jdom_port":80,
+"jdom_port":1348,
 "jdom_url":"",
 "jdom_apikey":"",
 "jdom_adco":"",
@@ -59,28 +59,7 @@ var config = {
 "domz_user":"",
 "domz_pass":"",
 "domz_idx":0,
-"domz_freq":0,
-"cnt_io_1":255,
-"cnt_dly_1":10,
-"cnt_val_1":0,
-"cnt_io_2":255,
-"cnt_dly_2":10,
-"cnt_val_2":0,
-"ota_auth":"",
-"ota_port":8266,
-"sens_si7021":0,
-"sens_sht10":0,
-"sens_hum_led":"29,66",
-"sens_temp_led":"8,58",
-"cfg_rgb":1,
-"cfg_debug":1,
-"cfg_oled":0,
-"cfg_ap":0,
-"cfg_wifi":1,
-"cfg_static":0,
-"cfg_led_bright":50,
-"cfg_led_hb":1,
-"sens_freq":300
+"domz_freq":0
 }
 
 var fp ={
@@ -368,7 +347,7 @@ dispatcher.onPost("/config_form.json", function(req, res) {
 		code = 412;
 	}
 	res.writeHead(code, {'Content-Type': 'text/plain'});
-	res.end('OK');	
+	res.end('OK');
 	config_form = !config_form;
 });
 
@@ -420,6 +399,18 @@ dispatcher.onGet('/favicon.ico', function(req, res) {
 
 	fs.readFile(filePath, function(error, content) {
 		res.writeHead(200, { 'Content-Type': contentType });
+		res.end(content, 'utf-8');
+		console.log("ENOENT "+filePath+ ' => '+contentType);
+	});
+});
+
+dispatcher.onGet('/js/remora.js', function(req, res) {
+	var filePath = '../data/js/remora.js.gz',
+		contentType = mime.lookup(filePath);
+
+	fs.readFile(filePath, function(error, content) {
+		res.writeHead(200, { 'Content-Type': contentType });
+		res.writeHead(200, { 'Content-Encoding': 'gzip' });
 		res.end(content, 'utf-8');
 		console.log("ENOENT "+filePath+ ' => '+contentType);
 	});
