@@ -224,3 +224,7 @@ pip-log.txt
 .mr.developer.cfg
 .pioenvs
 .piolibdeps
+.clang_complete
+.gcc-flags.json
+logs
+espminiterm.py
