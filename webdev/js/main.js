@@ -40,9 +40,7 @@ var app;
     },
     tries: {
       tinfo: 0,
-      sys: 0,
-      scan: 0,
-      fs: 0
+      sys: 0
     },
     /**
      * Cette fonction sert à initialiser l'objet
@@ -264,12 +262,12 @@ var app;
           a = t.settings;
 
       if (a.debug) console.log('activeZone', id, state);
-      
+
       var $div = $('div.thumbnail[data-zone="'+id+'"]'),
           $icon = $('span.icon', $div),
           active,
           img;
-      
+
       // On définit la classe active et l'icône
       switch (state) {
         case 'C':
@@ -553,14 +551,20 @@ var app;
             clearTimeout(app.timers.tinfo);
             app.pageHidden($('#tab_tinfo_data'), app.timers.tinfo);
           } else {
+            app.tries.tinfo = 0; // On reinitialise le compteur de tentatives de connexions
             // Sinon, on recharge le tableau
-            app.timers.tinfo = setTimeout(app.loadData, 1000, $('#tab_tinfo_data'));
+            app.timers.tinfo = setTimeout(app.loadData, 1000, $(this));
           }
         }
       }).on('load-error.bs.table', function (e, status, res) {
         if (app.settings.debug) console.log('Event: load-error.bs.table on tab_tinfo_data', e, status, res);
         if (status === 404 && res.hasOwnProperty('responseJSON') && res.responseJSON.hasOwnProperty('result')) {
           $('#tab_tinfo_data .no-records-found td').html("Télé-information désactivée");
+        } else {
+          // On tente, 5 fois max, de joindre le serveur, toutes les 5 secondes
+          if (++app.tries.tinfo <= 5) {
+            app.timers.tinfo = setTimeout(app.loadData, 5000, $(this));
+          }
         }
       });
     // Callbacks events sur le tableau Système
@@ -574,6 +578,7 @@ var app;
           clearTimeout(app.timers.sys);
           app.pageHidden($('#tab_sys_data'), app.timers.sys);
         } else {
+          app.tries.sys = 0; // On reinitialise le compteur de tentatives de connexions
           // Sinon, on recharge le tableau
           app.timers.sys = setTimeout(app.loadData, 1000, $(this));
         }
@@ -581,6 +586,10 @@ var app;
     })
     .on('load-error.bs.table', function (e, status, res) {
       if (app.settings.debug) console.log('Event: load-error.bs.table on tab_sys_data', e, status, res);
+      // On tente, 5 fois max, de joindre le serveur, toutes les 5 secondes
+      if (++app.tries.sys <= 5) {
+        app.timers.sys = setTimeout(app.loadData, 5000, $(this));
+      }
         // myTimer=setInterval(function(){myRefresh()},5000);
     });
     // Callbacks events sur le tableau Fichiers
