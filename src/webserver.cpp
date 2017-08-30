@@ -673,17 +673,17 @@ void fpJSON(String & response, uint8_t fp)
   AsyncJsonResponse * respJson = new AsyncJsonResponse(false);
   JsonObject& root = respJson->getRoot();
 
-  // petite verif
-  if (fp>=0 && fp<=NB_FILS_PILOTES) {
+  DebugF("fpJSON fp: "); Debugln(fp);
 
-    // regarder l'état de tous les fils Pilotes
-    char labFp[5];
+  // regarder l'état de tous les fils Pilotes
+  if (fp>=0 && fp<=NB_FILS_PILOTES) {
+    String labFp; // fp key
     for (uint8_t i=1; i<=NB_FILS_PILOTES; i++)
     {
       // Tout les fils pilote ou juste celui demandé
       if (fp==0 || fp==i) {
-        sprintf_P(labFp, PSTR("fp%d"), i);
-        root[labFp] = etatFP[i-1];
+        labFp = PSTR("fp") + (String) i;
+        root[labFp] = (String) etatFP[i-1];
       }
     }
   }
@@ -781,10 +781,10 @@ void handleFormConfig(AsyncWebServerRequest *request)
   String response="";
   int ret ;
   boolean showconfig = false;
+  long val;
 
   // We validated config ?
   if (request->hasParam("save", true)) {
-    int itemp;
     DebuglnF("===== Posted configuration");
 
     // WifInfo
@@ -792,47 +792,55 @@ void handleFormConfig(AsyncWebServerRequest *request)
     strncpy(config.psk ,    request->getParam("psk", true)->value().c_str(),      CFG_PSK_SIZE );
     strncpy(config.host ,   request->getParam("host", true)->value().c_str(),     CFG_HOSTNAME_SIZE );
     strncpy(config.ap_psk , request->getParam("ap_psk", true)->value().c_str(),   CFG_PSK_SIZE );
-    if (config.ota_auth != request->getParam("ota_auth", true)->value().c_str()) {
+    if (
+      strlen(config.ota_auth) != request->getParam("ota_auth", true)->value().length()
+      && config.ota_auth != request->getParam("ota_auth", true)->value().c_str())
+    {
       strncpy(config.ota_auth, request->getParam("ota_auth", true)->value().c_str(), CFG_PSK_SIZE );
       reboot = true;
     }
-    itemp = request->getParam("ota_port", true)->value().toInt();
-    config.ota_port = (itemp>=0 && itemp<=65535) ? itemp : DEFAULT_OTA_PORT ;
+    val = request->getParam("ota_port", true)->value().toInt();
+    config.ota_port = (val>=0 && val<=65535) ? val : DEFAULT_OTA_PORT ;
 
     // Emoncms
     strncpy(config.emoncms.host,   request->getParam("emon_host", true)->value().c_str(),  CFG_EMON_HOST_SIZE );
     strncpy(config.emoncms.url,    request->getParam("emon_url", true)->value().c_str(),   CFG_EMON_URL_SIZE );
     strncpy(config.emoncms.apikey, request->getParam("emon_apikey", true)->value().c_str(),CFG_EMON_APIKEY_SIZE );
-    itemp = request->getParam("emon_node", true)->value().toInt();
-    config.emoncms.node = (itemp>=0 && itemp<=255) ? itemp : 0 ;
-    itemp = request->getParam("emon_port", true)->value().toInt();
-    config.emoncms.port = (itemp>=0 && itemp<=65535) ? itemp : CFG_EMON_DEFAULT_PORT ;
-    itemp = request->getParam("emon_freq", true)->value().toInt();
-    if (itemp>0 && itemp<=86400){
-      // Emoncms Update if needed
+    val = request->getParam("emon_node", true)->value().toInt();
+    config.emoncms.node = (val>=0 && val<=255) ? (uint16_t) val : 0;
+    val = request->getParam("emon_port", true)->value().toInt();
+    config.emoncms.port = (val>=0 && val<=65535) ? (uint16_t) val : CFG_EMON_DEFAULT_PORT;
+    val = request->getParam("emon_freq", true)->value().toInt();
+    if (val>0 && val<=86400){
+      // Relaunch task send tinfo to Emoncms
       Tick_emoncms.detach();
-      Tick_emoncms.attach(itemp, Task_emoncms);
+      Tick_emoncms.attach(val, Task_emoncms);
     } else {
-      itemp = 0 ;
+      Tick_emoncms.detach();
+      val = 0 ;
     }
-    config.emoncms.freq = itemp;
+    config.emoncms.freq = (uint32_t) val;
 
     // jeedom
     strncpy(config.jeedom.host,   request->getParam("jdom_host", true)->value().c_str(),  CFG_JDOM_HOST_SIZE );
     strncpy(config.jeedom.url,    request->getParam("jdom_url", true)->value().c_str(),   CFG_JDOM_URL_SIZE );
     strncpy(config.jeedom.apikey, request->getParam("jdom_apikey", true)->value().c_str(),CFG_JDOM_APIKEY_SIZE );
-    strncpy(config.jeedom.adco,   request->getParam("jdom_adco", true)->value().c_str(),CFG_JDOM_ADCO_SIZE );
-    itemp = request->getParam("jdom_port", true)->value().toInt();
-    config.jeedom.port = (itemp>=0 && itemp<=65535) ? itemp : CFG_JDOM_DEFAULT_PORT ;
-    itemp = request->getParam("jdom_freq", true)->value().toInt();
-    if (itemp>0 && itemp<=86400){
-      // Emoncms Update if needed
-      Tick_jeedom.detach();
-      Tick_jeedom.attach(itemp, Task_jeedom);
-    } else {
-      itemp = 0 ;
+    strncpy(config.jeedom.adco,   request->getParam("jdom_adco", true)->value().c_str(),  CFG_JDOM_ADCO_SIZE );
+    // Check if has param jdom_port
+    if (request->hasParam("jdom_port", true)) {
+      val = request->getParam("jdom_port", true)->value().toInt();
+      config.jeedom.port = (val>=0 && val<=65535) ? (uint16_t) val : CFG_JDOM_DEFAULT_PORT;
     }
-    config.jeedom.freq = itemp;
+    val = request->getParam("jdom_freq", true)->value().toInt();
+    if (val>0 && val<=86400){
+      // Relaunch task send tinfo to Jeedom
+      Tick_jeedom.detach();
+      Tick_jeedom.attach(val, Task_jeedom);
+    } else {
+      Tick_jeedom.detach();
+      val = 0 ;
+    }
+    config.jeedom.freq = (uint32_t) val;
 
     if ( saveConfig() ) {
       ret = 200;
