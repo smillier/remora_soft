@@ -79,18 +79,23 @@ uint8_t i2c_scan()
     if (error == 0)
     {
       DebugF("I2C device found at address 0x");
-      if (address<16)
+      if (address<16) {
         Debug("0");
+      }
       DEBUG_SERIAL.print(address, HEX);
 
-      if (address>=0x20 && address<=0x27)
+      if (address>=0x20 && address<=0x27) {
         Debugln("-> MCP23017 !");
-      else if (address==0x3C || address==0x3D)
+      }
+      else if (address==0x3C || address==0x3D) {
         Debugln("-> OLED !");
-      else if (address==0x29 || address==0x39 || address==0x49)
+      }
+      else if (address==0x29 || address==0x39 || address==0x49) {
         Debugln("-> TSL2561 !");
-      else
+      }
+      else {
         Debugln("-> Unknown device !");
+      }
 
       nDevices++;
     }
