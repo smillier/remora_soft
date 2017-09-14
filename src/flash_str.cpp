@@ -35,6 +35,10 @@ const char CFG_AP_SSID[]    PROGMEM = "apssid";
 const char CFG_OTA_AUTH[]   PROGMEM = "ota_auth";
 const char CFG_OTA_PORT[]   PROGMEM = "ota_port";
 
+const char CFG_OPT_LCD[]    PROGMEM = "cfg_oled";
+const char CFG_OPT_DEBUG[]  PROGMEM = "cfg_debug";
+const char CFG_OPT_RGB[]    PROGMEM = "cfg_rgb";
+
 const char CFG_EMON_HOST[]  PROGMEM = "emon_host";
 const char CFG_EMON_PORT[]  PROGMEM = "emon_port";
 const char CFG_EMON_URL[]   PROGMEM = "emon_url";

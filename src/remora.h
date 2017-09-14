@@ -95,12 +95,12 @@ extern "C" {
 // debugging, this should not interfere with main sketch or other
 // libraries
 #ifdef DEBUG
-#define Debug(x)    DEBUG_SERIAL.print(x)
-#define Debugln(x)  DEBUG_SERIAL.println(x)
-#define DebugF(x)   DEBUG_SERIAL.print(F(x))
-#define DebuglnF(x) DEBUG_SERIAL.println(F(x))
-#define Debugf(...) DEBUG_SERIAL.printf(__VA_ARGS__)
-#define Debugflush  DEBUG_SERIAL.flush
+#define Debug(x)     if (config.config & CFG_DEBUG) { DEBUG_SERIAL.print(x); }
+#define Debugln(x)   if (config.config & CFG_DEBUG) { DEBUG_SERIAL.println(x); }
+#define DebugF(x)    if (config.config & CFG_DEBUG) { DEBUG_SERIAL.print(F(x)); }
+#define DebuglnF(x)  if (config.config & CFG_DEBUG) { DEBUG_SERIAL.println(F(x)); }
+#define Debugf(...)  if (config.config & CFG_DEBUG) { DEBUG_SERIAL.printf(__VA_ARGS__); }
+#define Debugflush() if (config.config & CFG_DEBUG) { DEBUG_SERIAL.flush(); }
 #else
 #define Debug(x)
 #define Debugln(x)
@@ -134,8 +134,8 @@ extern "C" {
 
   // On ESP8266 we use NeopixelBus library to drive neopixel RGB LED
   #define RGB_LED_PIN 0 // RGB Led driven by GPIO0
-  #define LedRGBOFF() { rgb_led.SetPixelColor(0,0); rgb_led.Show(); }
-  #define LedRGBON(x) { RgbColor color(x); rgb_led.SetPixelColor(0,color); rgb_led.Show(); }
+  #define LedRGBOFF() { if (config.config & CFG_RGB_LED) { rgb_led.SetPixelColor(0,0); rgb_led.Show(); }}
+  #define LedRGBON(x) { if (config.config & CFG_RGB_LED) { RgbColor color(x); rgb_led.SetPixelColor(0,color); rgb_led.Show(); }}
   //#define LedRGBOFF() {}
   //#define LedRGBON(x) {}
 
@@ -203,13 +203,8 @@ extern unsigned long uptime ;
 
   // ESP8266 WebServer
   extern AsyncWebServer server;
-    // RGB LED
-  //extern NeoPixelBus rgb_led;
-  //extern NeoPixelBus rgb_led(1, RGB_LED_PIN);
-  //extern template ReallyBigFunction<int>();
-  //extern  class NeoPixelBus rgb_led();
+  // RGB LED
   extern MyPixelBus rgb_led;
-  //extern  template class NeoPixelBus<NeoRgbFeature, NeoEsp8266BitBang800KbpsMethod> rgb_led;
 
   // define whole brigtness level for RGBLED
   extern uint8_t rgb_brightness;

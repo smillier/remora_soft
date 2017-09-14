@@ -497,6 +497,10 @@ String confJSONTable(AsyncWebServerRequest *request)
   root[FPSTR(CFG_JDOM_ADCO)]  = config.jeedom.adco;
   root[FPSTR(CFG_JDOM_FREQ)]  = (String) config.jeedom.freq;
 
+  root[FPSTR(CFG_OPT_LCD)] = config.config & CFG_LCD;
+  root[FPSTR(CFG_OPT_DEBUG)] = config.config & CFG_DEBUG;
+  root[FPSTR(CFG_OPT_RGB)] = config.config & CFG_RGB_LED;
+
   // Web request send response to client
   // size_t jsonlen;
   if (request) {
@@ -800,7 +804,11 @@ void handleFormConfig(AsyncWebServerRequest *request)
       reboot = true;
     }
     val = request->getParam("ota_port", true)->value().toInt();
-    config.ota_port = (val>=0 && val<=65535) ? val : DEFAULT_OTA_PORT ;
+    config.ota_port = (val>=0 && val<=65535) ? val : DEFAULT_OTA_PORT;
+
+    if (request->hasParam("cfg_debug", true)) { config.config |= CFG_DEBUG; } else { config.config &= ~CFG_DEBUG; }
+    if (request->hasParam("cfg_oled", true)) { config.config |= CFG_LCD; } else { config.config &= ~CFG_LCD; }
+    if (request->hasParam("cfg_rgb", true)) { config.config |= CFG_RGB_LED; } else { config.config &= ~CFG_RGB_LED; }
 
     // Emoncms
     strncpy(config.emoncms.host,   request->getParam("emon_host", true)->value().c_str(),  CFG_EMON_HOST_SIZE );

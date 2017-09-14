@@ -384,7 +384,7 @@ void mysetup()
       LedRGBON(COLOR_MAGENTA);
       DebugF("\r\nUpdate Started..");
       // On affiche le début de la mise à jour OTA sur l'afficheur
-      if (status & STATUS_OLED) {
+      if (status & STATUS_OLED && config.config & CFG_LCD) {
         ui->disableAutoTransition();
         display->clear();
         display->setFont(Roboto_Condensed_Bold_Bold_16);
@@ -399,7 +399,7 @@ void mysetup()
       LedRGBOFF();
       DebuglnF("Update finished restarting");
       // On affiche le message de fin sur l'afficheur
-      if (status & STATUS_OLED) {
+      if (status & STATUS_OLED && config.config & CFG_LCD) {
         ui->disableAutoTransition();
         display->clear();
         display->setFont(Roboto_Condensed_Bold_Bold_16);
@@ -417,7 +417,7 @@ void mysetup()
       }
       ota_blink = !ota_blink;
       // On affiche la progression sur l'afficheur
-      if (status & STATUS_OLED) {
+      if (status & STATUS_OLED && config.config & CFG_LCD) {
         ui->disableAutoTransition();
         display->clear();
         display->setTextAlignment(TEXT_ALIGN_CENTER);
@@ -445,7 +445,7 @@ void mysetup()
       Debugln(strErr);
 
       // On affiche l'erreur sur l'afficheur
-      if (status & STATUS_OLED) {
+      if (status & STATUS_OLED && config.config & CFG_LCD) {
         ui->disableAutoTransition();
         display->clear();
         display->setFont(Roboto_Condensed_Bold_Bold_16);
@@ -551,7 +551,7 @@ void mysetup()
 
   // Init des fils pilotes
   if (pilotes_setup())
-    status |= STATUS_MCP ;
+    status |= STATUS_MCP;
 
   #ifdef MOD_OLED
     // Initialisation de l'afficheur
@@ -569,7 +569,7 @@ void mysetup()
   #ifdef MOD_RF69
     // Initialisation RFM69 Module
     if ( rfm_setup())
-      status |= STATUS_RFM ;
+      status |= STATUS_RFM;
   #endif
 
   // Feed the dog
@@ -693,7 +693,7 @@ void loop()
   #endif
 
   #ifdef MOD_OLED
-    if (status & STATUS_OLED) {
+    if (status & STATUS_OLED && config.config & CFG_LCD) {
       int remainingTimeBudget = ui->update();
       if (remainingTimeBudget > 0) {
         // You can do some work here

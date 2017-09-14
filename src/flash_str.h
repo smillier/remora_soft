@@ -38,6 +38,10 @@ extern const char CFG_AP_SSID[];
 extern const char CFG_OTA_AUTH[];
 extern const char CFG_OTA_PORT[];
 
+extern const char CFG_OPT_LCD[];
+extern const char CFG_OPT_DEBUG[];
+extern const char CFG_OPT_RGB[];
+
 extern const char CFG_EMON_HOST[];
 extern const char CFG_EMON_PORT[];
 extern const char CFG_EMON_URL[];

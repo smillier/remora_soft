@@ -16,5 +16,9 @@
     "jdom_adco":"123456789012",
 
     "ota_auth":"WifInfo_8266",
-    "ota_port":"8266"
+    "ota_port":"8266",
+
+    "cfg_debug":1,
+    "cfg_oled":false,
+    "cfg_rgb":true
 }
