@@ -141,8 +141,8 @@ void DataCallback(ValueList * me, uint8_t flags)
     // Calcul de quand on déclenchera le relestage
     myRelestLimit = ratio_relestage * myisousc;
 
-    // Maintenant on connait notre contrat, on peut commencer 
-    // A traiter le delestage eventuel et si celui-ci 
+    // Maintenant on connait notre contrat, on peut commencer
+    // A traiter le delestage eventuel et si celui-ci
     // n'a jamais été initialisé on le fait maintenant
     if ( timerDelestRelest == 0 )
       timerDelestRelest = millis();
@@ -171,8 +171,6 @@ void NewFrame(ValueList * me)
 
   #if defined (ESP8266)
     //sprintf( buff, "New Frame (%ld Bytes free)", ESP.getFreeHeap() );
-  #elif defined (SPARK)
-    //sprintf( buff, "New Frame (%ld Bytes free)", System.freeMemory());
   #else
     //sprintf( buff, "New Frame");
   #endif
@@ -201,8 +199,6 @@ void UpdatedFrame(ValueList * me)
 
   #if defined (ESP8266)
     //sprintf( buff, "Updated Frame (%ld Bytes free)", ESP.getFreeHeap() );
-  #elif defined (SPARK)
-    //sprintf( buff, "Updated Frame (%ld Bytes free)", System.freeMemory());
   #else
     //sprintf( buff, "Updated Frame");
   #endif
@@ -211,8 +207,6 @@ void UpdatedFrame(ValueList * me)
   //On publie toutes les infos teleinfos dans un seul appel :
   sprintf(mytinfo,"{\"papp\":%u,\"iinst\":%u,\"isousc\":%u,\"ptec\":%u,\"indexHP\":%u,\"indexHC\":%u,\"imax\":%u,\"ADCO\":%u}",
                     mypApp,myiInst,myisousc,ptec,myindexHP,myindexHC,myimax,mycompteur);
-  // Posibilité de faire une pseudo serial avec la fonction suivante :
-  //Spark.publish("Teleinfo",mytinfo);
 
   // nous avons une téléinfo fonctionelle
   status |= STATUS_TINFO;
@@ -232,10 +226,6 @@ bool tinfo_setup(bool wait_data)
 
   Debug("Initializing Teleinfo...");
   Debugflush();
-
-  #ifdef SPARK
-    Serial1.begin(1200);  // Port série RX/TX on serial1 for Spark
-  #endif
 
   // reset du timeout de detection de la teleinfo
   tinfo_last_frame = millis();
@@ -258,22 +248,13 @@ bool tinfo_setup(bool wait_data)
       char c;
       // Envoyer le contenu de la serial au process teleinfo
       // les callback mettront le status à jour
-      #ifdef SPARK
-        if ( Serial1.available()) {
-          c = Serial1.read();
-          //Debug(c);
-          //Debugflush();
-          tinfo.process(c);
-        }
-      #else
-        if (Serial.available()) {
-          c = Serial.read();
-          //Debug(c);
-          //Debugflush();
-          tinfo.process(c);
-        }
-      #endif
-      
+      if (Serial.available()) {
+        c = Serial.read();
+        //Debug(c);
+        //Debugflush();
+        tinfo.process(c);
+      }
+
       _yield();
     }
   }
@@ -298,7 +279,7 @@ void tinfo_loop(void)
   char c;
   uint8_t nb_char=0;
   // Evitons les conversions hasardeuses, parlons float
-  float fiInst = myiInst; 
+  float fiInst = myiInst;
 
   // on a la téléinfo présente ?
   if ( status & STATUS_TINFO) {
@@ -326,19 +307,11 @@ void tinfo_loop(void)
   // On prendra maximum 8 caractères par passage
   // les autres au prochain tour, çà evite les
   // long while bloquant pour les autres traitements
-  #ifdef SPARK
-    while (Serial1.available() && nb_char<8) {
-      c = (Serial1.read());
-      tinfo.process(c);
-      nb_char++;
-    }
-  #else
-    while (Serial.available() && nb_char<8) {
-      c = (Serial.read());
-      tinfo.process(c);
-      nb_char++;
-    }
-  #endif
+  while (Serial.available() && nb_char<8) {
+    c = (Serial.read());
+    tinfo.process(c);
+    nb_char++;
+  }
 
   // Faut-il enclencher le delestage ?
   #ifdef MOD_ADPS

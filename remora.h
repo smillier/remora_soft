@@ -10,15 +10,11 @@
 //           02/12/2015 Charles-Henri Hallard : Ajout API WEB ESP8266 et Remora V1.3
 //           04/01/2016 Charles-Henri Hallard : Ajout Interface WEB GUIT
 //           04/03/2017 Manuel Hervo          : Ajout des connexions TCP Asynchrones
+//           12/11/2018 Manuel Hervo          : Suppression support Spark
 //
 // **********************************************************************************
 #ifndef REMORA_H_
 #define REMORA_H_
-
-// Spark Core main firmware include file
-#ifdef SPARK
-#include "application.h"
-#endif
 
 // Définir ici le type de carte utilisé
 //#define REMORA_BOARD_V10  // Version 1.0
@@ -41,84 +37,55 @@
 // Activera automatiquement blynk http://blynk.cc
 //#define BLYNK_AUTH "YourBlynkAuthToken"
 
-// Librairies du projet remora Pour Particle
-#ifdef SPARK
-  #include "LibMCP23017.h"
-  #include "LibULPNode_RF_Protocol.h"
-  #include "LibLibTeleinfo.h"
-  //#include "WebServer.h"
-
-  #include "display.h"
-  #include "i2c.h"
-  #include "pilotes.h"
-  #include "rfm.h"
-  #include "tinfo.h"
-  #include "linked_list.h"
-  #include "route.h"
-  #include "LibRadioHead.h"
-  #include "LibRH_RF69.h"
-  #include "LibRHDatagram.h"
-  #include "LibRHReliableDatagram.h"
-
-  //#include "OLED_local.h"
-  //#include "mfGFX_local.h"
-
-  #define _yield()  Particle.process()
-  #define _wdt_feed {}
-  #define DEBUG_SERIAL  Serial
+// Librairies du projet remora
+#if defined (REMORA_BOARD_V10) || defined (REMORA_BOARD_V11)
+#error "La version ESP8266 NodeMCU n'est pas compatible avec les cartes V1.1x"
 #endif
 
-// Librairies du projet remora Pour Particle
-#ifdef ESP8266
-  #if defined (REMORA_BOARD_V10) || defined (REMORA_BOARD_V11)
-  #error "La version ESP8266 NodeMCU n'est pas compatible avec les cartes V1.1x"
-  #endif
-
-  // Définir ici les identifiants de
-  // connexion à votre réseau Wifi
-  // =====================================
+// Définir ici les identifiants de
+// connexion à votre réseau Wifi
+// =====================================
 //  #define DEFAULT_WIFI_SSID "VotreSSID"
 //  #define DEFAULT_WIFI_PASS "VotreClé"
-  #define DEFAULT_WIFI_AP_PASS "Remora_WiFi"
-  // =====================================
-  #define DEFAULT_OTA_PORT  8266
-  #define DEFAULT_OTA_PASS  "Remora_OTA"
-  #define DEFAULT_HOSTNAME  "remora"
-  #include "Arduino.h"
-  #include <EEPROM.h>
-  #include <FS.h>
-  #include <ESP8266WiFi.h>
-  #include <ESP8266HTTPClient.h>
-  #include <ESP8266mDNS.h>
-  #include <ESPAsyncTCP.h>
-  #include <ESPAsyncWebServer.h>
-  #include <WiFiUdp.h>
-  #include <Ticker.h>
-  #include <NeoPixelBus.h>
-  #include <ArduinoOTA.h>
-  #include <Wire.h>
-  #include <SPI.h>
-  #include <SSD1306Wire.h>
-  #include <OLEDDisplayUi.h>
+#define DEFAULT_WIFI_AP_PASS "Remora_WiFi"
+// =====================================
+#define DEFAULT_OTA_PORT  8266
+#define DEFAULT_OTA_PASS  "Remora_OTA"
+#define DEFAULT_HOSTNAME  "remora"
+#include "Arduino.h"
+#include <EEPROM.h>
+#include <FS.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
+#include <ESP8266mDNS.h>
+#include <ESPAsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include <WiFiUdp.h>
+#include <Ticker.h>
+#include <NeoPixelBus.h>
+#include <ArduinoOTA.h>
+#include <Wire.h>
+#include <SPI.h>
+#include <SSD1306Wire.h>
+#include <OLEDDisplayUi.h>
 
 extern "C" {
 #include "user_interface.h"
 }
 
-  #include "./LibMCP23017.h"
-  //#include "./RFM69registers.h"
-  //#include "./RFM69.h"
-  #include "./LibULPNode_RF_Protocol.h"
-  #include "./LibLibTeleinfo.h"
-  #include "./LibRadioHead.h"
-  #include "./LibRHReliableDatagram.h"
+#include "./LibMCP23017.h"
+//#include "./RFM69registers.h"
+//#include "./RFM69.h"
+#include "./LibULPNode_RF_Protocol.h"
+#include "./LibLibTeleinfo.h"
+#include "./LibRadioHead.h"
+#include "./LibRHReliableDatagram.h"
 
-  #define _yield  yield
-  #define _wdt_feed ESP.wdtFeed
-  #define DEBUG_SERIAL  Serial1
-  #define DEBUG_INIT
-  #define REBOOT_DELAY    100     /* Delay for rebooting once reboot flag is set */
-#endif
+#define _yield  yield
+#define _wdt_feed ESP.wdtFeed
+#define DEBUG_SERIAL  Serial1
+#define DEBUG_INIT
+#define REBOOT_DELAY    100     /* Delay for rebooting once reboot flag is set */
 
 #define DEBUG // Décommenter cette ligne pour activer le DEBUG serial
 
@@ -155,42 +122,24 @@ extern "C" {
 #include "webclient.h"
 
 // RGB LED related MACROS
-#if defined (SPARK)
-  #define COLOR_RED     255,   0,   0
-  #define COLOR_ORANGE  255, 127,   0
-  #define COLOR_YELLOW  255, 255,   0
-  #define COLOR_GREEN     0, 255,   0
-  #define COLOR_CYAN      0, 255, 255
-  #define COLOR_BLUE      0,   0, 255
-  #define COLOR_MAGENTA 255,   0, 255
+#define COLOR_RED     rgb_brightness, 0, 0
+#define COLOR_ORANGE  rgb_brightness, rgb_brightness>>1, 0
+#define COLOR_YELLOW  rgb_brightness, rgb_brightness, 0
+#define COLOR_GREEN   0, rgb_brightness, 0
+#define COLOR_CYAN    0, rgb_brightness, rgb_brightness
+#define COLOR_BLUE    0, 0, rgb_brightness
+#define COLOR_MAGENTA rgb_brightness, 0, rgb_brightness
 
-  #define LedRGBOFF() RGB.color(0,0,0)
-  #define LedRGBON(x) RGB.color(x)
+// On ESP8266 we use NeopixelBus library to drive neopixel RGB LED
+#define RGB_LED_PIN 0 // RGB Led driven by GPIO0
+#define LedRGBOFF() { rgb_led.SetPixelColor(0,0); rgb_led.Show(); }
+#define LedRGBON(x) { RgbColor color(x); rgb_led.SetPixelColor(0,color); rgb_led.Show(); }
+//#define LedRGBOFF() {}
+//#define LedRGBON(x) {}
 
-  // RFM69 Pin mapping
-  #define RF69_CS  SS // default SPI SS Pin
-  #define RF69_IRQ 2
-
-#elif defined (ESP8266)
-  #define COLOR_RED     rgb_brightness, 0, 0
-  #define COLOR_ORANGE  rgb_brightness, rgb_brightness>>1, 0
-  #define COLOR_YELLOW  rgb_brightness, rgb_brightness, 0
-  #define COLOR_GREEN   0, rgb_brightness, 0
-  #define COLOR_CYAN    0, rgb_brightness, rgb_brightness
-  #define COLOR_BLUE    0, 0, rgb_brightness
-  #define COLOR_MAGENTA rgb_brightness, 0, rgb_brightness
-
-  // On ESP8266 we use NeopixelBus library to drive neopixel RGB LED
-  #define RGB_LED_PIN 0 // RGB Led driven by GPIO0
-  #define LedRGBOFF() { rgb_led.SetPixelColor(0,0); rgb_led.Show(); }
-  #define LedRGBON(x) { RgbColor color(x); rgb_led.SetPixelColor(0,color); rgb_led.Show(); }
-  //#define LedRGBOFF() {}
-  //#define LedRGBON(x) {}
-
-  // RFM69 Pin mapping
-  #define RF69_CS   15
-  #define RF69_IRQ  2
-#endif
+// RFM69 Pin mapping
+#define RF69_CS   15
+#define RF69_IRQ  2
 
 // Ces modules ne sont pas disponibles sur les carte 1.0 et 1.1
 #if defined (REMORA_BOARD_V10) || defined (REMORA_BOARD_V11)
@@ -245,37 +194,26 @@ extern "C" {
 extern uint16_t status;
 extern unsigned long uptime;
 
+typedef NeoPixelBus<NeoRgbFeature, NeoEsp8266BitBang800KbpsMethod> MyPixelBus;
 
-#ifdef SPARK
-  // Particle WebServer
-  //extern WebServer server("", 80);
-#endif
+// ESP8266 WebServer
+extern AsyncWebServer server;
+  // RGB LED
+//extern NeoPixelBus rgb_led;
+//extern NeoPixelBus rgb_led(1, RGB_LED_PIN);
+//extern template ReallyBigFunction<int>();
+//extern  class NeoPixelBus rgb_led();
+extern MyPixelBus rgb_led;
+//extern  template class NeoPixelBus<NeoRgbFeature, NeoEsp8266BitBang800KbpsMethod> rgb_led;
 
-#ifdef ESP8266
+// define whole brigtness level for RGBLED
+extern uint8_t rgb_brightness;
 
-  typedef NeoPixelBus<NeoRgbFeature, NeoEsp8266BitBang800KbpsMethod> MyPixelBus;
-
-  // ESP8266 WebServer
-  extern AsyncWebServer server;
-    // RGB LED
-  //extern NeoPixelBus rgb_led;
-  //extern NeoPixelBus rgb_led(1, RGB_LED_PIN);
-  //extern template ReallyBigFunction<int>();
-  //extern  class NeoPixelBus rgb_led();
-  extern MyPixelBus rgb_led;
-  //extern  template class NeoPixelBus<NeoRgbFeature, NeoEsp8266BitBang800KbpsMethod> rgb_led;
-
-  // define whole brigtness level for RGBLED
-  extern uint8_t rgb_brightness;
-
-  extern Ticker Tick_emoncms;
-  extern Ticker Tick_jeedom;
-  extern bool   reboot; /* Flag to reboot the ESP */
-  extern bool   ota_blink;
-  extern bool   got_first;
-#endif
-
-
+extern Ticker Tick_emoncms;
+extern Ticker Tick_jeedom;
+extern bool   reboot; /* Flag to reboot the ESP */
+extern bool   ota_blink;
+extern bool   got_first;
 extern uint16_t status; // status global de l'application
 
 // Function exported for other source file

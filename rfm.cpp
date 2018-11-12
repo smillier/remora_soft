@@ -247,11 +247,7 @@ void rfm_loop(void)
       }
 
       DebugF("  ");
-      #ifdef SPARK
-        Debug(System.freeMemory());
-      #else
-        Debug(ESP.getFreeHeap());
-      #endif
+      Debug(ESP.getFreeHeap());
       DebuglnF(" Bytes free ");
     #endif
 

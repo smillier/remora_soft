@@ -17,15 +17,7 @@
 #ifndef _Adafruit_MCP23017_H_
 #define _Adafruit_MCP23017_H_
 
-#if defined (SPARK)
-#include "application.h"
-#define bitRead(value, bit) (((value) >> (bit)) & 0x01)
-#define bitSet(value, bit) ((value) |= (1UL << (bit)))
-#define bitClear(value, bit) ((value) &= ~(1UL << (bit)))
-#define bitWrite(value, bit, bitvalue) (bitvalue ? bitSet(value, bit) : bitClear(value, bit))
-#else
 #include "Arduino.h"
-#endif
 
 // Don't forget the Wire library
 class Adafruit_MCP23017 {

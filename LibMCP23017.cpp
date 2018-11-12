@@ -24,7 +24,7 @@
 
 // minihelper to keep Arduino backward compatibility
 static inline void wiresend(uint8_t x) {
-#if (ARDUINO >= 100) || defined (SPARK)
+#if (ARDUINO >= 100)
   Wire.write((uint8_t) x);
 #else
   Wire.send(x);
@@ -32,7 +32,7 @@ static inline void wiresend(uint8_t x) {
 }
 
 static inline uint8_t wirerecv(void) {
-#if (ARDUINO >= 100) || defined (SPARK)
+#if (ARDUINO >= 100)
   return Wire.read();
 #else
   return Wire.receive();
