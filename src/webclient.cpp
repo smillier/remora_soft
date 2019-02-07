@@ -34,18 +34,20 @@ boolean httpPost(const char * host, const uint16_t port, const char * url,
   const uint8_t fingerprint[])
 {
   bool ret = false;
-  unsigned long start = millis();
+  #ifdef DEBUG
+    unsigned long start = millis();
+  #endif
 
   // Code pour une connexion sur un serveur SSL
   if (port == 443) {
     bool TOUT;
-    int c_len;
-    char c_buf[512];
-    int bytes;
+    //int c_len = 0;
+    //char c_buf[512];
+    //int bytes;
     String line;
 //    int myWdt;
 //    String content;
-    int code;
+    //int code;
 
     Debugf("Request to server SSL %s:%d\n", host, port);
 //    myWdt = millis();
@@ -91,14 +93,14 @@ boolean httpPost(const char * host, const uint16_t port, const char * url,
     while (client.connected()) {
       line = client.readStringUntil('\n');
 //      Debugln("Line: " + line);
-      if (line.startsWith("HTTP/1.")) {
-        code = line.substring(9, 12).toInt();
+      //if (line.startsWith("HTTP/1.")) {
+        //code = line.substring(9, 12).toInt();
 //        Debugln("Got HTTP code " + String(code));
-      }
-      if (line.startsWith("Content-Length: ")) {
-        c_len = line.substring(15).toInt();
+      //}
+      //if (line.startsWith("Content-Length: ")) {
+      //  c_len = line.substring(15).toInt();
 //        Debugln("Got Content-length: " + String(c_len));
-      }
+      //}
       if (line == "\r") {
 //        Debugln("Headers received " + String(millis() - myWdt) + " ms");
 //        Debugln("Free HEAP: " + String(ESP.getFreeHeap()));
@@ -114,8 +116,8 @@ boolean httpPost(const char * host, const uint16_t port, const char * url,
     if (client.available()) {
       TOUT = 1;
       //res.content += String(client.read());
-      bytes = client.readBytes(c_buf, c_len);
-      c_buf[c_len] = '\0';
+      //bytes = client.readBytes(c_buf, c_len);
+      //c_buf[c_len] = '\0';
       TOUT = 0;
     }
     if (TOUT) {
@@ -161,9 +163,10 @@ boolean httpPost(const char * host, const uint16_t port, const char * url,
     }
     http.end();
   }
-
-  Debugf(" in %d ms\r\n",millis()-start);
-  Debugflush();
+  #ifdef DEBUG
+    Debugf(" in %lu ms\r\n",millis()-start);
+    Debugflush();
+  #endif
   return ret;
 }
 

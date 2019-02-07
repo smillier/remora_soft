@@ -50,8 +50,8 @@
   // Définir ici les identifiants de
   // connexion à votre réseau Wifi
   // =====================================
-//  #define DEFAULT_WIFI_SSID "VotreSSID"
-//  #define DEFAULT_WIFI_PASS "VotreClé"
+  //#define DEFAULT_WIFI_SSID "VotreSSID"
+  //#define DEFAULT_WIFI_PASS "VotreClé"
   #define DEFAULT_WIFI_AP_PASS "Remora_WiFi"
   // =====================================
   #define DEFAULT_OTA_PORT  8266
@@ -90,13 +90,14 @@
   //#include "./RFM69.h"
   #include <LibULPNode_RF_Protocol.h>
   #include <LibLibTeleinfo.h>
+  #include <LibRH_RF69.h>
   #include <LibRadioHead.h>
   #include <LibRHReliableDatagram.h>
 
   #define _yield  yield
   #define _wdt_feed ESP.wdtFeed
   #define DEBUG_SERIAL  Serial1
-  //#define DEBUG_INIT              /* Permet d'initialiser la connexion série pour debug */
+  #define DEBUG_INIT              /* Permet d'initialiser la connexion série pour debug */
   #define REBOOT_DELAY    100     /* Delay for rebooting once reboot flag is set */
 #endif
 

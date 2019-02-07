@@ -142,7 +142,6 @@ void formatNumberJSON( String &response, char * value)
   if (value && strlen(value))
   {
     boolean isNumber = true;
-    uint8_t c;
     char * p = value;
 
     // just to be sure
@@ -197,8 +196,6 @@ void tinfoJSONTable(AsyncWebServerRequest *request)
 
   // Got at least one ?
   if (me) {
-    uint8_t index=0;
-
     boolean first_item = true;
     // Json start
     response += F("[\r\n");
@@ -496,7 +493,6 @@ Comments: -
 ====================================================================== */
 void getSpiffsJSONData(String & response)
 {
-  char buffer[32];
   bool first_item = true;
 
   // Json start
@@ -584,12 +580,16 @@ void wifiScanJSON(AsyncWebServerRequest *request)
     for (uint8_t i = 0; i < scanStatus; ++i) {
       int8_t rssi = WiFi.RSSI(i);
 
-      uint8_t percent;
+      //uint8_t percent = 0;
 
       // dBm to Quality
-      if(rssi<=-100)      percent = 0;
-      else if (rssi>=-50) percent = 100;
-      else                percent = 2 * (rssi + 100);
+      /*if(rssi<=-100) {
+        percent = 0;
+      } else if (rssi>=-50) {
+        percent = 100;
+      } else {
+        percent = 2 * (rssi + 100);
+      }*/
 
       if (first)
         first = false;
@@ -1039,7 +1039,6 @@ void handleNotFound(AsyncWebServerRequest *request)
   String sUri = request->url();
   const char * uri;
   bool found = false;
-  bool first_elem = true;
 
   // convert uri to char * for compare
   uri = sUri.c_str();

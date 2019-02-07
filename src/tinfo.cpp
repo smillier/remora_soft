@@ -163,12 +163,11 @@ Comments: -
 ====================================================================== */
 void NewFrame(ValueList * me)
 {
-  char buff[32];
-
-  // Light the RGB LED
+    // Light the RGB LED
   LedRGBON(COLOR_GREEN);
   tinfo_led_timer = millis();
 
+  //char buff[32];
   #if defined (ESP8266)
     //sprintf( buff, "New Frame (%ld Bytes free)", ESP.getFreeHeap() );
   #else
@@ -191,12 +190,11 @@ Comments: it's called only if one data in the frame is different than
 ====================================================================== */
 void UpdatedFrame(ValueList * me)
 {
-  char buff[32];
-
   // Light the RGB LED (orange) and set timer
   LedRGBON(COLOR_ORANGE);
   tinfo_led_timer = millis();
 
+  //char buff[32];
   #if defined (ESP8266)
     //sprintf( buff, "Updated Frame (%ld Bytes free)", ESP.getFreeHeap() );
   #else
@@ -205,7 +203,7 @@ void UpdatedFrame(ValueList * me)
   //Debugln(buff);
 
   //On publie toutes les infos teleinfos dans un seul appel :
-  sprintf(mytinfo,"{\"papp\":%u,\"iinst\":%u,\"isousc\":%u,\"ptec\":%u,\"indexHP\":%u,\"indexHC\":%u,\"imax\":%u,\"ADCO\":%u}",
+  sprintf(mytinfo,"{\"papp\":%u,\"iinst\":%u,\"isousc\":%u,\"ptec\":%u,\"indexHP\":%u,\"indexHC\":%u,\"imax\":%u,\"ADCO\":%s}",
                     mypApp,myiInst,myisousc,ptec,myindexHP,myindexHC,myimax,mycompteur);
   
   // nous avons une téléinfo fonctionelle
@@ -281,7 +279,9 @@ void tinfo_loop(void)
   char c;
   uint8_t nb_char=0;
   // Evitons les conversions hasardeuses, parlons float
-  float fiInst = myiInst; 
+  #ifdef MOD_ADPS
+    float fiInst = myiInst;
+  #endif
 
   // on a la téléinfo présente ?
   if ( status & STATUS_TINFO) {

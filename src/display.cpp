@@ -204,7 +204,6 @@ OLEDDisplayUi * ui = NULL;    // Display User Interface
     uint16_t xRadius = x + radius;
     uint16_t yRadius = y + radius;
     uint16_t doubleRadius = 2 * radius;
-    uint16_t innerRadius = radius - 2;
 
     display->setColor(WHITE);
     display->drawCircleQuads(xRadius, yRadius, radius, 0b0000011);
@@ -338,13 +337,11 @@ OLEDDisplayUi * ui = NULL;    // Display User Interface
   ====================================================================== */
   void drawFrameRF(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y) {
       char buff[32];
-      int16_t percent;
-      volatile uint8_t * p;
+      int16_t percent = 0;
       int8_t line = 0;
-      byte n;
 
-      n = rfData.size;
-      p = rfData.buffer;
+      //byte n               = rfData.size;
+      //volatile uint8_t * p = rfData.buffer;
 
       display->clear();
       display->setFont(Roboto_Condensed_Bold_Bold_16);

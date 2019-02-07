@@ -131,7 +131,7 @@ int setfp_interne(uint8_t fp, char cOrdre)
   else
   {
     // Commande à passer
-    uint8_t fpcmd1, fpcmd2;
+    uint8_t fpcmd1 = 0, fpcmd2 = 0;
 
     // tableau d'index de 0 à 6 pas de 1 à 7
     // on en profite pour Sauver l'état

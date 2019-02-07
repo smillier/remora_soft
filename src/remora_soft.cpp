@@ -161,7 +161,6 @@ int WifiHandleConn(boolean setup = false)
 
     // not connected ? start AP
     } else {
-      char ap_ssid[32];
       DebugF("Erreur, passage en point d'acces ");
       Debugln(DEFAULT_HOSTNAME);
 
@@ -263,8 +262,6 @@ Comments: -
 ====================================================================== */
 void setup()
 {
-  uint8_t rf_version = 0;
-
   #if defined DEBUG && (defined DEBUG_INIT || !defined MOD_TELEINFO)
     DEBUG_SERIAL.begin(115200);
     DEBUG_SERIAL.setDebugOutput(true);
@@ -288,8 +285,6 @@ Comments: -
 ====================================================================== */
 void mysetup()
 {
-  uint8_t rf_version = 0;
-
   #if defined (ESP8266)
 
     #ifdef MOD_TELEINFO
@@ -322,8 +317,10 @@ void mysetup()
       Dir dir = SPIFFS.openDir("/");
       while (dir.next()) {
         String fileName = dir.fileName();
-        size_t fileSize = dir.fileSize();
-        Debugf("FS File: %s, size: %d\n", fileName.c_str(), fileSize);
+        #ifdef DEBUG
+          size_t fileSize = dir.fileSize();
+          Debugf("FS File: %s, size: %d\n", fileName.c_str(), fileSize);
+        #endif
         _wdt_feed();
       }
       DebuglnF("");
@@ -631,7 +628,7 @@ Comments: -
 ====================================================================== */
 void loop()
 {
-  static bool refreshDisplay = false;
+  //static bool refreshDisplay = false;
   static bool lastcloudstate;
   static unsigned long previousMillis = 0;  // last time update
   unsigned long currentMillis = millis();
@@ -656,7 +653,7 @@ void loop()
     // Ceci arrive toute les secondes écoulées
     previousMillis = currentMillis;
     uptime++;
-    refreshDisplay = true ;
+    //refreshDisplay = true ;
     #ifdef BLYNK_AUTH
       if ( Blynk.connected() ) {
         String up    = String(uptime) + "s";
@@ -698,7 +695,7 @@ void loop()
   #endif
 
   // çà c'est fait
-  refreshDisplay = false;
+  //refreshDisplay = false;
 
   #if defined (ESP8266)
   // recupération de l'état de connexion au Wifi

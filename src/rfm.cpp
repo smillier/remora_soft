@@ -67,10 +67,6 @@ unsigned long rfm_receive_data(void)
 
   // grab the frame received
   if (driver.recv(rfData.buffer, &rfData.size)) {
-    bool  known_node = false;
-    int   nb_node;
-    int   current;
-
     // Get header data
     rfData.nodeid = driver.headerFrom();
     rfData.gwid   = driver.headerTo();
@@ -194,7 +190,6 @@ void rfm_loop(void)
   //static unsigned long packet_last_seen=0;// second since last packet received
   uint8_t packetReceived = 0;
   unsigned long node_last_seen;  // Second since we saw this node
-  unsigned long currentMillis = millis();
 
   // Data received from driver ?
   if (driver.available()) {

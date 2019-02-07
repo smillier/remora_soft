@@ -22,7 +22,7 @@ Input   : -
 Output  : -
 Comments: -
 ====================================================================== */
-bool i2c_init(void)
+void i2c_init(void)
 {
   // Set i2C speed
   #if defined (ESP8266)
@@ -58,7 +58,9 @@ uint8_t i2c_scan()
   byte error, address;
   uint8_t nDevices = 0;
 
-  unsigned long start = millis();
+  #ifdef DEBUG
+    unsigned long start = millis();
+  #endif
 
   DebuglnF("Scanning I2C bus ...");
 
@@ -83,9 +85,9 @@ uint8_t i2c_scan()
         DebugF("0");
       DEBUG_SERIAL.print(address, HEX);
 
-      if (address>=0x20 && address<=0x27)
+      if (address>=0x20 && address<=0x27) {
         Debugln("-> MCP23017 !");
-      else if (address==0x3C || address==0x3D) {
+      } else if (address==0x3C || address==0x3D) {
         DebugF("-> OLED ");
         if (address==0x3C) {
           config.oled_type = 1306;
@@ -94,10 +96,11 @@ uint8_t i2c_scan()
           config.oled_type = 1106;
           DebuglnF("1106!");
         }
-      } else if (address==0x29 || address==0x39 || address==0x49)
+      } else if (address==0x29 || address==0x39 || address==0x49) {
         Debugln("-> TSL2561 !");
-      else
-        Debugf("-> Unknown device at 0x%02X!\n");
+      } else {
+        Debugf("-> Unknown device at 0x%02X!\n", address);
+      }
 
       nDevices++;
     }
@@ -105,8 +108,10 @@ uint8_t i2c_scan()
 
   Debug(nDevices);
   DebugF(" I2C devices found, scan took ");
-  Debug(millis()-start);
-  Debugln(" ms");
+  #ifdef DEBUG
+    Debug(millis()-start);
+    Debugln(" ms");
+  #endif
 
   // Get back to full speed
   // slow down i2C speed in case of slow device

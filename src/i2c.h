@@ -23,8 +23,8 @@
 
 // Function exported for other source file
 // =======================================
-bool    i2c_init(void);
-bool    i2c_detect(uint8_t);
+void i2c_init(void);
+bool i2c_detect(uint8_t);
 uint8_t i2c_scan(void);
 
 #endif
