@@ -13,10 +13,8 @@
 //
 // **********************************************************************************
 
-#include "./linked_list.h"
-#include <LibULPNode_RF_Protocol.h>
 #include "./rfm.h"
-#include <LibRH_RF69.h>
+
 
 
 unsigned long rf_rgb_led_timer = 0;
@@ -63,6 +61,7 @@ unsigned long rfm_receive_data(void)
 
   // Fill known values
   rfData.size    = sizeof(rfData.buffer);
+  rfData.type    = RF_MOD_RFM69;
   rfData.groupid = RFM69_NETWORKID;
   rfData.ack = '\0';  // default no ack
 
@@ -71,11 +70,10 @@ unsigned long rfm_receive_data(void)
     bool  known_node = false;
     int   nb_node;
     int   current;
-    uint8_t toid;
 
     // Get header data
     rfData.nodeid = driver.headerFrom();
-    toid        = driver.headerTo();
+    rfData.gwid   = driver.headerTo();
     rfData.seqid  = driver.headerId();
     rfData.flags  = driver.headerFlags();
     rfData.rssi   = driver.lastRssi();
@@ -89,13 +87,13 @@ unsigned long rfm_receive_data(void)
         //DebugF("Frame from ");
         //Debug(rfData.nodeid);
         //DebugF(" to ");
-        //Debug(toid);
+        //Debug(rfData.gwid);
         //DebugF(" want ACK ");
 
         // Never ACK on broadcast address or a already ACK response
-        if (toid!=RH_BROADCAST_ADDRESS && !(rfData.flags & RH_FLAGS_ACK)) {
+        if (rfData.gwid != RH_BROADCAST_ADDRESS && !(rfData.flags & RH_FLAGS_ACK)) {
           //DebugF("Me=");
-          //Debug(toid);
+          //Debug(rfData.gwid);
           //DebugF(" Sending ACK to ");
           //Debug(rfData.nodeid);
 
@@ -103,7 +101,7 @@ unsigned long rfm_receive_data(void)
           driver.setHeaderFlags(RH_FLAGS_ACK, RF_PAYLOAD_REQ_ACK);
           driver.setHeaderId(rfData.seqid);
           driver.setHeaderTo(rfData.nodeid);
-          driver.setHeaderFrom(toid);
+          driver.setHeaderFrom(rfData.gwid);
           rfData.ack = '!';
 
           // We have powerfull speed CPU, but Wait slave to setup the receiver for
@@ -192,6 +190,8 @@ Comments: -
 ====================================================================== */
 void rfm_loop(void)
 {
+  got_first = false;
+  //static unsigned long packet_last_seen=0;// second since last packet received
   uint8_t packetReceived = 0;
   unsigned long node_last_seen;  // Second since we saw this node
   unsigned long currentMillis = millis();
@@ -313,5 +313,4 @@ void rfm_loop(void)
    LedRGBOFF();     // Light Off the LED
    rf_rgb_led_timer=0; // Stop virtual timer
   }
-
 }

@@ -17,7 +17,6 @@
 #define RFM_h
 
 #include "remora.h"
-#include <LibRH_RF69.h>
 
 // You will need to initialize the radio by telling it what ID it has and what network it's on
 // The NodeID takes values from 1-127, 0 is reserved for sending broadcast messages (send to all nodes)
@@ -60,9 +59,9 @@ typedef struct
 // Variables exported to other source file
 // ========================================
 // define RF var for whole project
-extern unsigned long rf_rgb_led_timer;
-extern RH_RF69 driver;
-extern RFData rfData;					// data received
+extern unsigned long  rf_rgb_led_timer;
+extern RH_RF69        driver;
+extern RFData         rfData;           // data received
 extern unsigned long  packet_last_seen; // second since last packet received
 
 // Function exported for other source file

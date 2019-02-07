@@ -20,7 +20,8 @@
 //#define REMORA_BOARD_V11  // Version 1.1
 //#define REMORA_BOARD_V12  // Version 1.2
 //#define REMORA_BOARD_V13  // Version 1.3
-#define REMORA_BOARD_V14  // Version 1.4
+#define REMORA_BOARD_V14    // Version 1.4
+//#define REMORA_BOARD_V15  // Version 1.5
 
 //  Définir ici les modules utilisés sur la carte Remora
 //#define MOD_RF69      /* Module RF  */
@@ -29,6 +30,10 @@
 //#define MOD_RF_OREGON   /* Reception des sondes orégon */
 #define MOD_ADPS          /* Délestage */
 
+// Type of OLED
+#define OLED_SH1106
+#define OLED_SSD1306
+
 // Version logicielle remora
 #define REMORA_VERSION "2.0.0-beta"
 
@@ -36,7 +41,7 @@
 // Activera automatiquement blynk http://blynk.cc
 //#define BLYNK_AUTH "YourBlynkAuthToken"
 
-// Librairies du projet remora Pour Particle
+// Librairies du projet remora pour ESP8266
 #ifdef ESP8266
   #if defined (REMORA_BOARD_V10) || defined (REMORA_BOARD_V11)
   #error "La version ESP8266 NodeMCU n'est pas compatible avec les cartes < V1.2"
@@ -55,24 +60,30 @@
   #include "Arduino.h"
   #include <EEPROM.h>
   #include <FS.h>
-  #include <Hash.h>
   #include <ESP8266WiFi.h>
+  #include <WiFiClientSecure.h>
   #include <ESP8266HTTPClient.h>
   #include <ESP8266mDNS.h>
   #include <ESPAsyncTCP.h>
   #include <ESPAsyncWebServer.h>
-  #include <ArduinoJson.h>
   #include <WiFiUdp.h>
   #include <Ticker.h>
   #include <NeoPixelBus.h>
+  #include <ArduinoOTA.h>
   #include <Wire.h>
   #include <SPI.h>
+  #if defined (OLED_SSD1306)
   #include <SSD1306Wire.h>
   #include <OLEDDisplayUi.h>
+  #endif
+  #if defined (OLED_SH1106)
+  #include <SH1106Wire.h>
+  #include <OLEDDisplayUi.h>
+  #endif
 
-extern "C" {
-#include "user_interface.h"
-}
+  extern "C" {
+    #include "user_interface.h"
+  }
 
   #include <LibMCP23017.h>
   //#include "./RFM69registers.h"
@@ -85,7 +96,7 @@ extern "C" {
   #define _yield  yield
   #define _wdt_feed ESP.wdtFeed
   #define DEBUG_SERIAL  Serial1
-  #define DEBUG_INIT
+  //#define DEBUG_INIT              /* Permet d'initialiser la connexion série pour debug */
   #define REBOOT_DELAY    100     /* Delay for rebooting once reboot flag is set */
 #endif
 
@@ -111,16 +122,18 @@ extern "C" {
 #endif
 
 // Includes du projets remora
-#include "flash_str.h"
-#include "config.h"
-#include "linked_list.h"
-#include "i2c.h"
-#include "rfm.h"
-#include "display.h"
-#include "pilotes.h"
-#include "tinfo.h"
-#include "webserver.h"
-#include "webclient.h"
+#include "./config.h"
+#include "./linked_list.h"
+#include "./display.h"
+#include "./i2c.h"
+#include "./rfm.h"
+#include "./icons.h"
+#include "./fonts.h"
+#include "./pilotes.h"
+#include "./tinfo.h"
+#include "./webserver.h"
+#include "./webclient.h"
+
 
 // RGB LED related MACROS
 #if defined (ESP8266)
@@ -134,8 +147,8 @@ extern "C" {
 
   // On ESP8266 we use NeopixelBus library to drive neopixel RGB LED
   #define RGB_LED_PIN 0 // RGB Led driven by GPIO0
-  #define LedRGBOFF() { if (config.config & CFG_RGB_LED) { rgb_led.SetPixelColor(0,0); rgb_led.Show(); }}
-  #define LedRGBON(x) { if (config.config & CFG_RGB_LED) { RgbColor color(x); rgb_led.SetPixelColor(0,color); rgb_led.Show(); }}
+  #define LedRGBOFF() { rgb_led.SetPixelColor(0,0); rgb_led.Show(); }
+  #define LedRGBON(x) { RgbColor color(x); rgb_led.SetPixelColor(0,color); rgb_led.Show(); }
   //#define LedRGBOFF() {}
   //#define LedRGBON(x) {}
 
@@ -171,10 +184,10 @@ extern "C" {
   #define _pinMode(p,v)       mcp.pinMode(p,v)
 
 // Carte 1.3+
-#elif defined (REMORA_BOARD_V13) || defined (REMORA_BOARD_V14)
+#elif defined (REMORA_BOARD_V13) || defined(REMORA_BOARD_V14) || defined(REMORA_BOARD_V15)
   #define LED_PIN    8
   #define RELAIS_PIN 9
-  #define RELAIS_REVERSE // Decommenter pour inverser le relais (si problème de relais on au lieu de off)
+  //#define RELAIS_REVERSE // Decommenter pour inverser le relais (si problème de relais on au lieu de off)
 
   // Creation macro unique et indépendante du type de
   // carte pour le controle des I/O
@@ -195,7 +208,7 @@ extern "C" {
 
 // status global de l'application
 extern uint16_t status;
-extern unsigned long uptime ;
+extern unsigned long uptime;
 
 #ifdef ESP8266
 

@@ -17,10 +17,6 @@
 
 #include "remora.h"
 
-#ifdef ESP8266
-#include <Wire.h>
-#endif
-
 // Variables exported to other source file
 // ========================================
 // define RF var for whole project

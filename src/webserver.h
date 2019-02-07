@@ -24,23 +24,6 @@
 
 // Include main project include file
 #include "remora.h"
-// Include file for AsyncJsonResponse Class
-#include <AsyncJson.h>
-
-// Optimize string space in flash, avoid duplication
-const char FP_JSON_START[] 	PROGMEM = "{\r\n";
-const char FP_JSON_END[] 	PROGMEM = "\r\n}\r\n";
-const char FP_QCQ[] 		PROGMEM = "\":\"";
-const char FP_QCNL[] 		PROGMEM = "\",\r\n\"";
-const char FP_NL[] 			PROGMEM = "\r\n";
-const char FP_CK[] 			PROGMEM = "ck";
-const char FP_FL[] 			PROGMEM = "fl";
-const char FP_SSID[]        PROGMEM = "ssid";
-const char FP_RSSI[]        PROGMEM = "rssi";
-const char FP_ENCRYPTION[]  PROGMEM = "enc";
-const char FP_CHANNEL[]     PROGMEM = "chan";
-const char FP_STATUS[]      PROGMEM = "status";
-const char FP_OK[]          PROGMEM = "OK";
 
 // Exported variables/object instanciated in main sketch
 // =====================================================
@@ -54,8 +37,8 @@ void handleFactoryReset(AsyncWebServerRequest *request);
 void handleReset(AsyncWebServerRequest *request);
 void tinfoJSON(AsyncWebServerRequest *request);
 void tinfoJSONTable(AsyncWebServerRequest *request);
-String sysJSONTable(AsyncWebServerRequest *request);
-String confJSONTable(AsyncWebServerRequest *request);
+void sysJSONTable(AsyncWebServerRequest *request);
+void confJSONTable(AsyncWebServerRequest *request);
 void spiffsJSONTable(AsyncWebServerRequest *request);
 void wifiScanJSON(AsyncWebServerRequest *request);
 void handleNotFound(AsyncWebServerRequest *request);

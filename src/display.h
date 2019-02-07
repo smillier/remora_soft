@@ -18,14 +18,16 @@
 #ifndef __DISPLAY_H__
 #define __DISPLAY_H__
 
-#include "./remora.h"
-#include "./icons.h"
-#include "./fonts.h"
+#include "remora.h"
 
 #define I2C_DISPLAY_ADDRESS 0x3C
 #define SDA_PIN  4
 #define SDC_PIN  5
 
+#define DISPLAY_WIDTH 128
+#define DISPLAY_HEIGHT 64
+
+#ifdef MOD_OLED
 // Variables exported for other source file
 // ========================================
 extern OLEDDisplay *display;
@@ -60,4 +62,5 @@ void displaySplash(bool _config_ok);
 void displayCommand(void);
 void displayTest(void);
 
+#endif
 #endif

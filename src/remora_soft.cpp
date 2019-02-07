@@ -15,41 +15,12 @@
 //           04/03/2017 Manuel Hervo          : Ajout des connexions TCP Asynchrones
 //
 // **********************************************************************************
-#include "Arduino.h"
 
 // Tout est inclus dans le fichier remora.h
 // Pour activer des modules spécifiques ou
 // changer différentes configurations il
 // faut le faire dans le fichier remora.h
 #include "remora.h"
-
-// Arduino IDE need include in main INO file
-#ifdef ESP8266
-  #include <EEPROM.h>
-  #include <FS.h>
-  #include <Hash.h>
-  #include <ESP8266WiFi.h>
-  #include <ESP8266HTTPClient.h>
-  // #include <ESP8266WebServer.h>
-  #include <ESP8266mDNS.h>
-  #include <ESPAsyncTCP.h>
-  #include <ESPAsyncWebServer.h>
-  #include <WiFiUdp.h>
-  #include <ArduinoOTA.h>
-  #include <Wire.h>
-  #include <SPI.h>
-  #include <Ticker.h>
-  #include <NeoPixelBus.h>
-  #include <SSD1306Wire.h>
-  #include <OLEDDisplayUi.h>
-  #include <BlynkSimpleEsp8266.h>
-  #include <LibMCP23017.h>
-  #include <LibULPNode_RF_Protocol.h>
-  #include <LibLibTeleinfo.h>
-  #include <LibRadioHead.h>
-  #include <LibRHReliableDatagram.h>
-#endif
-
 
 // Variables globales
 // ==================
@@ -294,8 +265,9 @@ void setup()
 {
   uint8_t rf_version = 0;
 
-  #if defined DEBUG_INIT || !defined MOD_TELEINFO
+  #if defined DEBUG && (defined DEBUG_INIT || !defined MOD_TELEINFO)
     DEBUG_SERIAL.begin(115200);
+    DEBUG_SERIAL.setDebugOutput(true);
   #endif
 
   // says main loop to do setup
@@ -372,6 +344,9 @@ void mysetup()
 
       DebuglnF("Reset to default");
     }
+    showConfig();
+    rgb_brightness = config.led_bright;
+    DebugF("RGB Brightness: "); Debugln(rgb_brightness);
 
     // Connection au Wifi ou Vérification
     WifiHandleConn(true);
@@ -379,11 +354,12 @@ void mysetup()
     // OTA callbacks
     ArduinoOTA.onStart([]() {
       if (ArduinoOTA.getCommand() == U_SPIFFS) {
-        SPIFFS.end();
+        SPIFFS.end(); // Arret du SPIFFS, sinon plantage de la mise à jour
       }
       LedRGBON(COLOR_MAGENTA);
       DebugF("\r\nUpdate Started..");
       // On affiche le début de la mise à jour OTA sur l'afficheur
+      #ifdef MOD_OLED
       if (status & STATUS_OLED && config.config & CFG_LCD) {
         ui->disableAutoTransition();
         display->clear();
@@ -392,6 +368,7 @@ void mysetup()
         display->drawString(DISPLAY_WIDTH/2, DISPLAY_HEIGHT/2 - 16, "OTA Update");
         display->display();
       }
+      #endif
       ota_blink = true;
     });
 
@@ -399,6 +376,7 @@ void mysetup()
       LedRGBOFF();
       DebuglnF("Update finished restarting");
       // On affiche le message de fin sur l'afficheur
+      #ifdef MOD_OLED
       if (status & STATUS_OLED && config.config & CFG_LCD) {
         ui->disableAutoTransition();
         display->clear();
@@ -407,6 +385,7 @@ void mysetup()
         display->drawString(DISPLAY_WIDTH/2, DISPLAY_HEIGHT/2 - 16, "Restart");
         display->display();
       }
+      #endif
     });
 
     ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
@@ -417,6 +396,7 @@ void mysetup()
       }
       ota_blink = !ota_blink;
       // On affiche la progression sur l'afficheur
+      #ifdef MOD_OLED
       if (status & STATUS_OLED && config.config & CFG_LCD) {
         ui->disableAutoTransition();
         display->clear();
@@ -426,6 +406,7 @@ void mysetup()
         display->drawProgressBar(2, 28, 124, 10, progress / (total / 100));
         display->display();
       }
+      #endif
     });
 
     ArduinoOTA.onError([](ota_error_t error) {
@@ -445,6 +426,7 @@ void mysetup()
       Debugln(strErr);
 
       // On affiche l'erreur sur l'afficheur
+      #ifdef MOD_OLED
       if (status & STATUS_OLED && config.config & CFG_LCD) {
         ui->disableAutoTransition();
         display->clear();
@@ -455,6 +437,7 @@ void mysetup()
         display->drawString(DISPLAY_WIDTH/2, 30, strErr);
         display->display();
       }
+      #endif
       //reboot = true;
     });
 
@@ -512,6 +495,7 @@ void mysetup()
 
   // Init bus I2C
   i2c_init();
+  i2c_scan();
 
   Debug("Remora Version ");
   Debugln(REMORA_VERSION);
@@ -527,6 +511,8 @@ void mysetup()
     Debug("BOARD V1.3 MCP23017 ");
   #elif defined (REMORA_BOARD_V14)
     Debug("BOARD V1.4 MCP23017 ");
+  #elif defined (REMORA_BOARD_V15)
+    Debug("BOARD V1.5 MCP23017 ");
   #else
     Debug("BOARD Inconnue");
   #endif
@@ -551,7 +537,7 @@ void mysetup()
 
   // Init des fils pilotes
   if (pilotes_setup())
-    status |= STATUS_MCP;
+    status |= STATUS_MCP ;
 
   #ifdef MOD_OLED
     // Initialisation de l'afficheur
@@ -568,8 +554,8 @@ void mysetup()
 
   #ifdef MOD_RF69
     // Initialisation RFM69 Module
-    if ( rfm_setup())
-      status |= STATUS_RFM;
+    if (rfm_setup())
+      status |= STATUS_RFM; // Statut RFM ajouté
   #endif
 
   // Feed the dog
@@ -579,6 +565,13 @@ void mysetup()
     // Initialiser la téléinfo et attente d'une trame valide
     // Le status est mis à jour dans les callback de la teleinfo
     tinfo_setup(true);
+    // Initialise la mise à jour de Emoncms si la config est définie
+    if (strlen(config.emoncms.host) > 0 && strlen(config.emoncms.url) > 0
+      && strlen(config.emoncms.apikey) > 0 && (config.emoncms.freq > 0 && config.emoncms.freq < 86400)) {
+      // Jeedom Update if needed
+      Tick_emoncms.detach();
+      Tick_emoncms.attach(config.emoncms.freq, Task_emoncms);
+    }
     // Initialise la mise à jour de Jeedom si la config est définie
     if (strlen(config.jeedom.host) > 0 && strlen(config.jeedom.url) > 0
       && strlen(config.jeedom.apikey) > 0 && (config.jeedom.freq > 0 && config.jeedom.freq < 86400)) {
@@ -708,8 +701,8 @@ void loop()
   refreshDisplay = false;
 
   #if defined (ESP8266)
-    // recupération de l'état de connexion au Wifi
-    currentcloudstate = WiFi.status()==WL_CONNECTED ? true:false;
+  // recupération de l'état de connexion au Wifi
+  currentcloudstate = WiFi.status()==WL_CONNECTED ? true:false;
   #endif
 
   // La connexion cloud vient de chager d'état ?
@@ -741,10 +734,14 @@ void loop()
     ArduinoOTA.handle();
 
     if (task_emoncms) {
-      emoncmsPost();
+      if (!emoncmsPost()) {
+        DebuglnF("Erreur push Emoncms");
+      }
       task_emoncms=false;
     } else if (task_jeedom) {
-      jeedomPost();
+      if (!jeedomPost()) {
+        DebuglnF("Erreur push Jeedom");
+      }
       task_jeedom=false;
     }
   #endif
