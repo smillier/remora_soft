@@ -472,7 +472,7 @@ int fnct_relais(String command)
             if (me->name && !strcmp(me->name, "PTEC")) {
               //DebuglnF("PTEC found");
               // If "heures creuses", close relay
-              if (me->value && !strcmp(me->value, "HC..")) {
+              if (me->value && !strncmp(me->value, "HC..", 2)) {
                 //DebuglnF("PTEC == HC..");
                 relais("1");
               } else {
