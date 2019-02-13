@@ -1,5 +1,4 @@
 /*
- 
 ESP8266 file system builder with PlatformIO support
  
 Copyright (C) 2016 by Xose Pérez <xose dot perez at gmail dot com>
@@ -72,6 +71,7 @@ gulp.task('js', ['remora_js'], function() {
     'webdev/js/jquery-ui.min.js',
     'webdev/js/bootstrap.min.js',
     'webdev/js/bootstrap-notify.min.js',
+    'webdev/js/bootstrap-slider.min.js',
     'webdev/js/bootstrap-table.min.js',
     'webdev/js/bootstrap-table-fr-FR.min.js',
     'webdev/js/remora.min.js'
