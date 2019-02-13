@@ -443,30 +443,33 @@ void getConfJSONData(String & r)
   r = FPSTR(FP_JSON_START);
 
   r+="\"";
-  r+=CFG_FORM_SSID;      r+=FPSTR(FP_QCQ); r+=config.ssid;           r+= FPSTR(FP_QCNL);
-  r+=CFG_FORM_PSK;       r+=FPSTR(FP_QCQ); r+=config.psk;            r+= FPSTR(FP_QCNL);
-  r+=CFG_FORM_HOST;      r+=FPSTR(FP_QCQ); r+=config.host;           r+= FPSTR(FP_QCNL);
-  r+=CFG_FORM_AP_PSK;    r+=FPSTR(FP_QCQ); r+=config.ap_psk;         r+= FPSTR(FP_QCNL);
-  r+=CFG_FORM_EMON_HOST; r+=FPSTR(FP_QCQ); r+=config.emoncms.host;   r+= FPSTR(FP_QCNL);
-  r+=CFG_FORM_EMON_PORT; r+=FPSTR(FP_QCQ); r+=config.emoncms.port;   r+= FPSTR(FP_QCNL);
-  r+=CFG_FORM_EMON_URL;  r+=FPSTR(FP_QCQ); r+=config.emoncms.url;    r+= FPSTR(FP_QCNL);
-  r+=CFG_FORM_EMON_KEY;  r+=FPSTR(FP_QCQ); r+=config.emoncms.apikey; r+= FPSTR(FP_QCNL);
-  r+=CFG_FORM_EMON_NODE; r+=FPSTR(FP_QCQ); r+=config.emoncms.node;   r+= FPSTR(FP_QCNL);
-  r+=CFG_FORM_EMON_FREQ; r+=FPSTR(FP_QCQ); r+=config.emoncms.freq;   r+= FPSTR(FP_QCNL);
-  r+=CFG_FORM_OTA_AUTH;  r+=FPSTR(FP_QCQ); r+=config.ota_auth;       r+= FPSTR(FP_QCNL);
-  r+=CFG_FORM_OTA_PORT;  r+=FPSTR(FP_QCQ); r+=config.ota_port;       r+= FPSTR(FP_QCNL);
-  r+=CFG_FORM_LED_BRIGHT; r+=FPSTR(FP_QCQ);
-  r+=map(config.led_bright, 0, 255, 0, 100);   r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_SSID;            r+=FPSTR(FP_QCQ); r+=config.ssid;            r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_PSK;             r+=FPSTR(FP_QCQ); r+=config.psk;             r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_HOST;            r+=FPSTR(FP_QCQ); r+=config.host;            r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_AP_PSK;          r+=FPSTR(FP_QCQ); r+=config.ap_psk;          r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_EMON_HOST;       r+=FPSTR(FP_QCQ); r+=config.emoncms.host;    r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_EMON_PORT;       r+=FPSTR(FP_QCQ); r+=config.emoncms.port;    r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_EMON_URL;        r+=FPSTR(FP_QCQ); r+=config.emoncms.url;     r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_EMON_KEY;        r+=FPSTR(FP_QCQ); r+=config.emoncms.apikey;  r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_EMON_NODE;       r+=FPSTR(FP_QCQ); r+=config.emoncms.node;    r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_EMON_FREQ;       r+=FPSTR(FP_QCQ); r+=config.emoncms.freq;    r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_OTA_AUTH;        r+=FPSTR(FP_QCQ); r+=config.ota_auth;        r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_OTA_PORT;        r+=FPSTR(FP_QCQ); r+=config.ota_port;        r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_LED_BRIGHT;      r+=FPSTR(FP_QCQ);
+    r+=map(config.led_bright, 0, 255, 0, 100);   r+= FPSTR(FP_QCNL);
 
-  r+=CFG_FORM_JDOM_HOST; r+=FPSTR(FP_QCQ); r+=config.jeedom.host;    r+= FPSTR(FP_QCNL);
-  r+=CFG_FORM_JDOM_PORT; r+=FPSTR(FP_QCQ); r+=config.jeedom.port;    r+= FPSTR(FP_QCNL);
-  r+=CFG_FORM_JDOM_URL;  r+=FPSTR(FP_QCQ); r+=config.jeedom.url;     r+= FPSTR(FP_QCNL);
-  r+=CFG_FORM_JDOM_KEY;  r+=FPSTR(FP_QCQ); r+=config.jeedom.apikey;  r+= FPSTR(FP_QCNL);
-  r+=CFG_FORM_JDOM_ADCO; r+=FPSTR(FP_QCQ); r+=config.jeedom.adco;    r+= FPSTR(FP_QCNL);
-  r+=CFG_FORM_JDOM_FING; r+=FPSTR(FP_QCQ); r+=getFingerPrint();      r+= FPSTR(FP_QCNL);
-  r+=CFG_FORM_JDOM_FREQ; r+=FPSTR(FP_QCQ); r+=config.jeedom.freq;
+  r+=CFG_FORM_COMPTEUR_MODELE; r+=FPSTR(FP_QCQ); r+=config.compteur_modele; r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_COMPTEUR_TIC;    r+=FPSTR(FP_QCQ); r+=config.compteur_tic;    r+= FPSTR(FP_QCNL);
 
-  #ifdef MOD_MQTT
+  r+=CFG_FORM_JDOM_HOST;       r+=FPSTR(FP_QCQ); r+=config.jeedom.host;     r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_JDOM_PORT;       r+=FPSTR(FP_QCQ); r+=config.jeedom.port;     r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_JDOM_URL;        r+=FPSTR(FP_QCQ); r+=config.jeedom.url;      r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_JDOM_KEY;        r+=FPSTR(FP_QCQ); r+=config.jeedom.apikey;   r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_JDOM_ADCO;       r+=FPSTR(FP_QCQ); r+=config.jeedom.adco;     r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_JDOM_FING;       r+=FPSTR(FP_QCQ); r+=getFingerPrint();       r+= FPSTR(FP_QCNL);
+  r+=CFG_FORM_JDOM_FREQ;       r+=FPSTR(FP_QCQ); r+=config.jeedom.freq;
+
+    #ifdef MOD_MQTT
     r+= FPSTR(FP_QCNL);
     r+=CFG_FORM_MQTT_ACTIVATED; r+=FPSTR(FP_QCB); r+=config.mqtt.isActivated; r+= FPSTR(FP_BNL);
     r+=CFG_FORM_MQTT_PROTO;     r+=FPSTR(FP_QCQ); r+=config.mqtt.protocol;    r+= FPSTR(FP_QCNL);
@@ -862,6 +865,10 @@ void handleFormConfig(AsyncWebServerRequest *request)
       rgb_brightness = config.led_bright;
     }
 
+    // Modele compteur
+    strncpy(config.compteur_modele, request->getParam("compteur_modele", true)->value().c_str(), CFG_COMPTEUR_MODELE_SIZE);
+    strncpy(config.compteur_tic,    request->getParam("compteur_tic", true)->value().c_str(),    CFG_COMPTEUR_TIC_SIZE);
+
     // Emoncms
     strncpy(config.emoncms.host,   request->getParam("emon_host", true)->value().c_str(),  CFG_EMON_HOST_SIZE );
     strncpy(config.emoncms.url,    request->getParam("emon_url", true)->value().c_str(),   CFG_EMON_URL_SIZE );
@@ -898,7 +905,7 @@ void handleFormConfig(AsyncWebServerRequest *request)
 			itemp = request->getParam("jdom_port", true)->value().toInt();
 			config.jeedom.port = (itemp>=0 && itemp<=65535) ? itemp : CFG_JDOM_DEFAULT_PORT;
 		}
-    if (request->hasParam("jdom_freq", true)) {
+   if (request->hasParam("jdom_freq", true)) {
       itemp = request->getParam("jdom_freq", true)->value().toInt();
       if (itemp>0 && itemp<=86400){
         // Emoncms Update if needed
@@ -908,7 +915,7 @@ void handleFormConfig(AsyncWebServerRequest *request)
         itemp = 0 ;
       }
       config.jeedom.freq = itemp;
-    }
+   }
 
     // MQTT
     #ifdef MOD_MQTT
@@ -1032,7 +1039,7 @@ void handleNotFound(AsyncWebServerRequest *request)
   String sUri = request->url();
   const char * uri;
   bool found = false;
-  
+
   // convert uri to char * for compare
   uri = sUri.c_str();
 

@@ -390,6 +390,20 @@ void mysetup()
       wifiStaConnectHandler = WiFi.onStationModeGotIP(onWifiStaConnect);
       wifiStaDisconnectHandler = WiFi.onStationModeDisconnected(onWifiStaDisconnect);
     #endif
+
+    // Init de la téléinformation
+    #ifdef MOD_TELEINFO
+      if (strcmp(config.compteur_tic, "standard") == 0) {
+        Debugln("TIC standard : Serial 9600 bps");
+        Serial.begin(9600, SERIAL_7E1);
+      }
+      else {
+        Debugln("Tic historique : Serial 1200 bps");
+        Serial.begin(1200, SERIAL_7E1);
+      }
+    #endif
+
+    // Connection au Wifi ou Vérification
     WifiHandleConn(true);
 
     // OTA callbacks
