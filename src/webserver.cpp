@@ -362,8 +362,8 @@ void getSysJSONData(String & response)
     if      (fp=='E') response += "Eco";
     else if (fp=='A') response += "Arrêt";
     else if (fp=='H') response += "Hors Gel";
-    else if (fp=='1') response += "Eco - 1";
-    else if (fp=='2') response += "Eco - 2";
+    else if (fp=='1') response += "Confort - 1";
+    else if (fp=='2') response += "Confort - 2";
     else if (fp=='C') response += "Confort";
     response += "\"},\r\n";
   }
@@ -580,7 +580,7 @@ void wifiScanJSON(AsyncWebServerRequest *request)
     for (uint8_t i = 0; i < scanStatus; ++i) {
       int8_t rssi = WiFi.RSSI(i);
 
-      //uint8_t percent = 0;
+     //uint8_t percent = 0;
 
       // dBm to Quality
       /*if(rssi<=-100) {

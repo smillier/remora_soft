@@ -198,6 +198,7 @@ $RECYCLE.BIN/
 #############
 
 *.py[cod]
+package-lock.json
 
 # Packages
 *.egg
