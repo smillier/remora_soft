@@ -24,11 +24,12 @@
 //#define REMORA_BOARD_V15  // Version 1.5
 
 //  Définir ici les modules utilisés sur la carte Remora
-//#define MOD_RF69      /* Module RF  */
-//#define MOD_OLED      /* Afficheur  */
-#define MOD_TELEINFO  /* Teleinfo   */
-//#define MOD_RF_OREGON   /* Reception des sondes orégon */
-#define MOD_ADPS          /* Délestage */
+//#define MOD_RF69         /* Module RF  */
+//#define MOD_OLED         /* Afficheur  */
+#define MOD_TELEINFO     /* Teleinfo   */
+//#define MOD_RF_OREGON    /* Reception des sondes orégon */
+#define MOD_ADPS         /* Délestage */
+//#define MOD_MQTT         /* MQTT */
 
 // Type of OLED
 #define OLED_SH1106
@@ -44,7 +45,7 @@
 // Librairies du projet remora pour ESP8266
 #ifdef ESP8266
   #if defined (REMORA_BOARD_V10) || defined (REMORA_BOARD_V11)
-  #error "La version ESP8266 NodeMCU n'est pas compatible avec les cartes < V1.2"
+    #error "La version ESP8266 NodeMCU n'est pas compatible avec les cartes < V1.2"
   #endif
 
   // Définir ici les identifiants de
@@ -57,6 +58,7 @@
   #define DEFAULT_OTA_PORT  8266
   #define DEFAULT_OTA_PASS  "Remora_OTA"
   #define DEFAULT_HOSTNAME  "remora"
+  // =====================================
   #include "Arduino.h"
   #include <EEPROM.h>
   #include <FS.h>
@@ -66,6 +68,9 @@
   #include <ESP8266mDNS.h>
   #include <ESPAsyncTCP.h>
   #include <ESPAsyncWebServer.h>
+  #ifdef MOD_MQTT
+    #include <AsyncMqttClient.h>
+  #endif
   #include <WiFiUdp.h>
   #include <Ticker.h>
   #include <NeoPixelBus.h>
@@ -73,17 +78,17 @@
   #include <Wire.h>
   #include <SPI.h>
   #if defined (OLED_SSD1306)
-  #include <SSD1306Wire.h>
-  #include <OLEDDisplayUi.h>
+    #include <SSD1306Wire.h>
+    #include <OLEDDisplayUi.h>
   #endif
   #if defined (OLED_SH1106)
-  #include <SH1106Wire.h>
-  #include <OLEDDisplayUi.h>
+    #include <SH1106Wire.h>
+    #include <OLEDDisplayUi.h>
   #endif
 
-  extern "C" {
-    #include "user_interface.h"
-  }
+extern "C" {
+#include "user_interface.h"
+}
 
   #include <LibMCP23017.h>
   //#include "./RFM69registers.h"
@@ -107,12 +112,18 @@
 // debugging, this should not interfere with main sketch or other
 // libraries
 #ifdef DEBUG
-#define Debug(x)     if (config.config & CFG_DEBUG) { DEBUG_SERIAL.print(x); }
+/*#define Debug(x)     if (config.config & CFG_DEBUG) { DEBUG_SERIAL.print(x); }
 #define Debugln(x)   if (config.config & CFG_DEBUG) { DEBUG_SERIAL.println(x); }
 #define DebugF(x)    if (config.config & CFG_DEBUG) { DEBUG_SERIAL.print(F(x)); }
 #define DebuglnF(x)  if (config.config & CFG_DEBUG) { DEBUG_SERIAL.println(F(x)); }
 #define Debugf(...)  if (config.config & CFG_DEBUG) { DEBUG_SERIAL.printf(__VA_ARGS__); }
-#define Debugflush() if (config.config & CFG_DEBUG) { DEBUG_SERIAL.flush(); }
+#define Debugflush() if (config.config & CFG_DEBUG) { DEBUG_SERIAL.flush(); }*/
+#define Debug(x)    DEBUG_SERIAL.print(x)
+#define Debugln(x)  DEBUG_SERIAL.println(x)
+#define DebugF(x)   DEBUG_SERIAL.print(F(x))
+#define DebuglnF(x) DEBUG_SERIAL.println(F(x))
+#define Debugf(...) DEBUG_SERIAL.printf(__VA_ARGS__)
+#define Debugflush  DEBUG_SERIAL.flush
 #else
 #define Debug(x)
 #define Debugln(x)
@@ -121,6 +132,7 @@
 #define Debugf(...)
 #define Debugflush()
 #endif
+
 
 // Includes du projets remora
 #include "./config.h"
@@ -134,6 +146,10 @@
 #include "./tinfo.h"
 #include "./webserver.h"
 #include "./webclient.h"
+#ifdef MOD_MQTT
+  #include "./mqtt.h"
+#endif
+
 
 
 // RGB LED related MACROS
@@ -163,6 +179,7 @@
   #undef MOD_RF69
   #undef MOD_OLED
   #undef MOD_RF_OREGON
+  #undef MOD_MQTT
 
   // en revanche le relais l'est sur la carte 1.1
   #ifdef REMORA_BOARD_V11

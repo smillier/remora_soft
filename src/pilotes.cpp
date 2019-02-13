@@ -95,11 +95,12 @@ int setfp(String command)
   command.trim();
   command.toUpperCase();
 
-  Debug("setfp=");
+  DebugF("setfp=");
   Debugln(command);
 
   int returnValue = -1;
 
+  // curl http://192.168.1.201?setfp=1
   // Vérifier que l'on demande l'état d'un seul fil pilote
   if (command.length() == 1)
   {
@@ -110,17 +111,20 @@ int setfp(String command)
     if (fp >= 1 && fp <= NB_FILS_PILOTES)
       returnValue = (etatFP[fp-1])  ;
   }
+  // curl http://192.168.1.201?setfp=1a
   else if (command.length() == 2)
   {
     // numéro du fil pilote concerné, avec conversion ASCII > entier
     // la commande est vérifiée dans fpC, pas besoin de traiter ici
     uint8_t fp = command[0]-'0';
     char cOrdre= command[1];
+
     if ( (fp < 1 || fp > NB_FILS_PILOTES) ||
         (cOrdre!='C' && cOrdre!='E' && cOrdre!='H' && cOrdre!='A' && cOrdre!='1' && cOrdre!='2') )
     {
         // erreur
-        Debugln("Argument incorrect");
+        DebugF("Argument incorrect : ");
+        Debugln(cOrdre);
     }
     else
     {
@@ -135,6 +139,57 @@ int setfp(String command)
       }
     }
   }
+  // curl http://192.168.1.201/?fp=CCCCCCC
+  else if (command.length() == NB_FILS_PILOTES)
+  {
+    uint8_t fp;
+    char cOrdre;
+
+    returnValue = 0;
+
+    // envoyer les commandes pour tous les fils pilotes
+    for (uint8_t i=1; i<=NB_FILS_PILOTES; i++)
+    {
+      fp     = i ;
+      cOrdre = command[i-1]; // l'index de la chaine commence à 0 donc i-1
+
+      // Si on ne doit pas laisser le fil pilote inchangé
+      if (cOrdre != '-' )
+      {
+        if ( (fp < 1 || fp > NB_FILS_PILOTES) ||
+          (cOrdre!='C' && cOrdre!='E' && cOrdre!='H' && cOrdre!='A' && cOrdre!='1' && cOrdre!='2') )
+        {
+          // erreur
+          DebugF("Argument incorrect : ");
+          Debug(fp);
+          Debugln(cOrdre);
+        }
+        else {
+          memFP[fp-1] = cOrdre; // On mémorise toujours la commande demandée
+          char cOrdreEnCours = etatFP[fp-1]; // Quel est l'état actuel du fil pilote?
+          if (cOrdreEnCours != 'D') {
+            // ok ici au cas ou la commande setFP n'est pas bonne
+            // on positionne le code de retour à -1 mais on
+            // continue le traitement, les suivantes sont
+            // peut-être correctes
+            if (setfp_interne(fp, cOrdre) == -1)
+              returnValue = -1;
+          }
+        }
+      }
+
+      // Feed the dog
+      _wdt_feed();
+    }
+  }
+  else {
+    returnValue = -1;
+  }
+
+  #ifdef MOD_MQTT
+    mqttFpPublish();
+  #endif
+
   return(returnValue);
 }
 
@@ -158,12 +213,12 @@ int setfp_interne(uint8_t fp, char cOrdre)
   // que la commande est correcte
   // 'D' correspond à délestage
 
-  Debug("setfp_interne : fp=");
+  DebugF("setfp_interne : fp=");
   Debug(fp);
-  Debug(" ; cOrdre=");
+  DebugF(" ; cOrdre=");
   Debugln(cOrdre);
 
-  if ( (fp < 1 || fp > NB_FILS_PILOTES) ||
+ if ( (fp < 1 || fp > NB_FILS_PILOTES) ||
       (cOrdre!='C' && cOrdre!='1' && cOrdre!='2' && cOrdre!='E' && cOrdre!='H' && cOrdre!='A' && cOrdre!='D' && cOrdre!='O' && cOrdre!='Z') )
   {
       // erreur
@@ -173,14 +228,14 @@ int setfp_interne(uint8_t fp, char cOrdre)
   else
   {
     // Commande à passer
-    uint8_t fpcmd1 = 0, fpcmd2 = 0;
+  uint8_t fpcmd1 = 0, fpcmd2 = 0;
 
     // tableau d'index de 0 à 6 pas de 1 à 7
     // on en profite pour Sauver l'état sauf si les conmmandes sont O et 2
     if (cOrdre != 'O' && cOrdre != 'Z') {
       etatFP[fp-1]=cOrdre;
     }
-    Debug("etatFP=");
+    DebugF("etatFP=");
     Debugln(etatFP);
 
     switch (cOrdre)
@@ -197,7 +252,7 @@ int setfp_interne(uint8_t fp, char cOrdre)
         case 'H': fpcmd1=HIGH; fpcmd2=LOW;  break;
         // Arrêt => Commande 0/1
         case 'A': fpcmd1=LOW;  fpcmd2=HIGH; break;
-        // Délestage => Hors gel => Commande 1/0
+         // Délestage => Hors gel => Commande 1/0
         case 'D': fpcmd1=HIGH; fpcmd2=LOW;  break;
         // Pleine alternance pendant 3 ou 7 seconde
         case 'Z': fpcmd1=LOW;  fpcmd2=LOW;  break;
@@ -220,11 +275,11 @@ Output  : -
 Comments: -
 ====================================================================== */
 void initFP(void)
-{ 
+{
   Tick_conf1_up.attach(297, conf12, '1');
   Tick_conf2_up.attach(293, conf12, '2');
   Tick_conf12_5m.attach(300, conf12, '0');
-  
+
   // buffer contenant la commande à passer à setFP
   char cmd[] = "xH" ;
 
@@ -250,9 +305,9 @@ void delester1zone(void)
 {
   uint8_t numFp; // numéro du fil pilote à délester
 
-  Debug("delester1zone() : avant : nivDelest=");
+  DebugF("delester1zone() : avant : nivDelest=");
   Debug(nivDelest);
-  Debug(" ; plusAncienneZoneDelestee=");
+  DebugF(" ; plusAncienneZoneDelestee=");
   Debugln(plusAncienneZoneDelestee);
 
   if (nivDelest < NB_FILS_PILOTES) // On s'assure que l'on n'est pas au niveau max
@@ -262,9 +317,9 @@ void delester1zone(void)
     setfp_interne(numFp, 'D');
   }
 
-  Debug("delester1zone() : apres : nivDelest=");
+  DebugF("delester1zone() : apres : nivDelest=");
   Debug(nivDelest);
-  Debug(" ; plusAncienneZoneDelestee=");
+  DebugF(" ; plusAncienneZoneDelestee=");
   Debugln(plusAncienneZoneDelestee);
 }
 
@@ -279,9 +334,9 @@ void relester1zone(void)
 {
   uint8_t numFp; // numéro du fil pilote à passer HORS-GEL
 
-  Debug("relester1zone() : avant : nivDelest=");
+  DebugF("relester1zone() : avant : nivDelest=");
   Debug(nivDelest);
-  Debug(" ; plusAncienneZoneDelestee=");
+  DebugF(" ; plusAncienneZoneDelestee=");
   Debugln(plusAncienneZoneDelestee);
 
   if (nivDelest > 0) // On s'assure qu'un délestage est en cours
@@ -293,9 +348,9 @@ void relester1zone(void)
     plusAncienneZoneDelestee = (plusAncienneZoneDelestee % NB_FILS_PILOTES) + 1;
   }
 
-  Debug("relester1zone() : apres : nivDelest=");
+  DebugF("relester1zone() : apres : nivDelest=");
   Debug(nivDelest);
-  Debug(" ; plusAncienneZoneDelestee=");
+  DebugF(" ; plusAncienneZoneDelestee=");
   Debugln(plusAncienneZoneDelestee);
 }
 
@@ -308,9 +363,9 @@ Comments: -
 ====================================================================== */
 void decalerDelestage(void)
 {
-  Debug("decalerDelestage() : avant : nivDelest=");
+  DebugF("decalerDelestage() : avant : nivDelest=");
   Debug(nivDelest);
-  Debug(" ; plusAncienneZoneDelestee=");
+  DebugF(" ; plusAncienneZoneDelestee=");
   Debugln(plusAncienneZoneDelestee);
 
   if (nivDelest > 0 && nivDelest < NB_FILS_PILOTES)
@@ -321,69 +376,10 @@ void decalerDelestage(void)
     delester1zone();
   }
 
-  Debug("decalerDelestage() : apres : nivDelest=");
+  DebugF("decalerDelestage() : apres : nivDelest=");
   Debug(nivDelest);
-  Debug(" ; plusAncienneZoneDelestee=");
+  DebugF(" ; plusAncienneZoneDelestee=");
   Debugln(plusAncienneZoneDelestee);
-}
-
-/* ======================================================================
-Function: fp
-Purpose : selectionne le mode d'un ou plusieurs les fils pilotes d'un coup
-Input   : liste des commandes
-          -=rien, C=Confort, A=Arrêt, E=Eco, H=Hors gel, 1=Eco-1, 2=Eco-2,
-          ex: 1A => FP1 Arrêt
-              CCCCCCC => Commande tous les fils pilote en mode confort (ON)
-              AAAAAAA => Commande tous les fils pilote en mode arrêt
-              EEEEEEE => Commande tous les fils pilote en mode éco
-              CAAAAAA => Tous OFF sauf le fil pilote 1 en confort
-              A-AAAAA => Tous OFF sauf le fil pilote 2 inchangé
-              E-CHA12 => FP2 Eco  , FP2 inchangé, FP3 confort, FP4 hors gel
-                        FP5 arrêt, FP6 Eco-1    , FP7 Eco-2
-Output  : 0 si ok -1 sinon
-Comments: exposée par l'API spark donc attaquable par requête HTTP(S)
-====================================================================== */
-int fp(String command)
-{
-  command.trim();
-  command.toUpperCase();
-
-  Debug("fp=");
-  Debugln(command);
-
-
-  // Vérifier que l'on a la commande de tous les fils pilotes
-  if (command.length() != NB_FILS_PILOTES)
-  {
-      return(-1) ;
-  }
-  else
-  {
-    int8_t returnValue = 0; // Init à 0 => OK
-    char   cmd[] = "xx" ; // buffer contenant la commande à passer à setFP
-
-    // envoyer les commandes pour tous les fils pilotes
-    for (uint8_t i=1; i<=NB_FILS_PILOTES; i++)
-    {
-      cmd[0] = '0' + i ;
-      cmd[1] = command[i-1]; // l'index de la chaine commence à 0 donc i-1
-
-      // Si on ne doit pas laisser le fil pilote inchangé
-      if (cmd[1] != '-' )
-      {
-        // ok ici au cas ou la commande setFP n'est pas bonne
-        // on positionne le code de retour à -1 mais on
-        // continue le traitement, les suivantes sont
-        // peut-être correctes
-        if (setfp(cmd) == -1)
-          returnValue = -1;
-      }
-
-      // Feed the dog
-      _wdt_feed();
-    }
-    return returnValue;
-  }
 }
 
 /* ======================================================================
@@ -422,6 +418,10 @@ int relais(String command)
   #ifdef LED_PIN
     _digitalWrite(LED_PIN, etatrelais);
   #endif
+    
+  #ifdef MOD_MQTT
+    mqttRelaisPublish();
+  #endif
 
   return (etatrelais);
 }
@@ -438,8 +438,8 @@ int fnct_relais(String command)
   command.trim();
   uint8_t cmd = command.toInt();
 
-  Debug("fnct_relais="); Debugln(command);
-  Debug("command length="); Debugln(command.length());
+  DebugF("fnct_relais="); Debugln(command);
+  DebugF("command length="); Debugln(command.length());
   Debugf("cmd: %d\n", cmd);
   //Debugflush();
 
@@ -512,19 +512,19 @@ bool pilotes_setup(void)
 
   // Cartes Version 1.2+ pilotage part I/O Expander
   #else
-    Debug("Initializing MCP23017...Searching...");
+    DebugF("Initializing MCP23017...Searching...");
     Debugflush();
 
     // Détection du MCP23017
     if (!i2c_detect(MCP23017_ADDRESS))
     {
-      Debugln("Not found!");
+      DebuglnF("Not found!");
       Debugflush();
       return (false);
     }
     else
     {
-      Debug("Setup...");
+      DebugF("Setup...");
       Debugflush();
 
       // et l'initialiser
@@ -533,7 +533,7 @@ bool pilotes_setup(void)
       // Mettre les 16 I/O PIN en sortie
       mcp.writeRegister(MCP23017_IODIRA,0x00);
       mcp.writeRegister(MCP23017_IODIRB,0x00);
-      Debugln("OK!");
+      DebuglnF("OK!");
       Debugflush();
     }
   #endif

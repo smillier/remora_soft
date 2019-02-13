@@ -66,14 +66,12 @@
   }
 
   function addZoneTemplate(id, zones) {
-    //console.log('addZoneTemplate ', id, zones);
+    // console.log('addZoneTemplate ', id, zones);
     var template = '<div class="col-sm-6 col-md-4 zone">'
            + '  <div style="min-height:80px;" class="thumbnail" data-zone="#zone#" title="Gestion de la zone #zone#">'
            + '    <div class="caption"><h5>Zone #zone#</h5><span class="icon iconCmd" style="font-size: 3.5em;"></span>'
            + '    <div>'
            + '      <a href="#" class="actions btn btn-default conf" role="button">Confort</a>'
-           + '      <a href="#" class="actions btn btn-default conf1" role="button">Confort -1</a>'
-           + '      <a href="#" class="actions btn btn-default conf2" role="button">Confort -2</a>'
            + '      <a href="#" class="actions btn btn-default eco" role="button">ECO</a>'
            + '      <a href="#" class="actions btn btn-default hg" role="button">hors gel</a>'
            + '      <a href="#" class="actions btn btn-default off" role="button">arrêt</a>'
@@ -81,11 +79,11 @@
            + '  </div>'
            + '</div>';
     template = template.replace(/#zone#/g, id.replace('fp', ''));
-    //console.log('template: ' + template);
-    //console.log('tab_fp .panel-body', $('#tab_fp .panel-body'));
+    // console.log('template: ' + template);
+    // console.log('tab_fp .panel-body', $('#tab_fp .panel-body'));
     $('#tab_fp .zones').append(template); // On ajoute la template dans le body du panel
     var $div = $('#tab_fp .zones div.zone:last');
-    //console.log('div.zone last', $div);
+    // console.log('div.zone last', $div);
     activeZone(id.replace('fp', ''), zones[id]); // On active le bon bouton et l'image associée
     // On ajoute le bind sur click sur les boutons
     $('.actions', $div).on('click', function(e) {
@@ -95,10 +93,6 @@
       zone = $this.parents('.thumbnail').data('zone');
       if ($this.hasClass('conf')) {
         sendOrdre(zone, 'C');
-      } else if ($this.hasClass('conf1')) {
-        sendOrdre(zone, '1');
-      } else if ($this.hasClass('conf2')) {
-        sendOrdre(zone, '2');
       } else if ($this.hasClass('eco')) {
         sendOrdre(zone, 'E');
       } else if ($this.hasClass('hg')) {
@@ -154,14 +148,6 @@
       case 'C':
         active = 'a.conf';
         img = 'jeedom-pilote-conf';
-      break;
-      case '1':
-        active = 'a.conf1';
-        img = 'jeedom-pilote-conf1';
-      break;
-      case '2':
-        active = 'a.conf2';
-        img = 'jeedom-pilote-conf2';
       break;
       case 'E':
         active = 'a.eco';
@@ -301,8 +287,68 @@
                 ledBrightSlider.slider('refresh');
               });
             }
+            if (form_data.hasOwnProperty('mqtt_isActivated')) {
+              if (form_data.mqtt_isActivated) {
+                // On check la checkbox
+                $("#mqtt_isActivated").prop('checked', true);
+                // On enable les champs
+                $("[id^='mqtt_']").each(function() {
+                  if ($(this).attr('name') != 'mqtt_isActivated') {
+                    $(this).prop('disabled', false);
+                  }
+                });
+              }
+              else {
+                // on check pas la checkbox
+                $("#pan_mqtt input[name*='mqtt_isActivated']").prop('checked', false);
+                // on disable les champs
+                $("[id^='mqtt_']").each(function() {
+                  if ($(this).attr('name') != 'mqtt_isActivated') {
+                    $(this).prop('disabled', true);
+                  }
+                });
+              }
+            }
+
+            if (form_data.hasOwnProperty('mqtt_hasAuth')) {
+              if (form_data.mqtt_hasAuth && form_data.mqtt_isActivated) {
+                // On check la checkbox
+                $("#mqtt_hasAuth").prop('checked', true);
+                // On enable les champs
+                $("#mqtt_user").prop('disabled', false);
+                $("#mqtt_password").prop('disabled', false);
+                $("#mqtt_user").parents(".form-group").show();
+                $("#mqtt_password").parents(".form-group").show();
+              }
+              else if (form_data.mqtt_hasAuth && !form_data.mqtt_isActivated) {
+                // On check la checkbox
+                $("#mqtt_hasAuth").prop('checked', true);
+                // On enable les champs
+                $("#mqtt_user").parents(".form-group").show();
+                $("#mqtt_password").parents(".form-group").show();
+              }
+              else {
+                // On check la checkbox
+                $("#mqtt_hasAuth").prop('checked', false);
+                // On enable les champs
+                $("#mqtt_user").parents(".form-group").hide();
+                $("#mqtt_password").parents(".form-group").hide();
+                $("#mqtt_user").prop('disabled', true);
+                $("#mqtt_password").prop('disabled', true);
+              }
+            }
+            
+
+            if (form_data.hasOwnProperty('mqtt_host')) {
+              $('#pan_mqtt').show();
+            } else {
+               $('#pan_mqtt').hide();
+            }
           })
-          .fail(function() { console.error( "error while requestiong configuration data" ); });
+          .fail(function(jqxhr, textStatus, error) {
+            var err = textStatus + ", " + error;
+            console.error( "error while requestiong configuration data: " + err );
+          });
         $('#tab_scan_data').bootstrapTable('refresh',{silent:true, showLoading:true, url:'/wifiscan.json'});
       }
       // Onglet de gestion des zones
@@ -322,10 +368,6 @@
             var $this = $(this);
             if ($this.hasClass('conf')) {
               sendOrdre(false, 'C');
-            } else if ($this.hasClass('conf1')) {
-              sendOrdre(false, '1');
-            } else if ($this.hasClass('conf2')) {
-              sendOrdre(false, '2');
             } else if ($this.hasClass('eco')) {
               sendOrdre(false, 'E');
             } else if ($this.hasClass('hg')) {
@@ -445,6 +487,16 @@
           $('#jdom_finger').val('');
         }
 
+//        if ($("#mqtt_isActivated").prop("checked"))
+//          $("#mqtt_isActivated").val("true");
+//        else
+//          $("#mqtt_isActivated").val("false");
+//
+//        if ($("#mqtt_hasAuth").prop("checked"))
+//          $("#mqtt_hasAuth").val("true");
+//        else
+//          $("#mqtt_hasAuth").val("test");
+
         $.post('/config_form.json', $("#frm_config").serialize())
           .done( function(msg, textStatus, xhr) {
             Notify(2, 'ok', 'success', 'Enregistrement effectué', xhr.status+' '+msg);
@@ -558,6 +610,44 @@
       tab = url.split('#')[1];
     }
     $('.nav-tabs a[href=#' + tab + ']').tab('show').trigger('shown');
+
+    $('#mqtt_isActivated').click(function() {
+      if ($(this).prop("checked")) {
+        $("[id^='mqtt_'").each(function() {
+          if ($(this).attr('name') != 'mqtt_isActivated') {
+            if ($(this).attr('name') == 'mqtt_user' || $(this).attr('name') == 'mqtt_password')
+              if ($('#mqtt_hasAuth').prop("checked")) 
+                $(this).prop('disabled', false);
+              else
+                $(this).prop('disabled', true);
+            else
+              $(this).prop('disabled', false);
+          }
+        });
+      }
+      else {
+        $("[id^='mqtt_'").each(function() {
+          if ($(this).attr('name') != 'mqtt_isActivated') {
+            $(this).prop('disabled', true);
+          }
+        });
+      }
+    });
+
+    $('#mqtt_hasAuth').click(function() {
+      if ($(this).prop("checked")) {
+        $("#mqtt_user").prop('disabled', false);
+        $("#mqtt_password").prop('disabled', false)
+        $("#mqtt_user").parents(".form-group").show();
+        $("#mqtt_password").parents(".form-group").show();
+      }
+      else {
+        $("#mqtt_user").parents(".form-group").hide();
+        $("#mqtt_password").parents(".form-group").hide();
+        $("#mqtt_user").prop('disabled', true);
+        $("#mqtt_password").prop('disabled', true)
+      }
+    });
 
     // enlever le loader, tout est prêt
     $('body').addClass('loaded');

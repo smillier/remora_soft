@@ -39,6 +39,14 @@ int lastPtec          = PTEC_HP;
 unsigned long tinfo_led_timer = 0; // Led blink timer
 unsigned long tinfo_last_frame = 0; // dernière fois qu'on a recu une trame valide
 
+const char FP_JSON_START[] PROGMEM = "{\r\n";
+const char FP_JSON_END[] PROGMEM = "\r\n}\r\n";
+const char FP_QCQ[] PROGMEM = "\":\"";
+const char FP_QCNL[] PROGMEM = "\",\r\n\"";
+const char FP_QCB[] PROGMEM = "\":";
+const char FP_BNL[] PROGMEM = ",\r\n\"";
+const char FP_NL[] PROGMEM = "\r\n";
+
 ptec_e ptec; // Puissance tarifaire en cours
 
 /* ======================================================================
@@ -106,10 +114,10 @@ void DataCallback(ValueList * me, uint8_t flags)
 
     // Determination de la puissance tarifaire en cours
     // To DO : gérer les autres types de contrat
-    if (!strcmp(me->value, "HP..")) ptec= PTEC_HP;
-    if (!strcmp(me->value, "HC..")) ptec= PTEC_HC;
+    if (!strncmp(me->value, "HP..", 2)) ptec= PTEC_HP;  // Comparaison sur les 2 premiers caratère pour être compatible
+    if (!strncmp(me->value, "HC..", 2)) ptec= PTEC_HC;  // avec les options tarifaire HC et Tempo
     if (!strcmp(me->value, "TH..")) ptec= PTEC_HP;
-
+ 
     //=============================================================
     //    Ajout de la gestion du relais aux heures creuses
     //=============================================================
@@ -141,8 +149,8 @@ void DataCallback(ValueList * me, uint8_t flags)
     // Calcul de quand on déclenchera le relestage
     myRelestLimit = ratio_relestage * myisousc;
 
-    // Maintenant on connait notre contrat, on peut commencer 
-    // A traiter le delestage eventuel et si celui-ci 
+    // Maintenant on connait notre contrat, on peut commencer
+    // A traiter le delestage eventuel et si celui-ci
     // n'a jamais été initialisé on le fait maintenant
     if ( timerDelestRelest == 0 )
       timerDelestRelest = millis();
@@ -162,8 +170,8 @@ Output  : -
 Comments: -
 ====================================================================== */
 void NewFrame(ValueList * me)
-{
-    // Light the RGB LED
+{ 
+  // Light the RGB LED
   LedRGBON(COLOR_GREEN);
   tinfo_led_timer = millis();
 
@@ -203,12 +211,93 @@ void UpdatedFrame(ValueList * me)
   //Debugln(buff);
 
   //On publie toutes les infos teleinfos dans un seul appel :
-  sprintf(mytinfo,"{\"papp\":%u,\"iinst\":%u,\"isousc\":%u,\"ptec\":%u,\"indexHP\":%u,\"indexHC\":%u,\"imax\":%u,\"ADCO\":%s}",
+  sprintf(mytinfo,PSTR("{\"papp\":%u,\"iinst\":%u,\"isousc\":%u,\"ptec\":%u,\"indexHP\":%u,\"indexHC\":%u,\"imax\":%u,\"ADCO\":%s}"),
                     mypApp,myiInst,myisousc,ptec,myindexHP,myindexHC,myimax,mycompteur);
-  
+
   // nous avons une téléinfo fonctionelle
   status |= STATUS_TINFO;
   tinfo_last_frame = millis();
+}
+
+/* ======================================================================
+Function: getTinfoListJson
+Purpose : dump all teleinfo values in JSON
+Input   : -
+Output  : -
+Comments: -
+====================================================================== */
+void  getTinfoListJson(String &response, bool with_uptime)
+{ 
+  ValueList * me = tinfo.getList();
+
+  // Got at least one ?
+  if (me) {
+    char * p;
+    long value;
+    bool loop_first = true;
+
+    // Json start
+    response += FPSTR(FP_JSON_START);
+    if (with_uptime) {
+      response += F("\"_UPTIME\":");
+      response += uptime;
+      response += FPSTR(FP_NL) ;
+      loop_first = false;
+    }
+
+    // Loop thru the node
+    while (me->next) {
+      // go to next node
+      me = me->next;
+
+      if (tinfo.calcChecksum(me->name,me->value) == me->checksum) {
+        if (!loop_first) {
+          response += F(",\"") ;
+        }
+        else {
+          response += F("\"") ;
+          loop_first = false;
+        }
+        response += me->name ;
+        response += FPSTR(FP_QCB);
+
+        // Check if value is a number
+        value = strtol(me->value, &p, 10);
+
+        // conversion failed, add "value"
+        if (*p) {
+          response += F("\"") ;
+          response += me->value ;
+          response += F("\"") ;
+
+        // number, add "value"
+        } else {
+          response += value ;
+        }
+        //formatNumberJSON(response, me->value);
+      } else {
+        response = F(",\"_Error\":\"");
+        response = me->name;
+        response = "=";
+        response = me->value;
+        response = F(" CHK=");
+        response = (char) me->checksum;
+        response = "\"";
+      }
+
+      // Add new line to see more easier end of field
+      response += FPSTR(FP_NL) ;
+
+    }
+    // Json end
+    response += FPSTR(FP_JSON_END) ;
+    //return response;
+  }
+  else {
+    response = "-1";
+    //return response;
+    //return (String(-1, DEC));
+  }
 }
 
 /* ======================================================================
@@ -222,7 +311,7 @@ bool tinfo_setup(bool wait_data)
 {
   bool ret = false;
 
-  Debug("Initializing Teleinfo...");
+  DebugF("Initializing Teleinfo...");
   Debugflush();
 
   // reset du timeout de detection de la teleinfo
@@ -260,7 +349,7 @@ bool tinfo_setup(bool wait_data)
   }
 
   ret = (status & STATUS_TINFO)?true:false;
-  Debug("Init Teleinfo ");
+  DebugF("Init Teleinfo ");
   Debugln(ret?"OK!":"Erreur!");
 
   return ret;
@@ -289,7 +378,7 @@ void tinfo_loop(void)
     if ( millis()-tinfo_last_frame>TINFO_FRAME_TIMEOUT*1000) {
       // Indiquer qu'elle n'est pas présente
       status &= ~STATUS_TINFO;
-      Debugln("Teleinfo absente/perdue!");
+      DebuglnF("Teleinfo absente/perdue!");
     }
 
   // Nous n'avions plus de téléinfo
@@ -301,7 +390,7 @@ void tinfo_loop(void)
       LedRGBON(COLOR_RED);
       tinfo_last_frame = millis();
       tinfo_led_timer = millis();
-      Debugln("Teleinfo toujours absente!");
+      DebuglnF("Teleinfo toujours absente!");
     }
   }
 
@@ -352,6 +441,5 @@ void tinfo_loop(void)
       LedRGBOFF(); // Light Off the LED
       tinfo_led_timer=0; // Stop virtual timer
   }
-
 #endif
 }
