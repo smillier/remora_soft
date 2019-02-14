@@ -170,7 +170,7 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
 }
 
 void onMqttPublish(uint16_t packetId) {
-  Serial.printf_P(PSTR("Publish packetId: %d\n"), packetId);
+  DEBUG_SERIAL.printf_P(PSTR("Publish packetId: %d\n"), packetId);
 }
 
 void initMqtt(void) {
