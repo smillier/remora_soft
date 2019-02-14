@@ -117,7 +117,7 @@ void DataCallback(ValueList * me, uint8_t flags)
     if (!strncmp(me->value, "HP..", 2)) ptec= PTEC_HP;  // Comparaison sur les 2 premiers caratère pour être compatible
     if (!strncmp(me->value, "HC..", 2)) ptec= PTEC_HC;  // avec les options tarifaire HC et Tempo
     if (!strcmp(me->value, "TH..")) ptec= PTEC_HP;
- 
+
     //=============================================================
     //    Ajout de la gestion du relais aux heures creuses
     //=============================================================
@@ -170,7 +170,7 @@ Output  : -
 Comments: -
 ====================================================================== */
 void NewFrame(ValueList * me)
-{ 
+{
   // Light the RGB LED
   LedRGBON(COLOR_GREEN);
   tinfo_led_timer = millis();
@@ -211,7 +211,7 @@ void UpdatedFrame(ValueList * me)
   //Debugln(buff);
 
   //On publie toutes les infos teleinfos dans un seul appel :
-  sprintf(mytinfo,PSTR("{\"papp\":%u,\"iinst\":%u,\"isousc\":%u,\"ptec\":%u,\"indexHP\":%u,\"indexHC\":%u,\"imax\":%u,\"ADCO\":%s}"),
+  sprintf(mytinfo,"{\"papp\":%u,\"iinst\":%u,\"isousc\":%u,\"ptec\":%u,\"indexHP\":%u,\"indexHC\":%u,\"imax\":%u,\"ADCO\":%s}",
                     mypApp,myiInst,myisousc,ptec,myindexHP,myindexHC,myimax,mycompteur);
 
   // nous avons une téléinfo fonctionelle
@@ -227,7 +227,7 @@ Output  : -
 Comments: -
 ====================================================================== */
 void  getTinfoListJson(String &response, bool with_uptime)
-{ 
+{
   ValueList * me = tinfo.getList();
 
   // Got at least one ?
@@ -343,7 +343,7 @@ bool tinfo_setup(bool wait_data)
           tinfo.process(c);
         }
       #endif
-      
+
       _yield();
     }
   }
