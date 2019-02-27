@@ -27,7 +27,6 @@ int nbRestart = 0;
 
 void connectToMqtt() {
   DebuglnF("Connection au broker MQTT...");
-  //initMqtt();
   if (!mqttClient.connected()) {
     mqttClient.connect();
   }
@@ -103,7 +102,7 @@ void onMqttConnect(bool sessionPresent) {
     nbRestart = 0;
   
   // subscribe au topic set
-  if (!first_setup && mqttClient.connected()) {
+  if (mqttClient.connected()) {
     mqttClient.subscribe(MQTT_TOPIC_SET, 2);
   }
 

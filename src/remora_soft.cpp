@@ -679,10 +679,6 @@ void mysetup()
   // On peut maintenant initialiser MQTT et subscribe au MQTT_TOPIC_SET
   initMqtt();
   connectToMqtt();
-  delay(100);
-  if (mqttClient.connected()) {
-    mqttClient.subscribe(MQTT_TOPIC_SET, 2);
-  }
   #endif
 
   Debugln("Starting main loop");
