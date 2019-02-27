@@ -27,8 +27,10 @@ int nbRestart = 0;
 
 void connectToMqtt() {
   DebuglnF("Connection au broker MQTT...");
-  initMqtt();
-  mqttClient.connect();
+  //initMqtt();
+  if (!mqttClient.connected()) {
+    mqttClient.connect();
+  }
 }
 
 void disconnectMqtt() {
@@ -99,12 +101,16 @@ void onMqttConnect(bool sessionPresent) {
   DebuglnF("Connecté au broker MQTT");
   if (sessionPresent)
     nbRestart = 0;
-
+  
   // subscribe au topic set
-  mqttClient.subscribe(MQTT_TOPIC_SET, 2);
+  if (!first_setup && mqttClient.connected()) {
+    mqttClient.subscribe(MQTT_TOPIC_SET, 2);
+  }
 
   mqttClient.publish(MQTT_TOPIC_FP, 1, false, "{\"FP\":\"UP\"}");
   mqttClient.publish(MQTT_TOPIC_RELAIS, 1, false, "{\"RELAIS\":\"UP\"}");
+  // Publish online status in retained mode ( will be set to 0 by lsw when Remora disconnect after MQTT_KEEP_ALIVE as expired ). 
+  mqttClient.publish(MQTT_TOPIC_LSW,1,true,"1");
 }
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason) {
@@ -186,6 +192,8 @@ void initMqtt(void) {
   if (config.mqtt.hasAuth && (strcmp(config.mqtt.user, "") != 0 || strcmp(config.mqtt.password, "") != 0)) {
     mqttClient.setCredentials(config.mqtt.user, config.mqtt.password);
   }
+  // Set mqttclient keep alive to 60sec, clean session to false, LSW message to  0 , & mqtt client id to hostanme 
+  mqttClient.setKeepAlive(MQTT_KEEP_ALIVE).setCleanSession(false).setWill(MQTT_TOPIC_LSW , 1, true, "0").setClientId(config.host);
   #if ASYNC_TCP_SSL_ENABLED
     if (config.mqtt.protocol == "mqtts") {
       mqttClient.setSecure(true);

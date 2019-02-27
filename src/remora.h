@@ -227,6 +227,7 @@ extern "C" {
 // status global de l'application
 extern uint16_t status;
 extern unsigned long uptime;
+extern bool first_setup;
 
 #ifdef ESP8266
 

@@ -33,6 +33,12 @@
 // Under MQTT_TOPIC_TINFO we are send teleinformation
 #define MQTT_TOPIC_TINFO  MQTT_TOPIC_BASE "tinfo"
 
+// Last Stand Will Message to be posted when Remora disconnect( /online 0 )
+#define MQTT_TOPIC_LSW MQTT_TOPIC_BASE "online"
+
+// Set keep alive in sec. Will also be used when Remora disconnect from broker to spawn lws message after it timeouts.
+#define MQTT_KEEP_ALIVE 10
+
 #define DELAY_PUBLISH_TINFO 1
 
 // Variables

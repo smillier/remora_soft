@@ -193,8 +193,8 @@ int WifiHandleConn(boolean setup = false)
     _wdt_feed();
 
     // Set OTA parameters
-     ArduinoOTA.setPort(DEFAULT_OTA_PORT);
-     ArduinoOTA.setHostname(DEFAULT_HOSTNAME);
+     ArduinoOTA.setPort(config.ota_port);
+     ArduinoOTA.setHostname(config.host);
      if (*config.ota_auth) {
        ArduinoOTA.setPassword(config.ota_auth);
      }/* else {
@@ -238,7 +238,7 @@ void onWifiStaConnect(const WiFiEventStationModeGotIP& event) {
   DebugF("Connecté au WiFi STA, IP : ");
   Debugln(WiFi.localIP());
   #ifdef MOD_MQTT
-    if (config.mqtt.isActivated)
+    if (config.mqtt.isActivated && !mqttClient.connected() && !first_setup) 
       connectToMqtt();
   #endif
 }
@@ -404,6 +404,7 @@ void mysetup()
     #endif
 
     // Connection au Wifi ou Vérification
+    wifi_station_set_hostname(config.host); 
     WifiHandleConn(true);
 
     // OTA callbacks
@@ -673,9 +674,20 @@ void mysetup()
 
   // On etteint la LED embarqué du core
   LedRGBOFF();
+  
+  #ifdef MOD_MQTT
+  // On peut maintenant initialiser MQTT et subscribe au MQTT_TOPIC_SET
+  initMqtt();
+  connectToMqtt();
+  delay(100);
+  if (mqttClient.connected()) {
+    mqttClient.subscribe(MQTT_TOPIC_SET, 2);
+  }
+  #endif
 
   Debugln("Starting main loop");
   Debugflush();
+  
 }
 
 
