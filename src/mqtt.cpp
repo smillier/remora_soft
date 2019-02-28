@@ -27,6 +27,7 @@ int nbRestart = 0;
 
 void connectToMqtt() {
   DebuglnF("Connection au broker MQTT...");
+  initMqtt();
   if (!mqttClient.connected()) {
     mqttClient.connect();
   }
@@ -100,7 +101,7 @@ void onMqttConnect(bool sessionPresent) {
   DebuglnF("Connecté au broker MQTT");
   if (sessionPresent)
     nbRestart = 0;
-  
+
   // subscribe au topic set
   if (mqttClient.connected()) {
     mqttClient.subscribe(MQTT_TOPIC_SET, 2);
@@ -179,12 +180,14 @@ void onMqttPublish(uint16_t packetId) {
 }
 
 void initMqtt(void) {
+  if (first_setup) {
   mqttClient.onConnect(onMqttConnect);
   mqttClient.onDisconnect(onMqttDisconnect);
   mqttClient.onSubscribe(onMqttSubscribe);
   mqttClient.onUnsubscribe(onMqttUnsubscribe);
   mqttClient.onMessage(onMqttMessage);
   mqttClient.onPublish(onMqttPublish);
+  }
   if (strcmp(config.mqtt.host, "") != 0 && config.mqtt.port > 0) {
     mqttClient.setServer(config.mqtt.host, config.mqtt.port);
   }

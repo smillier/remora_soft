@@ -193,8 +193,8 @@ int WifiHandleConn(boolean setup = false)
     _wdt_feed();
 
     // Set OTA parameters
-     ArduinoOTA.setPort(config.ota_port);
-     ArduinoOTA.setHostname(config.host);
+     ArduinoOTA.setPort(DEFAULT_OTA_PORT);
+     ArduinoOTA.setHostname(DEFAULT_HOSTNAME);
      if (*config.ota_auth) {
        ArduinoOTA.setPassword(config.ota_auth);
      }/* else {
@@ -674,16 +674,15 @@ void mysetup()
 
   // On etteint la LED embarqué du core
   LedRGBOFF();
-  
+
   #ifdef MOD_MQTT
   // On peut maintenant initialiser MQTT et subscribe au MQTT_TOPIC_SET
-  initMqtt();
   connectToMqtt();
   #endif
 
   Debugln("Starting main loop");
   Debugflush();
-  
+
 }
 
 
