@@ -181,12 +181,12 @@ void onMqttPublish(uint16_t packetId) {
 
 void initMqtt(void) {
   if (first_setup) {
-  mqttClient.onConnect(onMqttConnect);
-  mqttClient.onDisconnect(onMqttDisconnect);
-  mqttClient.onSubscribe(onMqttSubscribe);
-  mqttClient.onUnsubscribe(onMqttUnsubscribe);
-  mqttClient.onMessage(onMqttMessage);
-  mqttClient.onPublish(onMqttPublish);
+    mqttClient.onConnect(onMqttConnect);
+    mqttClient.onDisconnect(onMqttDisconnect);
+    mqttClient.onSubscribe(onMqttSubscribe);
+    mqttClient.onUnsubscribe(onMqttUnsubscribe);
+    mqttClient.onMessage(onMqttMessage);
+    mqttClient.onPublish(onMqttPublish);
   }
   if (strcmp(config.mqtt.host, "") != 0 && config.mqtt.port > 0) {
     mqttClient.setServer(config.mqtt.host, config.mqtt.port);
