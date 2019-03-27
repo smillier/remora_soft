@@ -28,7 +28,9 @@ int nbRestart = 0;
 void connectToMqtt() {
   DebuglnF("Connection au broker MQTT...");
   initMqtt();
-  mqttClient.connect();
+  if (!mqttClient.connected()) {
+    mqttClient.connect();
+  }
 }
 
 void disconnectMqtt() {
@@ -101,10 +103,14 @@ void onMqttConnect(bool sessionPresent) {
     nbRestart = 0;
 
   // subscribe au topic set
-  mqttClient.subscribe(MQTT_TOPIC_SET, 2);
+  if (mqttClient.connected()) {
+    mqttClient.subscribe(MQTT_TOPIC_SET, 2);
+  }
 
   mqttClient.publish(MQTT_TOPIC_FP, 1, false, "{\"FP\":\"UP\"}");
   mqttClient.publish(MQTT_TOPIC_RELAIS, 1, false, "{\"RELAIS\":\"UP\"}");
+  // Publish online status in retained mode ( will be set to 0 by lsw when Remora disconnect after MQTT_KEEP_ALIVE as expired ). 
+  mqttClient.publish(MQTT_TOPIC_LSW,1,true,"1");
 }
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason) {
@@ -174,18 +180,22 @@ void onMqttPublish(uint16_t packetId) {
 }
 
 void initMqtt(void) {
-  mqttClient.onConnect(onMqttConnect);
-  mqttClient.onDisconnect(onMqttDisconnect);
-  mqttClient.onSubscribe(onMqttSubscribe);
-  mqttClient.onUnsubscribe(onMqttUnsubscribe);
-  mqttClient.onMessage(onMqttMessage);
-  mqttClient.onPublish(onMqttPublish);
+  if (first_setup) {
+    mqttClient.onConnect(onMqttConnect);
+    mqttClient.onDisconnect(onMqttDisconnect);
+    mqttClient.onSubscribe(onMqttSubscribe);
+    mqttClient.onUnsubscribe(onMqttUnsubscribe);
+    mqttClient.onMessage(onMqttMessage);
+    mqttClient.onPublish(onMqttPublish);
+  }
   if (strcmp(config.mqtt.host, "") != 0 && config.mqtt.port > 0) {
     mqttClient.setServer(config.mqtt.host, config.mqtt.port);
   }
   if (config.mqtt.hasAuth && (strcmp(config.mqtt.user, "") != 0 || strcmp(config.mqtt.password, "") != 0)) {
     mqttClient.setCredentials(config.mqtt.user, config.mqtt.password);
   }
+  // Set mqttclient keep alive to 60sec, clean session to false, LSW message to  0 , & mqtt client id to hostanme 
+  mqttClient.setKeepAlive(MQTT_KEEP_ALIVE).setCleanSession(false).setWill(MQTT_TOPIC_LSW , 1, true, "0").setClientId(config.host);
   #if ASYNC_TCP_SSL_ENABLED
     if (config.mqtt.protocol == "mqtts") {
       mqttClient.setSecure(true);

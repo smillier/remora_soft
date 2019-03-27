@@ -238,7 +238,7 @@ void onWifiStaConnect(const WiFiEventStationModeGotIP& event) {
   DebugF("Connecté au WiFi STA, IP : ");
   Debugln(WiFi.localIP());
   #ifdef MOD_MQTT
-    if (config.mqtt.isActivated)
+    if (config.mqtt.isActivated && !mqttClient.connected() && !first_setup) 
       connectToMqtt();
   #endif
 }
@@ -404,6 +404,7 @@ void mysetup()
     #endif
 
     // Connection au Wifi ou Vérification
+    wifi_station_set_hostname(config.host); 
     WifiHandleConn(true);
 
     // OTA callbacks
@@ -674,8 +675,14 @@ void mysetup()
   // On etteint la LED embarqué du core
   LedRGBOFF();
 
+  #ifdef MOD_MQTT
+  // On peut maintenant initialiser MQTT et subscribe au MQTT_TOPIC_SET
+  connectToMqtt();
+  #endif
+
   Debugln("Starting main loop");
   Debugflush();
+
 }
 
 
