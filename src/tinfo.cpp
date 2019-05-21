@@ -15,19 +15,21 @@
 #include "tinfo.h"
 
 #ifdef MOD_TELEINFO
+
 // Instanciation de l'objet Téléinfo
 TInfo tinfo;
-#endif
+
 
 uint mypApp           = 0;
 uint myiInst          = 0;
 uint myindexHC        = 0;
 uint myindexHP        = 0;
-uint myimax           = 0;
+//uint myimax           = 0;
 uint myisousc         = ISOUSCRITE; // pour calculer la limite de délestage
-char myPeriode[8]     = "";
-char mytinfo[250]     = "";
-char mycompteur[64]   = "";
+char myOptarif[5]     = "";
+//char myPeriode[8]     = "";
+//char mytinfo[250]     = "";
+//char mycompteur[64]   = "";
 float ratio_delestage = DELESTAGE_RATIO;
 float ratio_relestage = RELESTAGE_RATIO;
 float myDelestLimit   = 0.0;
@@ -38,14 +40,6 @@ int lastPtec          = PTEC_HP;
 
 unsigned long tinfo_led_timer = 0; // Led blink timer
 unsigned long tinfo_last_frame = 0; // dernière fois qu'on a recu une trame valide
-
-const char FP_JSON_START[] PROGMEM = "{\r\n";
-const char FP_JSON_END[] PROGMEM = "\r\n}\r\n";
-const char FP_QCQ[] PROGMEM = "\":\"";
-const char FP_QCNL[] PROGMEM = "\",\r\n\"";
-const char FP_QCB[] PROGMEM = "\":";
-const char FP_BNL[] PROGMEM = ",\r\n\"";
-const char FP_NL[] PROGMEM = "\r\n";
 
 ptec_e ptec; // Puissance tarifaire en cours
 
@@ -61,6 +55,7 @@ Output  : -
 Comments: should have been initialised in the main sketch with a
           tinfo.attachADPSCallback(ADPSCallback())
 ====================================================================== */
+#ifdef MOD_ADPS
 void ADPSCallback(uint8_t phase)
 {
   // Led Rouge
@@ -68,17 +63,18 @@ void ADPSCallback(uint8_t phase)
   tinfo_led_timer = millis();
 
   // Monophasé
+  
   if (phase == 0 ) {
-    DebuglnF("ADPS");
+    Log.verbose(F("ADPS\r\n"));
   } else {
-    DebugF("ADPS Phase ");
-    Debugln('0' + phase);
+    Log.verbose(F("ADPS Phase %d\r\n"), phase);
   }
 
   // nous avons une téléinfo fonctionelle
   status |= STATUS_TINFO;
   tinfo_last_frame = millis();
 }
+#endif
 
 /* ======================================================================
 Function: DataCallback
@@ -91,32 +87,31 @@ Comments: -
 void DataCallback(ValueList * me, uint8_t flags)
 {
   // Do whatever you want there
-  Debug(me->name);
-  Debug('=');
-  Debug(me->value);
+  Log.verbose(me->name);
+  Log.verbose("=");
+  Log.verbose(me->value);
 
   //Debug(" Flags=0x");
   //DEBUG_SERIAL.print(flags, HEX);
 
-  if ( flags & TINFO_FLAGS_NOTHING ) DebugF(" Nothing");
-  if ( flags & TINFO_FLAGS_ADDED )   DebugF(" Added");
-  if ( flags & TINFO_FLAGS_UPDATED ) DebugF(" Updated");
-  if ( flags & TINFO_FLAGS_EXIST )   DebugF(" Exist");
-  if ( flags & TINFO_FLAGS_ALERT )   DebugF(" Alert");
-  Debugln();
-  Debugflush();
+  if ( flags & TINFO_FLAGS_NOTHING ) Log.verbose(F(" Nothing"));
+  if ( flags & TINFO_FLAGS_ADDED )   Log.verbose(F(" Added"));
+  if ( flags & TINFO_FLAGS_UPDATED ) Log.verbose(F(" Updated"));
+  if ( flags & TINFO_FLAGS_EXIST )   Log.verbose(F(" Exist"));
+  if ( flags & TINFO_FLAGS_ALERT )   Log.verbose(F(" Alert"));
+  Log.verbose("\r\n");
 
   // Nous venons de recevoir la puissance tarifaire en cours
   // To DO : gérer les autres types de contrat
-  if (!strcmp(me->name, "PTEC")) {
+  if (!strcmp_P(me->name, PSTR("PTEC"))) {
     // Récupération de la période tarifaire en cours
-    strncpy(myPeriode, me->value, strlen(me->value));
+    //strncpy(myPeriode, me->value, strlen(me->value));
 
     // Determination de la puissance tarifaire en cours
     // To DO : gérer les autres types de contrat
-    if (!strncmp(me->value, "HP..", 2)) ptec= PTEC_HP;  // Comparaison sur les 2 premiers caratère pour être compatible
-    if (!strncmp(me->value, "HC..", 2)) ptec= PTEC_HC;  // avec les options tarifaire HC et Tempo
-    if (!strcmp(me->value, "TH..")) ptec= PTEC_HP;
+    if (!strncmp_P(me->value, PSTR("HP.."), 2)) ptec = PTEC_HP;  // Comparaison sur les 2 premiers caratère pour être compatible
+    if (!strncmp_P(me->value, PSTR("HC.."), 2)) ptec = PTEC_HC;  // avec les options tarifaire HC et Tempo
+    if (!strcmp_P(me->value, PSTR("TH..")))     ptec = PTEC_HP;
 
     //=============================================================
     //    Ajout de la gestion du relais aux heures creuses
@@ -134,16 +129,27 @@ void DataCallback(ValueList * me, uint8_t flags)
     }
   }
 
-  // Mise à jour des variables "cloud"
-  if (!strcmp(me->name, "PAPP"))   mypApp    = atoi(me->value);
-  if (!strcmp(me->name, "IINST"))  myiInst   = atoi(me->value);
-  if (!strcmp(me->name, "HCHC"))   myindexHC = atol(me->value);
-  if (!strcmp(me->name, "HCHP"))   myindexHP = atol(me->value);
-  if (!strcmp(me->name, "IMAX"))   myimax    = atoi(me->value);
-  if (!strcmp(me->name, "BASE"))   { myindexHP = atol(me->value); myindexHC = 0; }
+  // Mise à jour des variables
+  if (!strcmp_P(me->name, PSTR("OPTARIF"))) strcpy(myOptarif, me->value);
+  
+  if (!strcmp_P(me->name, PSTR("PAPP")))    mypApp     = atoi(me->value);
+  if (!strcmp_P(me->name, PSTR("IINST")))   myiInst    = atoi(me->value);
+
+  // Tarif base
+  if (!strcmp_P(me->name, PSTR("BASE")))   { myindexHP = atol(me->value); myindexHC = 0; }
+  // Tarif HP/HC
+  if (!strcmp_P(me->name, PSTR("HCHC")))    myindexHC  = atol(me->value);
+  if (!strcmp_P(me->name, PSTR("HCHP")))    myindexHP  = atol(me->value);
+  // Tarif Tempo
+  if (!strcmp_P(me->name, PSTR("BBRHCJB"))) myindexHC  = atol(me->value);
+  if (!strcmp_P(me->name, PSTR("BBRHPJB"))) myindexHP  = atol(me->value);
+  if (!strcmp_P(me->name, PSTR("BBRHCJW"))) myindexHC  = atol(me->value);
+  if (!strcmp_P(me->name, PSTR("BBRHPJW"))) myindexHP  = atol(me->value);
+  if (!strcmp_P(me->name, PSTR("BBRHCJR"))) myindexHC  = atol(me->value);
+  if (!strcmp_P(me->name, PSTR("BBRHPJR"))) myindexHP  = atol(me->value);
 
   // Isousc permet de connaitre l'intensité max pour le delestage
-  if (!strcmp(me->name, "ISOUSC")) {
+  if (!strcmp_P(me->name, PSTR("ISOUSC"))) {
     myisousc = atoi(me->value);
     myDelestLimit = ratio_delestage * myisousc;
     // Calcul de quand on déclenchera le relestage
@@ -152,11 +158,12 @@ void DataCallback(ValueList * me, uint8_t flags)
     // Maintenant on connait notre contrat, on peut commencer
     // A traiter le delestage eventuel et si celui-ci
     // n'a jamais été initialisé on le fait maintenant
-    if ( timerDelestRelest == 0 )
+    #ifdef MOD_ADPS
+    if ( timerDelestRelest == 0 ) {
       timerDelestRelest = millis();
+    }
+    #endif
   }
-
-  Debugln();
 
   // nous avons une téléinfo fonctionelle
   status |= STATUS_TINFO;
@@ -174,13 +181,9 @@ void NewFrame(ValueList * me)
   // Light the RGB LED
   LedRGBON(COLOR_GREEN);
   tinfo_led_timer = millis();
-
+  
   //char buff[32];
-  #if defined (ESP8266)
-    //sprintf( buff, "New Frame (%ld Bytes free)", ESP.getFreeHeap() );
-  #else
-    //sprintf( buff, "New Frame");
-  #endif
+  //sprintf( buff, "New Frame (%ld Bytes free)", ESP.getFreeHeap() );
   //Debugln(buff);
 
   // Ok nous avons une téléinfo fonctionelle
@@ -201,18 +204,18 @@ void UpdatedFrame(ValueList * me)
   // Light the RGB LED (orange) and set timer
   LedRGBON(COLOR_ORANGE);
   tinfo_led_timer = millis();
-
+  
   //char buff[32];
-  #if defined (ESP8266)
-    //sprintf( buff, "Updated Frame (%ld Bytes free)", ESP.getFreeHeap() );
-  #else
-    //sprintf( buff, "Updated Frame");
-  #endif
+  //sprintf( buff, "Updated Frame (%ld Bytes free)", ESP.getFreeHeap() );
   //Debugln(buff);
-
+  
   //On publie toutes les infos teleinfos dans un seul appel :
-  sprintf(mytinfo,"{\"papp\":%u,\"iinst\":%u,\"isousc\":%u,\"ptec\":%u,\"indexHP\":%u,\"indexHC\":%u,\"imax\":%u,\"ADCO\":%s}",
-                    mypApp,myiInst,myisousc,ptec,myindexHP,myindexHC,myimax,mycompteur);
+  //sprintf(mytinfo,"{\"papp\":%u,\"iinst\":%u,\"isousc\":%u,\"ptec\":%u,\"indexHP\":%u,\"indexHC\":%u,\"imax\":%u,\"ADCO\":%s}",
+  //                  mypApp,myiInst,myisousc,ptec,myindexHP,myindexHC,myimax,mycompteur);
+
+  #ifdef MOD_MQTT
+    mqttTinfoPublish();
+  #endif
 
   // nous avons une téléinfo fonctionelle
   status |= STATUS_TINFO;
@@ -226,77 +229,39 @@ Input   : -
 Output  : -
 Comments: -
 ====================================================================== */
-void  getTinfoListJson(String &response, bool with_uptime)
+void  getTinfoListJson(String &response)
 {
   ValueList * me = tinfo.getList();
+  const size_t capacity = JSON_OBJECT_SIZE(22);
+  StaticJsonDocument<capacity> doc;
 
-  // Got at least one ?
+   // Got at least one ?
   if (me) {
     char * p;
-    long value;
-    bool loop_first = true;
-
-    // Json start
-    response += FPSTR(FP_JSON_START);
-    if (with_uptime) {
-      response += F("\"_UPTIME\":");
-      response += uptime;
-      response += FPSTR(FP_NL) ;
-      loop_first = false;
-    }
-
+    
     // Loop thru the node
     while (me->next) {
       // go to next node
       me = me->next;
 
       if (tinfo.calcChecksum(me->name,me->value) == me->checksum) {
-        if (!loop_first) {
-          response += F(",\"") ;
-        }
-        else {
-          response += F("\"") ;
-          loop_first = false;
-        }
-        response += me->name ;
-        response += FPSTR(FP_QCB);
-
         // Check if value is a number
-        value = strtol(me->value, &p, 10);
+        strtol(me->value, &p, 10);
 
         // conversion failed, add "value"
         if (*p) {
-          response += F("\"") ;
-          response += me->value ;
-          response += F("\"") ;
-
+          doc[me->name] = me->value;
         // number, add "value"
         } else {
-          response += value ;
+          doc[me->name] = me->value;
         }
-        //formatNumberJSON(response, me->value);
       } else {
-        response = F(",\"_Error\":\"");
-        response = me->name;
-        response = "=";
-        response = me->value;
-        response = F(" CHK=");
-        response = (char) me->checksum;
-        response = "\"";
+        doc[me->name] = F("Error");
       }
-
-      // Add new line to see more easier end of field
-      response += FPSTR(FP_NL) ;
-
     }
-    // Json end
-    response += FPSTR(FP_JSON_END) ;
-    //return response;
   }
   else {
     response = "-1";
-    //return response;
-    //return (String(-1, DEC));
   }
 }
 
@@ -311,8 +276,7 @@ bool tinfo_setup(bool wait_data)
 {
   bool ret = false;
 
-  DebugF("Initializing Teleinfo...");
-  Debugflush();
+  Log.notice(F("Initializing Teleinfo..."));
 
   // reset du timeout de detection de la teleinfo
   tinfo_last_frame = millis();
@@ -335,22 +299,24 @@ bool tinfo_setup(bool wait_data)
       char c;
       // Envoyer le contenu de la serial au process teleinfo
       // les callback mettront le status à jour
-      #ifdef ESP8266
-        if (Serial.available()) {
-          c = Serial.read();
-          //Debug(c);
-          //Debugflush();
-          tinfo.process(c);
-        }
-      #endif
+
+      if (Serial.available()) {
+        c = Serial.read();
+        tinfo.process(c);
+      }
 
       _yield();
     }
   }
 
   ret = (status & STATUS_TINFO)?true:false;
-  DebugF("Init Teleinfo ");
-  Debugln(ret?"OK!":"Erreur!");
+
+  if (ret) {
+    Log.notice(F("OK!\r\n"));
+  }
+  else {
+    Log.error(F("Erreur!\r\n"));
+  }
 
   return ret;
 }
@@ -364,9 +330,9 @@ Comments: -
 ====================================================================== */
 void tinfo_loop(void)
 {
-#ifdef MOD_TELEINFO
   char c;
   uint8_t nb_char=0;
+
   // Evitons les conversions hasardeuses, parlons float
   #ifdef MOD_ADPS
     float fiInst = myiInst;
@@ -378,7 +344,7 @@ void tinfo_loop(void)
     if ( millis()-tinfo_last_frame>TINFO_FRAME_TIMEOUT*1000) {
       // Indiquer qu'elle n'est pas présente
       status &= ~STATUS_TINFO;
-      DebuglnF("Teleinfo absente/perdue!");
+      Log.error(F("Teleinfo absente/perdue!"));
     }
 
   // Nous n'avions plus de téléinfo
@@ -390,7 +356,7 @@ void tinfo_loop(void)
       LedRGBON(COLOR_RED);
       tinfo_last_frame = millis();
       tinfo_led_timer = millis();
-      DebuglnF("Teleinfo toujours absente!");
+      Log.error(F("Teleinfo toujours absente!"));
     }
   }
 
@@ -398,42 +364,51 @@ void tinfo_loop(void)
   // On prendra maximum 8 caractères par passage
   // les autres au prochain tour, çà evite les
   // long while bloquant pour les autres traitements
-  #ifdef ESP8266
-    while (Serial.available() && nb_char<8) {
-      c = (Serial.read());
-      tinfo.process(c);
-      nb_char++;
-    }
-  #endif
+  while (Serial.available() && nb_char<8) {
+    c = (Serial.read());
+    tinfo.process(c);
+    nb_char++;
+  }
 
   // Faut-il enclencher le delestage ?
   #ifdef MOD_ADPS
-  //On dépasse le courant max?
-  if (fiInst > myDelestLimit) {
-    if ((millis() - timerDelestRelest) > 5000L)  {
-      //On ne passe pas dans la boucle si l'on a délesté ou relesté une zone il y a moins de 5s
-      //On évite ainsi de délester d'autres zones avant que le délestage précédent ne fasse effet
-      delester1zone();
-      timerDelestRelest = millis();
-    }
-  } else {
-    // Un délestage est en cours (nivDelest > 0)
-    // Le délestage/relestage de la dernière zone date de plus de 3 minutes
-    // On attend au moins ce délai pour relester ou décaler
-    // pour éviter les délestage/relestage trop rapprochés
-    if (nivDelest > 0 && (millis() - timerDelestRelest) > 180000L) {
-      //Le courant est suffisamment bas pour relester
-      if (fiInst < myRelestLimit) {
-        relester1zone();
-        timerDelestRelest = millis();
-      } else {
-        // On fait tourner le délestage
-        // ex : AVANT = "DDCEEEE" => APRES = "CDDEEEE"
-        decalerDelestage();
+    //On dépasse le courant max?
+    if (fiInst > myDelestLimit) {
+      if ((millis() - timerDelestRelest) > 5000L)  {
+        //On ne passe pas dans la boucle si l'on a délesté ou relesté une zone il y a moins de 5s
+        //On évite ainsi de délester d'autres zones avant que le délestage précédent ne fasse effet
+        delester1zone();
+        #ifdef MOD_MQTT
+          mqttDelestagePublish();
+          mqttFpPublish();
+        #endif
         timerDelestRelest = millis();
       }
+    } else {
+      // Un délestage est en cours (nivDelest > 0)
+      // Le délestage/relestage de la dernière zone date de plus de 3 minutes
+      // On attend au moins ce délai pour relester ou décaler
+      // pour éviter les délestage/relestage trop rapprochés
+      if (nivDelest > 0 && (millis() - timerDelestRelest) > 180000L) {
+        //Le courant est suffisamment bas pour relester
+        if (fiInst < myRelestLimit) {
+          relester1zone();
+          #ifdef MOD_MQTT
+            mqttDelestagePublish();
+            mqttFpPublish();
+          #endif
+          timerDelestRelest = millis();
+        } else {
+          // On fait tourner le délestage
+          // ex : AVANT = "DDCEEEE" => APRES = "CDDEEEE"
+          decalerDelestage();
+          #ifdef MOD_MQTT
+            mqttFpPublish();
+          #endif
+          timerDelestRelest = millis();
+        }
+      }
     }
-  }
   #endif //ADPS active
 
   // Do we have RGB led timer expiration ?
@@ -441,5 +416,6 @@ void tinfo_loop(void)
       LedRGBOFF(); // Light Off the LED
       tinfo_led_timer=0; // Stop virtual timer
   }
-#endif
 }
+
+#endif // MOD_TELEINFO

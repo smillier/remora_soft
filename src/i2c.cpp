@@ -25,11 +25,8 @@ Comments: -
 void i2c_init(void)
 {
   // Set i2C speed
-  #if defined (ESP8266)
-    // Sepecific ESP8266 to set I2C Speed
-    Wire.setClock(400000);
-  #endif
-
+  // Sepecific ESP8266 to set I2C Speed
+  Wire.setClock(400000);
   Wire.begin();
 }
 
@@ -57,18 +54,13 @@ uint8_t i2c_scan()
 {
   byte error, address;
   uint8_t nDevices = 0;
+  unsigned long start = millis();
 
-  #ifdef DEBUG
-    unsigned long start = millis();
-  #endif
-
-  DebuglnF("Scanning I2C bus ...");
+  Log.verbose(F("Scanning I2C bus ...\r\n"));
 
   // slow down i2C speed in case of slow device
-  #if defined (ESP8266)
-    // Sepecific ESP8266 to set I2C Speed
-    Wire.setClock(100000);
-  #endif
+  // Sepecific ESP8266 to set I2C Speed
+  Wire.setClock(100000);
 
   for(address = 1; address < 127; address++ )
   {
@@ -80,45 +72,42 @@ uint8_t i2c_scan()
 
     if (error == 0)
     {
-      DebugF("I2C device found at address 0x");
-      if (address<16)
-        DebugF("0");
-      DEBUG_SERIAL.print(address, HEX);
 
-      if (address>=0x20 && address<=0x27) {
-        Debugln("-> MCP23017 !");
-      } else if (address==0x3C || address==0x3D) {
-        DebugF("-> OLED ");
-        if (address==0x3C) {
-          config.oled_type = 1306;
-          DebuglnF("1306!");
-        } else if (address==0x3D) {
-          config.oled_type = 1106;
-          DebuglnF("1106!");
-        }
-      } else if (address==0x29 || address==0x39 || address==0x49) {
-        Debugln("-> TSL2561 !");
-      } else {
-        Debugf("-> Unknown device at 0x%02X!\n", address);
+      Log.verbose(F("I2C device found at address 0x"));
+      if (address<16) {
+        Log.verbose(F("0"));
       }
+      Log.verbose(F("%x"), address);
 
+      if (address >= 0x20 && address <= 0x27) {
+        Log.verbose(F("-> MCP23017 !\r\n"));
+      }
+      else if (address == 0x3C || address == 0x3D) {
+        Log.verbose(F("-> OLED "));
+        if (address == 0x3C) {
+          config.oled_type = 1306;
+          Log.verbose(F("1306!\r\n"));
+        } else if (address == 0x3D) {
+          config.oled_type = 1106;
+          Log.verbose(F("1106!\r\n"));
+        }
+      }
+      else if (address==0x29 || address==0x39 || address==0x49) {
+        Log.verbose(F("-> TSL2561 !\r\n"));
+      }
+      else {
+        Log.verbose(F("-> Unknown device at 0x%02X!\r\n"), address);
+      }
       nDevices++;
     }
   }
 
-  Debug(nDevices);
-  DebugF(" I2C devices found, scan took ");
-  #ifdef DEBUG
-    Debug(millis()-start);
-    Debugln(" ms");
-  #endif
+  Log.verbose(F("%d I2C devices found, scan took %lu ms\r\n"), nDevices, millis()-start);
 
   // Get back to full speed
   // slow down i2C speed in case of slow device
-  #if defined (ESP8266)
-    // Sepecific ESP8266 to set I2C Speed
-    Wire.setClock(400000);
-  #endif
+  // Sepecific ESP8266 to set I2C Speed
+  Wire.setClock(400000);
 
   return (nDevices);
 }

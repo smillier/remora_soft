@@ -13,10 +13,12 @@
 //
 // **********************************************************************************
 
-#ifndef RFM_h
-#define RFM_h
+#ifndef __RFM_H__
+#define __RFM_H__
 
 #include "remora.h"
+
+#ifdef MOD_RF69
 
 // You will need to initialize the radio by telling it what ID it has and what network it's on
 // The NodeID takes values from 1-127, 0 is reserved for sending broadcast messages (send to all nodes)
@@ -69,4 +71,5 @@ extern unsigned long  packet_last_seen; // second since last packet received
 bool rfm_setup(void);
 void rfm_loop(void);
 
+#endif
 #endif

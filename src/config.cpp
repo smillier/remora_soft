@@ -19,8 +19,6 @@
 
 #include "./config.h"
 
-#ifdef ESP8266
-
 // Configuration structure for whole program
 _Config config;
 
@@ -44,6 +42,7 @@ Input 	: -
 Output	: -
 Comments: -
 ====================================================================== */
+#ifdef DEBUG
 void eepromDump(uint8_t bytesPerRow)
 {
   uint16_t i;
@@ -53,27 +52,29 @@ void eepromDump(uint8_t bytesPerRow)
   if (bytesPerRow==0)
     bytesPerRow=16;
 
-  Debugln();
+  Log.verbose("\r\n");
 
   // loop thru EEP address
   for (i = 0; i < sizeof(_Config); i++) {
     // First byte of the row ?
     if (j==0) {
 			// Display Address
-      Debugf("%04X : ", i);
+      Log.verbose(F("%04X : "), i);
     }
 
     // write byte in hex form
+    Log.verbose(F("%04X : "), EEPROM.read(i));
     Debugf("%02X ", EEPROM.read(i));
 
 		// Last byte of the row ?
     // start a new line
     if (++j >= bytesPerRow) {
 			j=0;
-      Debugln();
+      Log.verbose("\r\n");
 		}
   }
 }
+#endif
 
 /* ======================================================================
 Function: readConfig
@@ -152,8 +153,9 @@ bool saveConfig (void)
   config.crc = ~0;
 
 	// For whole size of config structure, pre-calculate CRC
-  for (uint16_t i = 0; i < sizeof (_Config) - 2; ++i)
+  for (uint16_t i = 0; i < sizeof (_Config) - 2; ++i) {
     config.crc = crc16Update(config.crc, *pconfig++);
+  }
 
 	// Re init pointer
   pconfig = (uint8_t *) &config ;
@@ -170,13 +172,15 @@ bool saveConfig (void)
   // default config and breaks OTA
   ret_code = readConfig(false);
 
-  DebugF("Write config ");
+  #ifdef DEBUG
+    DebugF("Write config ");
 
-  if (ret_code) {
-    Debugln(F("OK!"));
-  } else {
-    Debugln(F("Error!"));
-  }
+    if (ret_code) {
+      Debugln(F("OK!"));
+    } else {
+      Debugln(F("Error!"));
+    }
+  #endif
 
   //eepromDump(32);
 
@@ -191,64 +195,100 @@ Input 	: -
 Output	: -
 Comments: -
 ====================================================================== */
+#ifndef DISABLE_LOGGING
 void showConfig()
 {
-  DebuglnF("===== Wifi");
-  DebugF("ssid     :"); Debugln(config.ssid);
-  DebugF("psk      :"); Debugln(config.psk);
-  DebugF("host     :"); Debugln(config.host);
-  DebugF("ap_psk   :"); Debugln(config.ap_psk);
-  DebugF("OTA auth :"); Debugln(config.ota_auth);
-  DebugF("OTA port :"); Debugln(config.ota_port);
-  DebugF("Config   :");
-  if (config.config & CFG_RGB_LED) DebugF(" RGB");
-  if (config.config & CFG_DEBUG)   DebugF(" DEBUG");
-  if (config.config & CFG_LCD)     DebugF(" LCD");
+  Log.verbose(F("===== Wifi =====\r\n"
+                "ssid     : %s\r\n"
+                "psk      : %s\r\n"
+                "host     : %s\r\n"
+                "ap_psk   : %s\r\n"
+                "OTA auth : %s\r\n"
+                "OTA port : %s\r\n"
+                "Config   : "
+               ), config.ssid
+                , config.psk
+                , config.host
+                , config.ap_psk
+                , config.ota_auth
+                , config.ota_port
+              );
+  if (config.config & CFG_RGB_LED) Log.verbose(F(" RGB"));
+  if (config.config & CFG_DEBUG)   Log.verbose(F(" DEBUG"));
+  if (config.config & CFG_LCD)     Log.verbose(F(" LCD\r\n"));
   _wdt_feed();
 
-  DebuglnF("\r\n===== Compteur");
-  DebugF("Modèle   :"); Debugln(config.compteur_modele);
-  DebugF("TIC      :"); Debugln(config.compteur_tic);
+  Log.verbose(F("\r\n===== Compteur =====\r\n"
+                "Modèle   : %s\r\n"
+                "TIC      : %s\r\n"
+               ),config.compteur_modele
+                ,config.compteur_tic
+              );
   _wdt_feed();
 
-  DebuglnF("\r\n===== Emoncms");
-  DebugF("host     :"); Debugln(config.emoncms.host);
-  DebugF("port     :"); Debugln(config.emoncms.port);
-  DebugF("url      :"); Debugln(config.emoncms.url);
-  DebugF("key      :"); Debugln(config.emoncms.apikey);
-  DebugF("node     :"); Debugln(config.emoncms.node);
-  DebugF("freq     :"); Debugln(config.emoncms.freq);
-  _wdt_feed();
-
-  DebuglnF("\r\n===== Jeedom");
-  DebugF("host     :"); Debugln(config.jeedom.host);
-  DebugF("port     :"); Debugln(config.jeedom.port);
-  DebugF("url      :"); Debugln(config.jeedom.url);
-  DebugF("key      :"); Debugln(config.jeedom.apikey);
-  DebugF("finger   :");
-  for (int i=0; i < CFG_JDOM_FINGER_PRINT_SIZE; i++) {
-    DEBUG_SERIAL.print(config.jeedom.fingerprint[i], HEX);
-    DebugF(" ");
-  }
-  Debugln();
-  DebugF("compteur :"); Debugln(config.jeedom.adco);
-  DebugF("freq     :"); Debugln(config.jeedom.freq);
-  _wdt_feed();
-
-  #ifdef MOD_MQTT
-    DebuglnF("\r\n===== MQTT");
-    DebugF("IsActivated :"); Debugln(config.mqtt.isActivated);
-    DebugF("host        :"); Debugln(config.mqtt.host);
-    DebugF("port        :"); Debugln(config.mqtt.port);
-    DebugF("protocol    :"); Debugln(config.mqtt.protocol);
-    DebugF("HasAuth     :"); Debugln(config.mqtt.hasAuth);
-    DebugF("user        :"); Debugln(config.mqtt.user);
-    Debugln();
+  #ifdef MOD_EMONCMS
+    Log.verbose(F("\r\n===== Emoncms\r\n"
+                  "host     : %s\r\n"
+                  "port     : %d\r\n"
+                  "url      : %s\r\n"
+                  "key      : %s\r\n"
+                  "node     : %d\r\n"
+                  "freq     : %l\r\n"
+                 ), config.emoncms.host
+                  , config.emoncms.port
+                  , config.emoncms.url
+                  , config.emoncms.apikey
+                  , config.emoncms.node
+                  , config.emoncms.freq
+                );
     _wdt_feed();
   #endif
 
-  DebugF("LED Bright: "); Debugln(config.led_bright);
+  #ifdef MOD_JEEDOM
+    Log.verbose(F("\r\n===== Jeedom =====\r\n"
+                  "host     : %s\r\n"
+                  "port     : %d\r\n"
+                  "url      : %s\r\n"
+                  "key      : %s\r\n"
+                  "finger   : "
+                 ), config.jeedom.host
+                  , config.jeedom.port
+                  , config.jeedom.url
+                  , config.jeedom.apikey
+                );
+    for (int i=0; i < CFG_JDOM_FINGER_PRINT_SIZE; i++) {
+      Log.verbose("%x ", config.jeedom.fingerprint[i]);
+    }
+    Debugln();
+    Log.verbose(F("\ncompteur : %s\r\n"
+                  "freq     : %d\r\n"
+                 ), config.jeedom.adco
+                  , config.jeedom.freq
+                );
+    _wdt_feed();
+  #endif
+
+  #ifdef MOD_MQTT
+    Log.verbose(F("\r\n===== MQTT =====\r\n"
+                  "IsActivated : %T\r\n"
+                  "host        : %s\r\n"
+                  "port        : %d\r\n"
+                  "protocol    : %s\r\n"
+                  "HasAuth     : %T\r\n"
+                  "user        : %s\r\n"
+                 ), config.mqtt.isActivated
+                  , config.mqtt.host
+                  , config.mqtt.port
+                  , config.mqtt.protocol
+                  , config.mqtt.hasAuth
+                  , config.mqtt.user
+                );
+    _wdt_feed();
+  #endif
+
+  Log.verbose(F("LED Bright: %d\r\n"), config.led_bright);
 }
+#endif
 
 /* ======================================================================
 Function: ResetConfig
@@ -264,7 +304,7 @@ void resetConfig(void)
 
   // Set default Hostname
   sprintf_P(config.host, PSTR("Remora_%06X"), ESP.getChipId());
-  strcpy_P(config.ota_auth, PSTR(DEFAULT_OTA_AUTH));
+  strcpy_P(config.ota_auth, DEFAULT_OTA_AUTH);
   config.ota_port = DEFAULT_OTA_PORT ;
 
   // Add other init default config here
@@ -274,23 +314,27 @@ void resetConfig(void)
   strcpy_P(config.compteur_tic, CFG_COMPTEUR_DEFAULT_TIC);
 
   // Emoncms
-  strcpy_P(config.emoncms.host, CFG_EMON_DEFAULT_HOST);
-  config.emoncms.port = CFG_EMON_DEFAULT_PORT;
-  strcpy_P(config.emoncms.url, CFG_EMON_DEFAULT_URL);
-  config.emoncms.apikey[0] = '\0';
-  config.emoncms.node = 0;
-  config.emoncms.freq = 0;
+  #ifdef MOD_EMONCMS
+    strcpy_P(config.emoncms.host, CFG_EMON_DEFAULT_HOST);
+    config.emoncms.port = CFG_EMON_DEFAULT_PORT;
+    strcpy_P(config.emoncms.url, CFG_EMON_DEFAULT_URL);
+    config.emoncms.apikey[0] = '\0';
+    config.emoncms.node = 0;
+    config.emoncms.freq = 0;
+  #endif
 
   // Jeedom
-  strcpy_P(config.jeedom.host, CFG_JDOM_DEFAULT_HOST);
-  config.jeedom.port = CFG_JDOM_DEFAULT_PORT;
-  strcpy_P(config.jeedom.url, CFG_JDOM_DEFAULT_URL);
-  strcpy_P(config.jeedom.adco, CFG_JDOM_DEFAULT_ADCO);
-  config.jeedom.apikey[0] = '\0';
-  for (int i=0; i < CFG_JDOM_FINGER_PRINT_SIZE; i++) {
-    config.jeedom.fingerprint[i] = 0;
-  }
-  config.jeedom.freq = 0;
+  #ifdef MOD_JEEDOM
+    strcpy_P(config.jeedom.host, CFG_JDOM_DEFAULT_HOST);
+    config.jeedom.port = CFG_JDOM_DEFAULT_PORT;
+    strcpy_P(config.jeedom.url, CFG_JDOM_DEFAULT_URL);
+    strcpy_P(config.jeedom.adco, CFG_JDOM_DEFAULT_ADCO);
+    config.jeedom.apikey[0] = '\0';
+    for (int i=0; i < CFG_JDOM_FINGER_PRINT_SIZE; i++) {
+      config.jeedom.fingerprint[i] = 0;
+    }
+    config.jeedom.freq = 0;
+  #endif
 
   // MQTT
   #ifdef MOD_MQTT
@@ -310,10 +354,11 @@ void resetConfig(void)
   saveConfig();
 }
 
+#ifdef MOD_JEEDOM
 String getFingerPrint(void) {
   char buffer[61] = { 0 };
 
-  sprintf(buffer, "%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X"
+  sprintf_P(buffer, PSTR("%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X")
     , config.jeedom.fingerprint[0], config.jeedom.fingerprint[1], config.jeedom.fingerprint[2], config.jeedom.fingerprint[3]
     , config.jeedom.fingerprint[4], config.jeedom.fingerprint[5], config.jeedom.fingerprint[6], config.jeedom.fingerprint[7]
     , config.jeedom.fingerprint[8], config.jeedom.fingerprint[9], config.jeedom.fingerprint[10], config.jeedom.fingerprint[11]
@@ -321,5 +366,4 @@ String getFingerPrint(void) {
     , config.jeedom.fingerprint[16], config.jeedom.fingerprint[17], config.jeedom.fingerprint[18], config.jeedom.fingerprint[19]);
   return String(buffer);
 }
-
-#endif // ESP8266
+#endif

@@ -41,8 +41,8 @@ extern FrameCallback frames[];
 #else
   #define DISPLAY_FRAME_COUNT 3
 #endif
-#define DISPLAY_FPS 50 // Time to display a frame
 
+#define DISPLAY_FPS 50 // Time to display a frame
 
 // Function exported for other source file
 // =======================================
@@ -55,7 +55,9 @@ void drawProgressBarVert(OLEDDisplay *display, uint16_t x, uint16_t y, uint16_t 
 void drawFrameWifi(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
 void drawFrameTinfo(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
 void drawFrameLogo(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
-void drawFrameRF(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
+#ifdef MOD_RF69
+  void drawFrameRF(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
+#endif
 void setReadyForUpdate();
 
 void doDisplay(void * extented = NULL);
@@ -63,5 +65,5 @@ void displaySplash(bool _config_ok);
 void displayCommand(void);
 void displayTest(void);
 
-#endif
-#endif
+#endif // MOD_OLED
+#endif // DISPLAY_H

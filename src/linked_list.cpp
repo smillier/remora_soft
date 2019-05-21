@@ -20,6 +20,8 @@
 // **********************************************************************************
 #include "./linked_list.h"
 
+#ifdef MOD_RF69
+
 /* ======================================================================
 Function: ll_Delete
 Purpose : Delete the ENTIRE Linked List, not a value
@@ -134,14 +136,16 @@ uint8_t ll_Dump(NodeList * me, unsigned long sec)
       me = me->next;
 
       index++;
-      Debug(index);        DebugF(") ") ;
-      DebugF("Group:");   DEBUG_SERIAL.print(me->groupid, DEC) ;
-      DebugF("  Node:");  DEBUG_SERIAL.print(me->nodeid, DEC) ;
-      DebugF("  RSSI:");  DEBUG_SERIAL.print(me->rssi, DEC) ;
-      DebugF("  seen:");  Debug(sec-me->lastseen) ;
-      DebuglnF("") ;
+      Log.verbose(F("%d) Group:%d  Node:%d  RSSI:%d  seen:%l\r\n")
+                   , index
+                   , me->groupid
+                   , me->nodeid
+                   , me->rssi
+                   , sec-me->lastseen
+                  );
     }
   }
 
   return index;
 }
+#endif // MOD_RF69

@@ -9,10 +9,12 @@
 //           15/09/2015 Charles-Henri Hallard Utilisation Librairie Teleinfo Universelle
 //
 // **********************************************************************************
-#ifndef TINFO_h
-#define TINFO_h
+#ifndef __TINFO_h__
+#define __TINFO_h__
 
 #include "remora.h"
+
+#ifdef MOD_TELEINFO
 
 // Nombre de secondes pendant lesquelles
 // nous pouvons attendre une etiquette/trame téléinfo
@@ -40,9 +42,9 @@ extern unsigned int myindexHC;
 extern unsigned int myindexHP;
 extern unsigned int myisousc;
 extern ptec_e ptec; // Puisance tarifaire en cours
-extern char myPeriode[];
-extern char mytinfo[];
-extern char myAction[];
+//extern char myPeriode[];
+//extern char mytinfo[];
+//extern char myAction[];
 
 extern int      etatrelais;
 extern int      fnctRelais;   // Mode de fonctionnement du relais (0: arrêt, 1: marche forcée, 2: auto)
@@ -53,6 +55,7 @@ extern float    myRelestLimit;
 // =======================================
 bool tinfo_setup(bool);
 void tinfo_loop();
-void getTinfoListJson(String &, bool = true);
+void getTinfoListJson(String &);
 
-#endif
+#endif // MOD_TELEINFO
+#endif // TINFO_H

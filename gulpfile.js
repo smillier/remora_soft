@@ -1,8 +1,8 @@
 /*
 ESP8266 file system builder with PlatformIO support
- 
+
 Copyright (C) 2016 by Xose Pérez <xose dot perez at gmail dot com>
- 
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -78,6 +78,12 @@ gulp.task('js', ['remora_js'], function() {
   ])
   .pipe(concat('remora.js'))
   .pipe(uglify())
+  //.pipe(gzip())
+  .pipe(gulp.dest('webdev/js'));
+});
+
+gulp.task('gzip_js', ['js'], function() {
+  return gulp.src('webdev/js/remora.js')
   .pipe(gzip())
   .pipe(gulp.dest(dest + 'js'));
 });
@@ -105,7 +111,7 @@ gulp.task('html', function() {
 });
 
 /* Build file system */
-gulp.task('buildfs', ['clean', 'files', 'html', 'js', 'css']);
+gulp.task('buildfs', ['clean', 'files', 'html', 'gzip_js', 'css']);
 gulp.task('default', ['buildfs']);
 
 // -----------------------------------------------------------------------------

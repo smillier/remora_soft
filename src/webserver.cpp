@@ -33,8 +33,6 @@ const char FP_RESTART[] PROGMEM = "OK, Redémarrage en cours\r\n";
 const char FP_NL[] PROGMEM = "\r\n";
 
 
-#ifdef ESP8266
-
 /* ======================================================================
 Function: getContentType
 Purpose : return correct mime content type depending on file extension
@@ -93,38 +91,37 @@ Output  : true if file found and sent
 Comments: -
 ====================================================================== */
 bool handleFileRead(String path, AsyncWebServerRequest *request) {
-  if ( path.endsWith("/") )
-    path += "index.htm";
+  if ( path.endsWith(F("/")) )
+    path += F("index.htm");
 
   String contentType = getContentType(path);
-  String pathWithGz = path + ".gz";
+  String pathWithGz = path + F(".gz");
   bool gzip = false;
 
-  DebugF("handleFileRead ");
-  Debug(path);
+  Log.verbose(F("handleFileRead "));
+  Log.verbose(path.c_str());
 
   if (SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)) {
     if (SPIFFS.exists(pathWithGz)){
-      path += ".gz";
-      DebugF(".gz");
+      path += F(".gz");
+      Log.verbose(F(".gz"));
       gzip = true;
     }
 
-    DebuglnF(" found on FS");
-    DebugF("ContentType: "); Debugln(contentType);
+    Log.verbose(F(" found on FS\nContentType: "));
+    Log.verbose(contentType.c_str());
+    Log.verbose("\r\n");
 
     AsyncWebServerResponse *response = request->beginResponse(SPIFFS, path, contentType);
     if (gzip) {
-      DebuglnF("Add header content-encoding: gzip");
-      response->addHeader("Content-Encoding", "gzip");
+      Log.verbose(F("Add header content-encoding: gzip\r\n"));
+      response->addHeader(F("Content-Encoding"), F("gzip"));
     }
     request->send(response);
     return true;
   }
 
-  Debugln("");
-
-  request->send(404, "text/plain", "File Not Found");
+  request->send(404, F("text/plain"), F("File Not Found"));
   return false;
 }
 
@@ -168,12 +165,12 @@ void formatNumberJSON( String &response, char * value)
         response += p ;
       }
     } else {
-      response += "\"Error Value too long\"" ;
-      DebuglnF("formatNumberJSON Value too long!");
+      response += F("\"Error Value too long\"");
+      Log.error(F("formatNumberJSON Value too long!\r\n"));
     }
   } else {
-    response += "\"Error Bad Value\"" ;
-    DebuglnF("formatNumberJSON Bad Value!");
+    response += F("\"Error Bad Value\"");
+    Log.error(F("formatNumberJSON Bad Value!\r\n"));
   }
 }
 
@@ -187,62 +184,60 @@ Comments: -
 ====================================================================== */
 void tinfoJSONTable(AsyncWebServerRequest *request)
 {
-
   // Just to debug where we are
-  DebugF("Serving /tinfo page...\r\n");
+  Log.verbose(F("Serving /tinfo page...\r\n"));
 
   #ifdef MOD_TELEINFO
 
-  ValueList * me = tinfo.getList();
-  String response = "";
-
-  // Got at least one ?
-  if (me) {
-    boolean first_item = true;
-    // Json start
-    response += F("[\r\n");
-
-    // Loop thru the node
-    while (me->next) {
-
-      // we're there
-      ESP.wdtFeed();
-
-      // go to next node
-      me = me->next;
-
-      // First item do not add , separator
-      if (first_item)
-        first_item = false;
-      else
-        response += F(",\r\n");
-
-      response += F("{\"na\":\"");
-      response +=  me->name ;
-      response += F("\", \"va\":\"") ;
-      response += me->value;
-      response += F("\", \"ck\":\"") ;
-      if (me->checksum == '"' || me->checksum == '\\' || me->checksum == '/')
-        response += '\\';
-      response += (char) me->checksum;
-      response += F("\", \"fl\":");
-      response += me->flags ;
-      response += '}' ;
-
+    ValueList * me = tinfo.getList();
+    String response = "";
+  
+    // Got at least one ?
+    if (me) {
+      boolean first_item = true;
+      // Json start
+      response += F("[\r\n");
+  
+      // Loop thru the node
+      while (me->next) {
+  
+        // we're there
+        ESP.wdtFeed();
+  
+        // go to next node
+        me = me->next;
+  
+        // First item do not add , separator
+        if (first_item)
+          first_item = false;
+        else
+          response += F(",\r\n");
+  
+        response += F("{\"na\":\"");
+        response +=  me->name ;
+        response += F("\", \"va\":\"") ;
+        response += me->value;
+        response += F("\", \"ck\":\"") ;
+        if (me->checksum == '"' || me->checksum == '\\' || me->checksum == '/')
+          response += '\\';
+        response += (char) me->checksum;
+        response += F("\", \"fl\":");
+        response += me->flags ;
+        response += '}' ;
+  
+      }
+     // Json end
+     response += F("\r\n]");
+  
+    } else {
+      Log.verbose(F("sending 404...\r\n"));
+      request->send(404, F("text/plain"), F("No data"));
     }
-   // Json end
-   response += F("\r\n]");
-
-  } else {
-    DebuglnF("sending 404...");
-    request->send(404, "text/plain", "No data");
-  }
-  DebugF("sending...");
-  request->send(200, "application/json", response);
-  DebuglnF("OK!");
-
+    Log.verbose(F("sending..."));
+    request->send(200, F("application/json"), response);
+    Log.verbose(F("OK!\r\n"));
   #else
-    DebuglnF("sending 404...");
+    Log.verbose(F("sending 404...\r\n"));
     request->send(404, "text/plain", "Teleinfo non activée");
   #endif // MOD_TELEINFO
 
@@ -257,158 +252,78 @@ Comments: -
 ====================================================================== */
 void getSysJSONData(String & response)
 {
-  response = "";
-  char buffer[32];
-  char fp;
-  int32_t adc = ( 1000 * analogRead(A0) / 1024 );
+  const size_t capacity = JSON_OBJECT_SIZE(21) + 429;
+  StaticJsonDocument<capacity> doc;
+  char buffer[40];
 
-  // Json start
-  response += F("[\r\n");
+  doc["uptime"] = uptime;
 
-  response += "{\"na\":\"Uptime\",\"va\":\"";
-  response += uptime;
-  response += "\"},\r\n";
+  // Version Logiciel
+  doc["version"] = REMORA_SOFT_VERSION;
 
-  response += "{\"na\":\"Version Logiciel\",\"va\":\"" REMORA_VERSION "\"},\r\n";
+  strcpy(buffer, __DATE__);
+  strcat(buffer, " ");
+  strcat(buffer, __TIME__);
+  doc["compilation_date"] = buffer;
 
-  response += "{\"na\":\"Compilé le\",\"va\":\"" __DATE__ " " __TIME__ "\"},\r\n";
+  // Version Matériel
+  doc["board"] = REMORA_BOARD;
 
-  response += "{\"na\":\"Version Matériel\",\"va\":\"";
-  #if defined (REMORA_BOARD_V10)
-    response += F("V1.0");
-  #elif defined (REMORA_BOARD_V11)
-    response += F("V1.1");
-  #elif defined (REMORA_BOARD_V12)
-    response += F("V1.2 avec MCP23017");
-  #elif defined (REMORA_BOARD_V13)
-    response += F("V1.3 avec MCP23017");
-  #elif defined (REMORA_BOARD_V14)
-    response += F("V1.4 avec MCP23017");
-  #elif defined (REMORA_BOARD_V15)
-    response += F("V1.5 avec MCP23017");
-  #else
-    response += F("Non définie");
-  #endif
-  response += "\"},\r\n";
-
-  response += "{\"na\":\"Modules activés\",\"va\":\"";
+  // Modules activés
+  strcpy(buffer, "");
   #ifdef MOD_OLED
-    response += F("OLED ");
+    strcat(buffer, PSTR("OLED "));
   #endif
   #ifdef MOD_TELEINFO
-    response += F("TELEINFO ");
+    strcat(buffer, PSTR("TELEINFO "));
   #endif
   #ifdef MOD_RF69
-    response += F("RFM69 ");
+    strcat(buffer, PSTR("RF69 "));
   #endif
   #ifdef MOD_ADPS
-    response += F("ADPS ");
+    strcat(buffer, PSTR("ADPS "));
   #endif
   #ifdef MOD_MQTT
-    response += F("MQTT ");
+    strcat(buffer, PSTR("MQTT "));
   #endif
-  response += "\"},\r\n";
+  #ifdef MOD_EMONCMS
+    strcat(buffer, PSTR("EMONCMS "));
+  #endif
+  #ifdef MOD_JEEDOM
+    strcat(buffer, PSTR("JEEDOM "));
+  #endif
+  doc["modules"] = buffer;
+  
+  doc["sdk_version"] = system_get_sdk_version();
 
-  response += "{\"na\":\"SDK Version\",\"va\":\"";
-  response += system_get_sdk_version() ;
-  response += "\"},\r\n";
+  sprintf_P(buffer, "0x%0X",system_get_chip_id());
+  doc["chip_id"] = buffer;
 
-  response += "{\"na\":\"Chip ID\",\"va\":\"";
-  sprintf_P(buffer, "0x%0X",system_get_chip_id() );
-  response += buffer ;
-  response += "\"},\r\n";
+  sprintf_P(buffer, "0x%0X",system_get_boot_version());
+  doc["boot_version"] = buffer;
 
-  response += "{\"na\":\"Boot Version\",\"va\":\"";
-  sprintf_P(buffer, "0x%0X",system_get_boot_version() );
-  response += buffer ;
-  response += "\"},\r\n";
+  doc["cpu_freq"]        = system_get_cpu_freq();
+  doc["flash_real_size"] = formatSize(ESP.getFlashChipRealSize());
+  doc["firmware_size"]   = formatSize(ESP.getSketchSize());
+  doc["free_size"]       = formatSize(ESP.getFreeSketchSpace());
 
-  response += "{\"na\":\"Flash Real Size\",\"va\":\"";
-  response += formatSize(ESP.getFlashChipRealSize()) ;
-  response += "\"},\r\n";
-
-  response += "{\"na\":\"Firmware Size\",\"va\":\"";
-  response += formatSize(ESP.getSketchSize()) ;
-  response += "\"},\r\n";
-
-  response += "{\"na\":\"Free Size\",\"va\":\"";
-  response += formatSize(ESP.getFreeSketchSpace()) ;
-  response += "\"},\r\n";
-
-  response += "{\"na\":\"Analog\",\"va\":\"";
-  adc = ( (1000 * analogRead(A0)) / 1024);
-  sprintf_P( buffer, PSTR("%d mV"), adc);
-  response += buffer ;
-  response += "\"},\r\n";
-
+  doc["ip"]   = WiFi.localIP().toString();
+  doc["mac"]  = WiFi.macAddress();
+  doc["ssid"] = WiFi.SSID();
+  doc["rssi"] = WiFi.RSSI();
+  
   FSInfo info;
   SPIFFS.info(info);
+  doc["spiffs_total"] = formatSize(info.totalBytes);
+  doc["spiffs_used"] = formatSize(info.usedBytes);
+  sprintf_P(buffer, "%d%%", 100 * info.usedBytes / info.totalBytes);
+  doc["spiffs_used_percent"] = buffer;
 
-  response += "{\"na\":\"SPIFFS Total\",\"va\":\"";
-  response += formatSize(info.totalBytes) ;
-  response += "\"},\r\n";
+  doc["free_ram"] = formatSize(system_get_free_heap_size());
+  sprintf_P(buffer, "%.2f%%", 100 - getLargestAvailableBlock() * 100.0 / getTotalAvailableMemory());
+  doc["heap_fragmentation"] = buffer;
 
-  response += "{\"na\":\"SPIFFS Used\",\"va\":\"";
-  response += formatSize(info.usedBytes) ;
-  response += "\"},\r\n";
-
-  response += "{\"na\":\"SPIFFS Occupation\",\"va\":\"";
-  sprintf_P(buffer, "%d%%",100*info.usedBytes/info.totalBytes);
-  response += buffer ;
-  response += "\"},\r\n";
-
-  // regarder l'état de tous les fils Pilotes
-  for (uint8_t i=1; i<=NB_FILS_PILOTES; i++)
-  {
-    fp = etatFP[i-1];
-    response += "{\"na\":\"Fil Pilote #";
-    response += String(i);
-    response += "\",\"va\":\"";
-    if      (fp=='E') response += "Eco";
-    else if (fp=='A') response += "Arrêt";
-    else if (fp=='H') response += "Hors Gel";
-    else if (fp=='1') response += "Confort - 1";
-    else if (fp=='2') response += "Confort - 2";
-    else if (fp=='C') response += "Confort";
-    response += "\"},\r\n";
-  }
-
-  response += "{\"na\":\"Etat Relais\",\"va\":\"";
-  response += etatrelais ? "Fermé":"Ouvert";
-  response += "\"},\r\n";
-
-  response += "{\"na\":\"Fnct Relais\",\"va\":\"";
-  response += (fnctRelais == FNCT_RELAIS_AUTO) ? "Auto" : (fnctRelais == FNCT_RELAIS_FORCE) ? "Force" : "Stop";
-  response += "\"},\r\n";
-
-  response += "{\"na\":\"Delestage\",\"va\":\"";
-  response += String(myDelestLimit);
-  response += "A";
-  response += "\"},\r\n";
-
-  response += "{\"na\":\"Relestage\",\"va\":\"";
-  response += String(myRelestLimit);
-  response += "A";
-  response += "\"},\r\n";
-
-  response += "{\"na\":\"Etat Delestage\",\"va\":\"";
-  #ifdef MOD_ADPS
-    response += "Niveau ";
-    response += String(nivDelest);
-    response += " Zone ";
-    response += String(plusAncienneZoneDelestee);
-  #else
-    response += "désactivé";
-  #endif
-  response += "\"},\r\n";
-
-  // Free mem should be last one
-  response += "{\"na\":\"Free Ram\",\"va\":\"";
-  response += formatSize(system_get_free_heap_size()) ;
-  response += "\"}\r\n"; // Last don't have comma at end
-
-  // Json end
-  response += F("]\r\n");
+  serializeJson(doc, response);
 }
 
 /* ======================================================================
@@ -420,14 +335,14 @@ Comments: -
 ====================================================================== */
 void sysJSONTable(AsyncWebServerRequest *request)
 {
-  String response = "";
-
+  String response;
+  response.reserve(600);
   getSysJSONData(response);
 
   // Just to debug where we are
-  DebugF("Serving /system page...");
-  request->send(200, "application/json", response);
-  DebuglnF("Ok!");
+  Log.verbose(F("Serving /system page..."));
+  request->send(200, F("application/json"), response);
+  Log.verbose(F("Ok!\r\n"));
 }
 
 /* ======================================================================
@@ -447,20 +362,23 @@ void getConfJSONData(String & r)
   r+=CFG_FORM_PSK;             r+=FPSTR(FP_QCQ); r+=config.psk;             r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_HOST;            r+=FPSTR(FP_QCQ); r+=config.host;            r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_AP_PSK;          r+=FPSTR(FP_QCQ); r+=config.ap_psk;          r+= FPSTR(FP_QCNL);
+  #ifdef MOD_EMONCMS
   r+=CFG_FORM_EMON_HOST;       r+=FPSTR(FP_QCQ); r+=config.emoncms.host;    r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_EMON_PORT;       r+=FPSTR(FP_QCQ); r+=config.emoncms.port;    r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_EMON_URL;        r+=FPSTR(FP_QCQ); r+=config.emoncms.url;     r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_EMON_KEY;        r+=FPSTR(FP_QCQ); r+=config.emoncms.apikey;  r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_EMON_NODE;       r+=FPSTR(FP_QCQ); r+=config.emoncms.node;    r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_EMON_FREQ;       r+=FPSTR(FP_QCQ); r+=config.emoncms.freq;    r+= FPSTR(FP_QCNL);
+  #endif
   r+=CFG_FORM_OTA_AUTH;        r+=FPSTR(FP_QCQ); r+=config.ota_auth;        r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_OTA_PORT;        r+=FPSTR(FP_QCQ); r+=config.ota_port;        r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_LED_BRIGHT;      r+=FPSTR(FP_QCQ);
-    r+=map(config.led_bright, 0, 255, 0, 100);   r+= FPSTR(FP_QCNL);
+  r+=map(config.led_bright, 0, 255, 0, 100);   r+= FPSTR(FP_QCNL);
 
   r+=CFG_FORM_COMPTEUR_MODELE; r+=FPSTR(FP_QCQ); r+=config.compteur_modele; r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_COMPTEUR_TIC;    r+=FPSTR(FP_QCQ); r+=config.compteur_tic;    r+= FPSTR(FP_QCNL);
 
+  #ifdef MOD_JEEDOM
   r+=CFG_FORM_JDOM_HOST;       r+=FPSTR(FP_QCQ); r+=config.jeedom.host;     r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_JDOM_PORT;       r+=FPSTR(FP_QCQ); r+=config.jeedom.port;     r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_JDOM_URL;        r+=FPSTR(FP_QCQ); r+=config.jeedom.url;      r+= FPSTR(FP_QCNL);
@@ -468,8 +386,11 @@ void getConfJSONData(String & r)
   r+=CFG_FORM_JDOM_ADCO;       r+=FPSTR(FP_QCQ); r+=config.jeedom.adco;     r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_JDOM_FING;       r+=FPSTR(FP_QCQ); r+=getFingerPrint();       r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_JDOM_FREQ;       r+=FPSTR(FP_QCQ); r+=config.jeedom.freq;
+  #else
+  r+= FPSTR(FP_QCNL);
+  #endif
 
-    #ifdef MOD_MQTT
+  #ifdef MOD_MQTT
     r+= FPSTR(FP_QCNL);
     r+=CFG_FORM_MQTT_ACTIVATED; r+=FPSTR(FP_QCB); r+=config.mqtt.isActivated; r+= FPSTR(FP_BNL);
     r+=CFG_FORM_MQTT_PROTO;     r+=FPSTR(FP_QCQ); r+=config.mqtt.protocol;    r+= FPSTR(FP_QCNL);
@@ -483,7 +404,6 @@ void getConfJSONData(String & r)
   r+= F("\"");
   // Json end
   r += FPSTR(FP_JSON_END);
-
 }
 
 /* ======================================================================
@@ -495,12 +415,12 @@ Comments: -
 ====================================================================== */
 void confJSONTable(AsyncWebServerRequest *request)
 {
-  String response = "";
+  String response;
   getConfJSONData(response);
   // Just to debug where we are
-  DebugF("Serving /config page...");
-  request->send(200, "application/json", response);
-  DebuglnF("Ok!");
+  Log.verbose(F("Serving /config page..."));
+  request->send(200, F("application/json"), response);
+  Log.verbose(F("Ok!\r\n"));
 }
 
 /* ======================================================================
@@ -566,9 +486,9 @@ Comments: -
 ====================================================================== */
 void spiffsJSONTable(AsyncWebServerRequest *request)
 {
-  String response = "";
+  String response;
   getSpiffsJSONData(response);
-  request->send(200, "application/json", response);
+  request->send(200, F("application/json"), response);
 }
 
 /* ======================================================================
@@ -580,12 +500,12 @@ Comments: -
 ====================================================================== */
 void wifiScanJSON(AsyncWebServerRequest *request)
 {
-  String response = "";
+  String response;
   bool first = true;
   int scanStatus = WiFi.scanComplete();
 
   // Just to debug where we are
-  DebugF("Serving /wifiscan page...");
+  Log.verbose(F("Serving /wifiscan page..."));
 
   // Json start
   response += F("{\r\n");
@@ -626,15 +546,13 @@ void wifiScanJSON(AsyncWebServerRequest *request)
   }
 
   // Json end
-  response += FPSTR("}\r\n");
+  response += F("}\r\n");
 
-  Debugln(response);
-
-  DebugF("sending...");
-  request->send(200, "application/json", response);
-  DebuglnF("Ok!");
+  Log.verbose(response.c_str());
+  Log.verbose(F("\r\nsending..."));
+  request->send(200, F("application/json"), response);
+  Log.verbose(F("Ok!\r\n"));
 }
-
 
 
 /* ======================================================================
@@ -647,14 +565,14 @@ Comments: -
 void tinfoJSON(AsyncWebServerRequest *request)
 {
   #ifdef MOD_TELEINFO
-    String response = "";
+    String response;
     getTinfoListJson(response);
     if (response != "-1")
-      request->send(200, "application/json", response);
+      request->send(200, F("application/json"), response);
     else
-      request->send(404, "text/plain", "No data");
+      request->send(404, F("text/plain"), F("No data"));
   #else
-    request->send(404, "text/plain", "teleinfo not enabled");
+    request->send(404, F("text/plain"), F("teleinfo not enabled"));
   #endif
 }
 
@@ -707,9 +625,9 @@ Comments: -
 void relaisJSON(String & response)
 {
   response = FPSTR(FP_JSON_START);
-  response+= "\"relais\": ";
+  response+= F("\"relais\": ");
   response+= String(etatrelais);
-  response+= ",\r\n\"fnct_relais\": ";
+  response+= F(",\r\n\"fnct_relais\": ");
   response+= String(fnctRelais);
   response+= FPSTR(FP_JSON_END);
 }
@@ -725,12 +643,12 @@ void delestageJSON(String & response)
 {
     response = FPSTR(FP_JSON_START);
     #ifdef MOD_ADPS
-      response += FPSTR("\"niveau\": ");
+      response += F("\"niveau\": ");
       response += String(nivDelest);
-      response += FPSTR(", \"zone\": ");
+      response += F(", \"zone\": ");
       response += String(plusAncienneZoneDelestee);
     #else
-      response += FPSTR("\"etat\": \"désactivé\"");
+      response += F("\"etat\": \"désactivé\"");
     #endif
     response += FPSTR(FP_JSON_END);
 }
@@ -746,10 +664,10 @@ Comments: -
 void handleFactoryReset(AsyncWebServerRequest *request)
 {
   // Just to debug where we are
-  DebugF("Serving /factory_reset page...");
+  Log.verbose(F("Serving /factory_reset page...\r\n"));
   resetConfig();
   ESP.eraseConfig();
-  request->send(200, "text/plain", FPSTR(FP_RESTART));
+  request->send(200, F("text/plain"), FPSTR(FP_RESTART));
   delay(1000);
   ESP.restart();
   while (true)
@@ -766,8 +684,8 @@ Comments: -
 void handleReset(AsyncWebServerRequest *request)
 {
   // Just to debug where we are
-  DebugF("Serving /reset page...");
-  request->send(200, "text/plain", FPSTR(FP_RESTART));
+  Log.verbose(F("Serving /reset page...\r\n"));
+  request->send(200, F("text/plain"), FPSTR(FP_RESTART));
   delay(1000);
   ESP.restart();
   // This will fire watchdog
@@ -783,6 +701,7 @@ Input   : pb  - caractère a convertir
 Output  : bool
 Comments: -
 ====================================================================== */
+#ifdef MOD_JEEDOM
 static bool parseHexNibble(char pb, uint8_t* res)
 {
   if (pb >= '0' && pb <= '9') {
@@ -794,6 +713,7 @@ static bool parseHexNibble(char pb, uint8_t* res)
   }
   return false;
 }
+#endif
 
 /* ======================================================================
 Function: convertFinger
@@ -803,30 +723,36 @@ Input   : fp   - chaine finger print
 Output  : bool
 Comments: -
 ====================================================================== */
+#ifdef MOD_JEEDOM
 bool convertFinger(const char* fp, uint8_t sha1[]) {
   int len = strlen(fp);
   int pos = 0;
   for (size_t i = 0; i < CFG_JDOM_FINGER_PRINT_SIZE; ++i) {
-      while (pos < len && ((fp[pos] == ' ') || (fp[pos] == ':'))) {
-          ++pos;
-      }
-      if (pos > len - 2) {
-          Debugf("pos:%d len:%d fingerprint too short\r\n", pos, len);
-          return false;
-      }
-      uint8_t high, low;
-      if (!parseHexNibble(fp[pos], &high) || !parseHexNibble(fp[pos+1], &low)) {
-          Debugf("pos:%d len:%d invalid hex sequence: %c%c\r\n", pos, len, fp[pos], fp[pos+1]);
-          return false;
-      }
-      //Debugf("fp[%d-%d]: %c%c ", pos, i, fp[pos], fp[pos+1]);
-      // Debugflush();
-      pos += 2;
-      sha1[i] = low | (high << 4);
-      //Debugf("%X %d\n", sha1[i], sha1[i]);
+    while (pos < len && ((fp[pos] == ' ') || (fp[pos] == ':'))) {
+      ++pos;
+    }
+    if (pos > len - 2) {
+      #ifdef DEBUG
+        Debugf("pos:%d len:%d fingerprint too short\r\n", pos, len);
+      #endif
+      return false;
+    }
+    uint8_t high, low;
+    if (!parseHexNibble(fp[pos], &high) || !parseHexNibble(fp[pos+1], &low)) {
+      #ifdef DEBUG
+        Debugf("pos:%d len:%d invalid hex sequence: %c%c\r\n", pos, len, fp[pos], fp[pos+1]);
+      #endif
+      return false;
+    }
+    //Debugf("fp[%d-%d]: %c%c ", pos, i, fp[pos], fp[pos+1]);
+    // Debugflush();
+    pos += 2;
+    sha1[i] = low | (high << 4);
+    //Debugf("%X %d\n", sha1[i], sha1[i]);
   }
   return true;
 }
+#endif
 
 /* ======================================================================
 Function: handleFormConfig
@@ -844,148 +770,166 @@ void handleFormConfig(AsyncWebServerRequest *request)
   // We validated config ?
   if (request->hasParam("save", true)) {
     int itemp;
-    DebuglnF("===== Posted configuration");
+    Log.verbose(F("===== Posted configuration\r\n"));
 
     // WifInfo
-    strncpy(config.ssid ,   request->getParam("ssid", true)->value().c_str(),     CFG_SSID_SIZE );
-    strncpy(config.psk ,    request->getParam("psk", true)->value().c_str(),      CFG_PSK_SIZE );
-    strncpy(config.host ,   request->getParam("host", true)->value().c_str(),     CFG_HOSTNAME_SIZE );
-    strncpy(config.ap_psk , request->getParam("ap_psk", true)->value().c_str(),   CFG_PSK_SIZE );
-    if (strcmp(config.ota_auth, request->getParam("ota_auth", true)->value().c_str()) != 0) {
-      strncpy(config.ota_auth, request->getParam("ota_auth", true)->value().c_str(), CFG_PSK_SIZE );
+    strncpy(config.ssid,        request->getParam(F("ssid"), true)->value().c_str(),     CFG_SSID_SIZE );
+    strncpy(config.psk,         request->getParam(F("psk"), true)->value().c_str(),      CFG_PSK_SIZE );
+    strncpy(config.host,        request->getParam(F("host"), true)->value().c_str(),     CFG_HOSTNAME_SIZE );
+    strncpy(config.ap_psk,      request->getParam(F("ap_psk"), true)->value().c_str(),   CFG_PSK_SIZE );
+    if (strcmp(config.ota_auth, request->getParam(F("ota_auth"), true)->value().c_str()) != 0) {
+      strncpy(config.ota_auth,  request->getParam(F("ota_auth"), true)->value().c_str(), CFG_PSK_SIZE );
       reboot = true;
     }
-    if (request->hasParam("ota_port", true)) {
-      itemp = request->getParam("ota_port", true)->value().toInt();
+    if (request->hasParam(F("ota_port"), true)) {
+      itemp = request->getParam(F("ota_port"), true)->value().toInt();
       config.ota_port = (itemp>=0 && itemp<=65535) ? itemp : DEFAULT_OTA_PORT;
     }
-    if (request->hasParam("cfg_led_bright", true)) {
-      DebugF("cfg_led_bright: "); Debugln(request->getParam("cfg_led_bright", true)->value()); Debugflush();
-      config.led_bright = map(request->getParam("cfg_led_bright", true)->value().toInt(), 0, 100, 0, 255);
+    if (request->hasParam(F("cfg_led_bright"), true)) {
+      Log.verbose(F("cfg_led_bright: "));
+      Log.verbose(request->getParam(F("cfg_led_bright"), true)->value().c_str());
+      Log.verbose("\r\n");
+
+      config.led_bright = map(request->getParam(F("cfg_led_bright"), true)->value().toInt(), 0, 100, 0, 255);
       rgb_brightness = config.led_bright;
     }
 
     // Modele compteur
-    strncpy(config.compteur_modele, request->getParam("compteur_modele", true)->value().c_str(), CFG_COMPTEUR_MODELE_SIZE);
-    strncpy(config.compteur_tic,    request->getParam("compteur_tic", true)->value().c_str(),    CFG_COMPTEUR_TIC_SIZE);
+    strncpy(config.compteur_modele, request->getParam(F("compteur_modele"), true)->value().c_str(), CFG_COMPTEUR_MODELE_SIZE);
+    strncpy(config.compteur_tic,    request->getParam(F("compteur_tic"), true)->value().c_str(),    CFG_COMPTEUR_TIC_SIZE);
 
-    // Emoncms
-    strncpy(config.emoncms.host,   request->getParam("emon_host", true)->value().c_str(),  CFG_EMON_HOST_SIZE );
-    strncpy(config.emoncms.url,    request->getParam("emon_url", true)->value().c_str(),   CFG_EMON_URL_SIZE );
-    strncpy(config.emoncms.apikey, request->getParam("emon_apikey", true)->value().c_str(),CFG_EMON_APIKEY_SIZE );
-    itemp = request->getParam("emon_node", true)->value().toInt();
-    config.emoncms.node = (itemp>=0 && itemp<=255) ? itemp : 0 ;
-    itemp = request->getParam("emon_port", true)->value().toInt();
-    config.emoncms.port = (itemp>=0 && itemp<=65535) ? itemp : CFG_EMON_DEFAULT_PORT ;
-    itemp = request->getParam("emon_freq", true)->value().toInt();
-    if (itemp>0 && itemp<=86400){
-      // Emoncms Update if needed
-      Tick_emoncms.detach();
-      Tick_emoncms.attach(itemp, Task_emoncms);
-    } else {
-      itemp = 0 ;
-    }
-    config.emoncms.freq = itemp;
-
-    // jeedom
-    strncpy(config.jeedom.host,        request->getParam("jdom_host", true)->value().c_str(),   CFG_JDOM_HOST_SIZE );
-    strncpy(config.jeedom.url,         request->getParam("jdom_url", true)->value().c_str(),    CFG_JDOM_URL_SIZE );
-    strncpy(config.jeedom.apikey,      request->getParam("jdom_apikey", true)->value().c_str(), CFG_JDOM_APIKEY_SIZE );
-    strncpy(config.jeedom.adco,        request->getParam("jdom_adco", true)->value().c_str(),   CFG_JDOM_ADCO_SIZE );
-    // On transforme la chaine fingerprint en tableau de valeurs hexadecimales
-    if (request->getParam("jdom_finger", true)->value().length() == 59) {
-      convertFinger(request->getParam("jdom_finger", true)->value().c_str(), config.jeedom.fingerprint);
-    } else {
-      // Si la chaine n'est pas correcte, on vide le tableau fingerprint
-      for (size_t i = 0; i < CFG_JDOM_FINGER_PRINT_SIZE; i++) {
-        config.jeedom.fingerprint[i] = 0;
-      }
-    }
-    if (request->hasParam("jdom_port", true)) {
-			itemp = request->getParam("jdom_port", true)->value().toInt();
-			config.jeedom.port = (itemp>=0 && itemp<=65535) ? itemp : CFG_JDOM_DEFAULT_PORT;
-		}
-   if (request->hasParam("jdom_freq", true)) {
-      itemp = request->getParam("jdom_freq", true)->value().toInt();
+    #ifdef MOD_EMONCMS
+      // Emoncms
+      strncpy(config.emoncms.host,   request->getParam(F("emon_host"), true)->value().c_str(),   CFG_EMON_HOST_SIZE );
+      strncpy(config.emoncms.url,    request->getParam(F("emon_url"), true)->value().c_str(),    CFG_EMON_URL_SIZE );
+      strncpy(config.emoncms.apikey, request->getParam(F("emon_apikey"), true)->value().c_str(), CFG_EMON_APIKEY_SIZE );
+      itemp = request->getParam(F("emon_node"), true)->value().toInt();
+      config.emoncms.node = (itemp>=0 && itemp<=255) ? itemp : 0 ;
+      itemp = request->getParam(F("emon_port"), true)->value().toInt();
+      config.emoncms.port = (itemp>=0 && itemp<=65535) ? itemp : CFG_EMON_DEFAULT_PORT ;
+      itemp = request->getParam(F("emon_freq"), true)->value().toInt();
       if (itemp>0 && itemp<=86400){
         // Emoncms Update if needed
-        Tick_jeedom.detach();
-        Tick_jeedom.attach(itemp, Task_jeedom);
+        Tick_emoncms.detach();
+        Tick_emoncms.attach(itemp, Task_emoncms);
       } else {
         itemp = 0 ;
       }
-      config.jeedom.freq = itemp;
-   }
+      config.emoncms.freq = itemp;
+    #endif
 
-    // MQTT
+    #ifdef MOD_JEEDOM
+      // jeedom
+      strncpy(config.jeedom.host,   request->getParam(F("jdom_host"), true)->value().c_str(),   CFG_JDOM_HOST_SIZE );
+      strncpy(config.jeedom.url,    request->getParam(F("jdom_url"), true)->value().c_str(),    CFG_JDOM_URL_SIZE );
+      strncpy(config.jeedom.apikey, request->getParam(F("jdom_apikey"), true)->value().c_str(), CFG_JDOM_APIKEY_SIZE );
+      strncpy(config.jeedom.adco,   request->getParam(F("jdom_adco"), true)->value().c_str(),   CFG_JDOM_ADCO_SIZE );
+      // On transforme la chaine fingerprint en tableau de valeurs hexadecimales
+      if (request->getParam(F("jdom_finger"), true)->value().length() == 59) {
+        convertFinger(request->getParam(F("jdom_finger"), true)->value().c_str(), config.jeedom.fingerprint);
+      } else {
+        // Si la chaine n'est pas correcte, on vide le tableau fingerprint
+        for (size_t i = 0; i < CFG_JDOM_FINGER_PRINT_SIZE; i++) {
+          config.jeedom.fingerprint[i] = 0;
+        }
+      }
+      if (request->hasParam(F("jdom_port"), true)) {
+			  itemp = request->getParam(F("jdom_port"), true)->value().toInt();
+			  config.jeedom.port = (itemp>=0 && itemp<=65535) ? itemp : CFG_JDOM_DEFAULT_PORT;
+	  	}
+      if (request->hasParam(F("jdom_freq"), true)) {
+        itemp = request->getParam(F("jdom_freq"), true)->value().toInt();
+        if (itemp>0 && itemp<=86400){
+          // Emoncms Update if needed
+          Tick_jeedom.detach();
+          Tick_jeedom.attach(itemp, Task_jeedom);
+        } else {
+          itemp = 0 ;
+        }
+        config.jeedom.freq = itemp;
+      }
+    #endif
+
     #ifdef MOD_MQTT
-      if (request->hasParam("mqtt_isActivated", true)) {
+      // MQTT
+      if (request->hasParam(F("mqtt_isActivated"), true)) {
         config.mqtt.isActivated = true;
 
-        strncpy(config.mqtt.protocol, request->getParam("mqtt_protocol", true)->value().c_str(),   CFG_MQTT_PROTOCOL_SIZE);
-        strncpy(config.mqtt.host,     request->getParam("mqtt_host", true)->value().c_str(),       CFG_MQTT_HOST_SIZE);
-        itemp = request->getParam("mqtt_port", true)->value().toInt();
+        strncpy(config.mqtt.protocol, request->getParam(F("mqtt_protocol"), true)->value().c_str(),   CFG_MQTT_PROTOCOL_SIZE);
+        strncpy(config.mqtt.host,     request->getParam(F("mqtt_host"), true)->value().c_str(),       CFG_MQTT_HOST_SIZE);
+        itemp = request->getParam(F("mqtt_port"), true)->value().toInt();
         config.mqtt.port = (itemp>=0 && itemp<=65535) ? itemp : CFG_MQTT_DEFAULT_PORT ;
 
-        if (request->hasParam("mqtt_hasAuth", true)) {
+        if (request->hasParam(F("mqtt_hasAuth"), true)) {
           config.mqtt.hasAuth = true;
 
-          strncpy(config.mqtt.user,     request->getParam("mqtt_user", true)->value().c_str(),       CFG_MQTT_USER_SIZE);
-          strncpy(config.mqtt.password, request->getParam("mqtt_password", true)->value().c_str(),   CFG_MQTT_PASSWORD_SIZE);
+          strncpy(config.mqtt.user,     request->getParam(F("mqtt_user"), true)->value().c_str(),       CFG_MQTT_USER_SIZE);
+          strncpy(config.mqtt.password, request->getParam(F("mqtt_password"), true)->value().c_str(),   CFG_MQTT_PASSWORD_SIZE);
         }
-        else
+        else {
             config.mqtt.hasAuth = false;
+        }
       }
-      else
+      else {
         config.mqtt.isActivated = false;
+      }
 
-      if (mqttIsConnected())
+      if (mqttIsConnected()) {
         disconnectMqtt();
+      }
 
-      if (config.mqtt.isActivated && !mqttIsConnected())
+      if (config.mqtt.isActivated && !mqttIsConnected()) {
         connectToMqtt();
+      }
     #endif
 
     if ( saveConfig() ) {
       ret = 200;
-      response = "OK";
+      response = F("OK");
     } else {
       ret = 412;
-      response = "Unable to save configuration";
+      response = F("Unable to save configuration");
     }
 
-    showconfig = true;
+    #ifdef DEBUG
+      showconfig = true;
+    #endif
   }
   else
   {
     ret = 400;
-    response = "Missing Form Field";
+    response = F("Missing Form Field");
   }
 
-  DebugF("Sending response ");
-  Debug(ret);
-  Debug(":");
-  Debugln(response);
-  request->send (ret, "text/plain", response);
+  #ifdef DEBUG
+  Log.verbose(F("Sending response %d : "), ret);
+  Log.verbose(response.c_str());
+  Log.verbose("\r\n");
+  #endif
+  request->send (ret, F("text/plain"), response);
 
   // This is slow, do it after response sent
-  if (showconfig)
+  if (showconfig) {
     showConfig();
+  }
 }
 
 void handle_fw_upload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
   if (!index) {
     Update.runAsync(true);
     WiFiUDP::stopAll();
-    DebugF("* Upload Started: "); Debugln(filename.c_str());
+
+    Log.verbose(F(" Upload Started: "));
+    Log.verbose(filename.c_str());
+
     LedRGBON(COLOR_MAGENTA);
     ota_blink = true;
     int command = U_FLASH;
-    //Debugf("Magic Byte: %02X\n", data[0]);
+    Log.verbose(F("Magic Byte: %02X\n"), data[0]);
     if (data[0] != 0xE9) {
       command = U_SPIFFS;
       SPIFFS.end();
-      //DebuglnF("Command U_SPIFFS");
+      Log.verbose(F(" Command U_SPIFFS "));
     }
     if (!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000, command)) {
       Update.printError(DEBUG_SERIAL);
@@ -994,7 +938,7 @@ void handle_fw_upload(AsyncWebServerRequest *request, String filename, size_t in
 
   if (!Update.hasError()) {
     if (Update.write(data, len) != len) {
-      DebugF("*** UPDATE ERROR: ");
+      Log.error(F("*** UPDATE ERROR: "));
       Update.printError(DEBUG_SERIAL);
       if (ota_blink) {
         LedRGBON(COLOR_RED);
@@ -1009,14 +953,16 @@ void handle_fw_upload(AsyncWebServerRequest *request, String filename, size_t in
         LedRGBOFF();
       }
       ota_blink = !ota_blink;
-      Debug(".");
+      Log.verbose(".");
     }
   }
 
   if (final) {
-    DebuglnF("* Upload Finished.");
+    #ifdef DEBUG
+      Log.verbose(F("* Upload Finished.\r\n"));
+    #endif
     if (Update.end(true)) {
-      Debugf("Update Success: %uB\n", index+len);
+      Log.verbose(F("Update Success: %uB\r\n"), index+len);
     } else {
       Update.printError(DEBUG_SERIAL);
     }
@@ -1043,11 +989,9 @@ void handleNotFound(AsyncWebServerRequest *request)
   // convert uri to char * for compare
   uri = sUri.c_str();
 
-  Debug("URI[");
-  Debug(strlen(uri));
-  Debug("]='");
-  Debug(uri);
-  Debugln("'");
+  Log.verbose(F("URI[%d]='"), strlen(uri));
+  Log.verbose(uri);
+  Log.verbose(F("'\r\n"));
 
   // Got consistent URI, skip fisrt / ?
   // Attention si ? dans l'URL çà ne fait pas partie de l'URI
@@ -1074,7 +1018,7 @@ void handleNotFound(AsyncWebServerRequest *request)
             found = true;
 
             // Add to respone
-            response += FPSTR("{\r\n\"") ;
+            response += F("{\r\n\"") ;
             response += me->name ;
             response += F("\":") ;
             formatNumberJSON(response, me->value);
@@ -1088,11 +1032,11 @@ void handleNotFound(AsyncWebServerRequest *request)
     // ========================
 
     // http://ip_remora/relais
-    if (!strcasecmp("relais", uri)) {
+    if (!strcasecmp_P(uri, PSTR("relais"))) {
       relaisJSON(response);
       found = true;
     // http://ip_remora/delestage
-    } else if (!strcasecmp("delestage", uri)) {
+    } else if (!strcasecmp(uri, PSTR("delestage"))) {
       delestageJSON(response);
       found = true;
     // http://ip_remora/fp ou http://ip_remora/fpx
@@ -1120,38 +1064,38 @@ void handleNotFound(AsyncWebServerRequest *request)
 
   // Requêtes modifiantes (cumulable)
   // ================================
-  if (  request->hasParam("fp") ||
-        request->hasParam("setfp") ||
-        request->hasParam("relais") ||
-        request->hasParam("frelais")) {
+  if (  request->hasParam(F("fp")) ||
+        request->hasParam(F("setfp")) ||
+        request->hasParam(F("relais")) ||
+        request->hasParam(F("frelais"))) {
 
     int error = 0;
     response = FPSTR(FP_JSON_START);
 
     // http://ip_remora/?setfp=CMD
-    if ( request->hasParam("setfp") ) {
-      String value = request->getParam("setfp")->value();
+    if (request->hasParam(F("setfp"))) {
+      String value = request->getParam(F("setfp"))->value();
       error += setfp(value);
     }
     // http://ip_remora/?fp=CMD
-    if ( request->hasParam("fp") ) {
-      String value = request->getParam("fp")->value();
+    if (request->hasParam(F("fp"))) {
+      String value = request->getParam(F("fp"))->value();
       error += setfp(value);
     }
 
     // http://ip_remora/?relais=n
-    if ( request->hasParam("relais") ) {
-      String value = request->getParam("relais")->value();
+    if (request->hasParam(F("relais"))) {
+      String value = request->getParam(F("relais"))->value();
       // La nouvelle valeur n'est pas celle qu'on vient de positionner ?
-      if ( relais(value) != request->getParam("relais")->value().toInt() )
+      if (relais(value) != request->getParam(F("relais"))->value().toInt() )
         error--;
     }
 
     // http://ip_remora/?frelais=n (n: 0 | 1 | 2)
-    if ( request->hasParam("frelais") ) {
-      String value = request->getParam("frelais")->value();
+    if (request->hasParam(F("frelais"))) {
+      String value = request->getParam(F("frelais"))->value();
       // La nouvelle valeur n'est pas celle qu'on vient de positionner ?
-      if ( fnct_relais(value) != request->getParam("frelais")->value().toInt() )
+      if ( fnct_relais(value) != request->getParam(F("frelais"))->value().toInt() )
         error--;
     }
 
@@ -1164,7 +1108,7 @@ void handleNotFound(AsyncWebServerRequest *request)
 
   // Got it, send json
   if (found) {
-    request->send(200, "application/json", response);
+    request->send(200, F("application/json"), response);
   } else {
     // le fichier demandé existe sur le système SPIFFS ?
     found = handleFileRead(request->url(), request);
@@ -1172,14 +1116,14 @@ void handleNotFound(AsyncWebServerRequest *request)
 
   // send error message in plain text
   if (!found) {
-    String message = F("File Not Found\n\n");
-    message += "URI: ";
+    String message = F("File Not Found\r\n");
+    message += F("URI: ");
     message += request->url();
-    message += "\nMethod: ";
-    message += ( request->method() == HTTP_GET ) ? "GET" : "POST";
-    message += "\nArguments: ";
+    message += F("\r\nMethod: ");
+    message += ( request->method() == HTTP_GET ) ? F("GET") : F("POST");
+    message += F("\r\nArguments: ");
     message += request->params();
-    message += "\n";
+    message += F("\r\n");
 
     uint8_t params = request->params();
 
@@ -1187,9 +1131,6 @@ void handleNotFound(AsyncWebServerRequest *request)
       AsyncWebParameter* p = request->getParam(i);
       message += " " + p->name() + ": " + p->value() + "\n";
     }
-    request->send(404, "text/plain", message);
+    request->send(404, F("text/plain"), message);
   }
-
 }
-
-#endif

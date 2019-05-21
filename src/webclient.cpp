@@ -19,7 +19,7 @@
 // **********************************************************************************
 #include "webclient.h"
 
-#ifdef ESP8266
+#if defined(MOD_EMONCMS) || defined(MOD_JEEDOM)
 
 /* ======================================================================
 Function: httpPost
@@ -45,14 +45,15 @@ boolean httpPost(const char * host, const uint16_t port, const char * url,
     //char c_buf[512];
     //int bytes;
     String line;
-//    int myWdt;
-//    String content;
+    //int myWdt;
+    //String content;
     //int code;
 
-    Debugf("Request to server SSL %s:%d\n", host, port);
-//    myWdt = millis();
-//    Debugln("Client Secure started");
-//    Debugln("Free HEAP: " + String(ESP.getFreeHeap()));
+    Log.verbose("Request to server SSL %s:%d\r\n", host, port);
+    
+    //myWdt = millis();
+    //Debugln("Client Secure started");
+    //Debugln("Free HEAP: " + String(ESP.getFreeHeap()));
     const int API_TIMEOUT = 5000;
     // client BearSSL
     BearSSL::WiFiClientSecure client;
@@ -65,54 +66,55 @@ boolean httpPost(const char * host, const uint16_t port, const char * url,
     client.setBufferSizes(512, 512); // Limite l'espace mémoire utilisé par la classe BearSSL pour la vérification de certificats x509
 
     client.setTimeout(API_TIMEOUT);
-//    Debugln("Client Secure started " + String(millis() - myWdt) + " ms");
-//    Debugln("Free HEAP: " + String(ESP.getFreeHeap()));
-//    Debugln("connecting to " + String(host));
-//    myWdt = millis();
+    //Debugln("Client Secure started " + String(millis() - myWdt) + " ms");
+    //Debugln("Free HEAP: " + String(ESP.getFreeHeap()));
+    //Debugln("connecting to " + String(host));
+    //myWdt = millis();
+
     if (!client.connect(host, port)) {
-//      Debugln("Connection failed " + String(millis() - myWdt) + " ms");
-      Debugf("Connection failed to %s:%d\n", host, port);
+      //Debugln("Connection failed " + String(millis() - myWdt) + " ms");
+      Log.error("Connection failed to %s:%d\r\n", host, port);
       return ret;
     }
-//    Debugln("Free HEAP: " + String(ESP.getFreeHeap()));
-//    Debugln("Connected " + String(millis() - myWdt) + " ms");
-//    Debugln("requesting URL: " + String(url));
-//    myWdt = millis();
+    //Debugln("Free HEAP: " + String(ESP.getFreeHeap()));
+    //Debugln("Connected " + String(millis() - myWdt) + " ms");
+    //Debugln("requesting URL: " + String(url));
+    //myWdt = millis();
 
-    Debugf("Requesting URL: %s", url);
+    Log.verbose("Requesting URL: %s", url);
     client.print(String("GET ") + url + " HTTP/1.0\r\n"
                + "Host: " + host + "\r\n"
                + "User-Agent: ESP8266\r\n\r\n");
 
-//    Debugln("Request sent " + String(millis() - myWdt) + " ms");
-//    Debugln("Free HEAP: " + String(ESP.getFreeHeap()));
+    //Debugln("Request sent " + String(millis() - myWdt) + " ms");
+    //Debugln("Free HEAP: " + String(ESP.getFreeHeap()));
     client.setTimeout(API_TIMEOUT);
 
-//    myWdt = millis();
+    //myWdt = millis();
     TOUT = 1;
     while (client.connected()) {
       line = client.readStringUntil('\n');
-//      Debugln("Line: " + line);
+      //Debugln("Line: " + line);
       //if (line.startsWith("HTTP/1.")) {
         //code = line.substring(9, 12).toInt();
-//        Debugln("Got HTTP code " + String(code));
+        //Debugln("Got HTTP code " + String(code));
       //}
       //if (line.startsWith("Content-Length: ")) {
-      //  c_len = line.substring(15).toInt();
-//        Debugln("Got Content-length: " + String(c_len));
+        //c_len = line.substring(15).toInt();
+         //Debugln("Got Content-length: " + String(c_len));
       //}
       if (line == "\r") {
-//        Debugln("Headers received " + String(millis() - myWdt) + " ms");
-//        Debugln("Free HEAP: " + String(ESP.getFreeHeap()));
+        //Debugln("Headers received " + String(millis() - myWdt) + " ms");
+        //Debugln("Free HEAP: " + String(ESP.getFreeHeap()));
         TOUT = 0;
         break;
       }
     }
     if (TOUT) {
-      DebugF("\n*** Timeout receiving headers\n");
+      Log.error(F("\n*** Timeout receiving headers\r\n"));
       return ret;
     }
-//    myWdt = millis();
+    //myWdt = millis();
     if (client.available()) {
       TOUT = 1;
       //res.content += String(client.read());
@@ -121,52 +123,52 @@ boolean httpPost(const char * host, const uint16_t port, const char * url,
       TOUT = 0;
     }
     if (TOUT) {
-      DebugF("\n*** Timeout receiving body\n");
+      Log.error(F("\n*** Timeout receiving body\r\n"));
       return ret;
     }
-//    content = String(c_buf);
-//    Debugln("Result length: " + String(content.length()) + " | " + String(bytes));
-//    Debugln("Content received " + String(millis() - myWdt) + " ms");
-//    Debugln("Free HEAP: " + String(ESP.getFreeHeap()));
-//    myWdt = millis();
+    //content = String(c_buf);
+    //Debugln("Result length: " + String(content.length()) + " | " + String(bytes));
+    //Debugln("Content received " + String(millis() - myWdt) + " ms");
+    //Debugln("Free HEAP: " + String(ESP.getFreeHeap()));
+    //myWdt = millis();
     client.stop();
-//    Debugln("Client stop " + String(millis() - myWdt) + " ms");
-//    Debugln("Free HEAP: " + String(ESP.getFreeHeap()));
-//    Debugln("\n*** Result: " + content);
+    //Debugln("Client stop " + String(millis() - myWdt) + " ms");
+    //Debugln("Free HEAP: " + String(ESP.getFreeHeap()));
+    //Debugln("\n*** Result: " + content);
     ret = true;
   }
   // Code pour une connexion standard
   else {
-    Debugf("Request to server %s:%d\n", host, port);
+    Log.verbose("Request to server %s:%d\r\n", host, port);
+
+    WiFiClient client;
+    
     HTTPClient http;
 
     // configure traged server and url
-    http.begin(host, port, url);
+    http.begin(client, host, port, url);
     ESP.wdtFeed();
 
-    Debugf("http://%s:%d%s => ", host, port, url);
+    Log.verbose("http://%s:%d%s => ", host, port, url);
 
     // start connection and send HTTP header
     int httpCode = http.sendRequest("GET");
     if(httpCode) {
-        // HTTP header has been send and Server response header has been handled
-        Debug(httpCode);
-        DebugF(" ");
-        // file found at server
-        if(httpCode == 200) {
-          String payload = http.getString();
-          Debug(payload);
-          ret = true;
-        }
-    } else {
-        DebugF("failed!");
+      // HTTP header has been send and Server response header has been handled
+      Log.verbose(F("%d "), httpCode);
+
+      // file found at server
+      if(httpCode == 200) {
+        Log.verbose(http.getString().c_str());
+        ret = true;
+      }
+    }
+    else {
+      Log.error(F("failed!"));
     }
     http.end();
   }
-  #ifdef DEBUG
-    Debugf(" in %lu ms\r\n",millis()-start);
-    Debugflush();
-  #endif
+  Log.verbose(F(" in %lu ms\r\n"), millis()-start);
   return ret;
 }
 
@@ -221,7 +223,7 @@ boolean emoncmsPost(void)
         // EMONCMS ne sais traiter que des valeurs numériques, donc ici il faut faire une
         // table de mappage, tout à fait arbitraire, mais c"est celle-ci dont je me sers
         // depuis mes débuts avec la téléinfo
-        if (!strcmp(me->name, "OPTARIF")) {
+        if (!strcmp_P(me->name, PSTR("OPTARIF"))) {
           // L'option tarifaire choisie (Groupe "OPTARIF") est codée sur 4 caractères alphanumériques
           /* J'ai pris un nombre arbitraire codé dans l'ordre ci-dessous
           je mets le 4eme char à 0, trop de possibilités
@@ -237,12 +239,12 @@ boolean emoncmsPost(void)
           else if (*p=='E'&&*(p+1)=='J'&&*(p+2)=='P') url += "3";
           else if (*p=='B'&&*(p+1)=='B'&&*(p+2)=='R') url += "4";
           else url +="0";
-        } else if (!strcmp(me->name, "HHPHC")) {
+        } else if (!strcmp_P(me->name, PSTR("HHPHC"))) {
           // L'horaire heures pleines/heures creuses (Groupe "HHPHC") est codé par un caractère A à Y
           // J'ai choisi de prendre son code ASCII
           int code = *me->value;
           url += String(code);
-        } else if (!strcmp(me->name, "PTEC")) {
+        } else if (!strcmp_P(me->name, PSTR("PTEC"))) {
           // La période tarifaire en cours (Groupe "PTEC"), est codée sur 4 caractères
           /* J'ai pris un nombre arbitraire codé dans l'ordre ci-dessous
           TH.. => Toutes les Heures.
@@ -257,17 +259,17 @@ boolean emoncmsPost(void)
           HPJW => Heures Pleines Jours Blancs (White).
           HPJR => Heures Pleines Jours Rouges.
           */
-               if (!strcmp(me->value, "TH..")) url += "1";
-          else if (!strcmp(me->value, "HC..")) url += "2";
-          else if (!strcmp(me->value, "HP..")) url += "3";
-          else if (!strcmp(me->value, "HN..")) url += "4";
-          else if (!strcmp(me->value, "PM..")) url += "5";
-          else if (!strcmp(me->value, "HCJB")) url += "6";
-          else if (!strcmp(me->value, "HCJW")) url += "7";
-          else if (!strcmp(me->value, "HCJR")) url += "8";
-          else if (!strcmp(me->value, "HPJB")) url += "9";
-          else if (!strcmp(me->value, "HPJW")) url += "10";
-          else if (!strcmp(me->value, "HPJR")) url += "11";
+               if (!strcmp_P(me->value, PSTR("TH.."))) url += "1";
+          else if (!strcmp_P(me->value, PSTR("HC.."))) url += "2";
+          else if (!strcmp_P(me->value, PSTR("HP.."))) url += "3";
+          else if (!strcmp_P(me->value, PSTR("HN.."))) url += "4";
+          else if (!strcmp_P(me->value, PSTR("PM.."))) url += "5";
+          else if (!strcmp_P(me->value, PSTR("HCJB"))) url += "6";
+          else if (!strcmp_P(me->value, PSTR("HCJW"))) url += "7";
+          else if (!strcmp_P(me->value, PSTR("HCJR"))) url += "8";
+          else if (!strcmp_P(me->value, PSTR("HPJB"))) url += "9";
+          else if (!strcmp_P(me->value, PSTR("HPJW"))) url += "10";
+          else if (!strcmp_P(me->value, PSTR("HPJR"))) url += "11";
           else url +="0";
         } else {
           url += me->value;
@@ -318,9 +320,9 @@ boolean jeedomPost(void)
         url+= "&";
       }
 
-      url += F("api=") ;
+      url += F("api=");
       url += config.jeedom.apikey;
-      url += F("&") ;
+      url += "&";
 
       // Loop thru the node
       while (me->next) {
@@ -329,7 +331,7 @@ boolean jeedomPost(void)
         skip_item = false;
 
         // Si ADCO déjà renseigné, on le remet pas
-        if (!strcmp(me->name, "ADCO")) {
+        if (!strcmp_P(me->name, PSTR("ADCO"))) {
           if (*config.jeedom.adco)
             skip_item = true;
         }
@@ -357,4 +359,4 @@ boolean jeedomPost(void)
   return ret;
 }
 
-#endif // ESP8266
+#endif // MOD_EMONCMS || MOD_JEEDOM

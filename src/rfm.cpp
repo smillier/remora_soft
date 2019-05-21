@@ -15,7 +15,7 @@
 
 #include "./rfm.h"
 
-
+#ifdef MOD_RF69
 
 unsigned long rf_rgb_led_timer = 0;
 unsigned long packet_last_seen = 0;   // second since last packet received
@@ -33,17 +33,13 @@ NodeList nodes_list;
 //RH_RF69     rf69_drv(RF69_CS, RF69_IRQ);// instance of the radio driver
 //RHDatagram  rf69(rf69_drv);         // Manage message delivery and receipt
 //RH_RF69 * prf69_drv = &rf69_drv;
-#ifdef ESP8266
-  #ifdef RH_RF69_IRQLESS
-    RH_RF69 driver(RF69_CS, RF69_IRQ);// instance of the radio driver
-  #else
-    // instance of the radio driver we can't use GPPIO2
-    RH_RF69 driver(RF69_IRQ, RF69_CS);
-  #endif
+#ifdef RH_RF69_IRQLESS
+  RH_RF69 driver(RF69_CS, RF69_IRQ);// instance of the radio driver
 #else
-  // instance of the radio driver
-  RH_RF69 driver(RF69_CS, RF69_IRQ);
+  // instance of the radio driver we can't use GPPIO2
+  RH_RF69 driver(RF69_IRQ, RF69_CS);
 #endif
+
 
 /* ======================================================================
 Function: rfm_receive_data
@@ -142,8 +138,7 @@ bool rfm_setup(void)
 {
   bool ret = false;
 
-  Debug("Initializing RFM69...");
-  Debugflush();
+  Log.notice(F("Initializing RFM69..."));
 
   // RF Radio initialization
   // =======================
@@ -151,10 +146,8 @@ bool rfm_setup(void)
   // 434.0MHz
   // modulation GFSK_Rb250Fd250, +13dbM
   // No encryption
-  if (!driver.init()) {
-    Debugln("Not found!");
-  } else {
-    Debugln("OK!");
+  if (driver.init()) {
+     Log.notice(F("OK!\r\n"));
 
     // If you are using a high power RF69, you *must* set a Tx power in the
     // range 14 to 20 like this:
@@ -171,10 +164,15 @@ bool rfm_setup(void)
     nodes_list.rssi     = 0 ;
     nodes_list.lastseen = 0 ;
   }
+  else {
+    Log.notice(F("Not found!\r\n"));
 
-  Debugflush();
+  }
+
+    Debugflush();
+  #endif
+
   return (ret);
-
 }
 
 /* ======================================================================
@@ -189,7 +187,9 @@ void rfm_loop(void)
   got_first = false;
   //static unsigned long packet_last_seen=0;// second since last packet received
   uint8_t packetReceived = 0;
-  unsigned long node_last_seen;  // Second since we saw this node
+  #ifdef DEBUG
+    unsigned long node_last_seen;  // Second since we saw this node
+  #endif
 
   // Data received from driver ?
   if (driver.available()) {
@@ -203,48 +203,30 @@ void rfm_loop(void)
   if (packetReceived) {
     // command code
     uint8_t cmd = rfData.buffer[0];
+    #ifdef DEBUG
     unsigned long seen = uptime-node_last_seen;
 
-    #define DEBUG_VERBOSE
-    #ifdef DEBUG_VERBOSE
-      // Dump Raw packet
-      DebugF("# (");
-      Debug(uptime);
-      DebugF(")");
+    // Dump Raw packet
+    Log.verbose(F("# (%l)"), uptime);
+    if (rfData.flags & RF_PAYLOAD_REQ_ACK) {
+      Log.verbose(F(" ACKED"));
+    }
+    Log.verbose(F(" <- node:%d size:%d type:"), rfData.nodeid, rfData.size);
+    Log.verbose(decode_frame_type(cmd));
+    Log.verbose(F(" (0x%x) RSSI:%ddB  seen :"), cmd, rfData.rssi);
+    Log.verbose(timeAgo(seen));
+    // Detail to know exactly number of seconds between node send
+    if ( seen<=300 && seen>0 ) {
+      Log.verbose(F(" (%l)"), seen);
+    }
+    Log.verbose("\r\n# buffer:");
 
-      if (rfData.flags & RF_PAYLOAD_REQ_ACK)
-        DebugF(" ACKED");
-
-
-      DebugF(" <- node:");  DEBUG_SERIAL.print(rfData.nodeid,DEC);
-      DebugF(" size:");     Debug(rfData.size);
-      DebugF(" type:");     DEBUG_SERIAL.print(decode_frame_type(cmd));
-      DebugF(" (0x");       DEBUG_SERIAL.print(cmd,HEX);
-      DebugF(") RSSI:");    DEBUG_SERIAL.print(rfData.rssi,DEC);
-      DebugF("dB  seen :");
-      Debug(timeAgo(seen));
-
-      // Detail to know exactly number of seconds between node send
-      if ( seen<=300 && seen>0 ) {
-        DebugF(" (");
-        Debug(seen);
-        DebugF(")");
-      }
-
-      DebugF("\r\n# buffer:");
-
-      char buff[4];
-      for (uint8_t i=0; i<rfData.size; i++) {
-        sprintf_P(buff, PSTR(" %02X"), rfData.buffer[i]);
-        Debug(buff);
-      }
-
-      DebugF("  ");
-      #ifdef ESP8266
-        Debug(ESP.getFreeHeap());
-      #endif
-      DebuglnF(" Bytes free ");
-    #endif
+    char buff[4];
+    for (uint8_t i=0; i<rfData.size; i++) {
+      sprintf_P(buff, PSTR(" %02X"), rfData.buffer[i]);
+      Log.verbose(buff);
+    }
+    Log.verbose(F("  %d Bytes free\r\n"), ESP.getFreeHeap());
 
     // decode format
     // return command code validated by payload type size received
@@ -252,60 +234,59 @@ void rfm_loop(void)
     // code as been set to 0 by decode_received_data
     cmd = decode_received_data(rfData.nodeid, rfData.rssi, rfData.size, cmd, rfData.buffer);
 
-   // special ping packet, we need to answer back
-   if ( cmd==RF_PL_PING ) {
-     RFPingPayload * ppl = (RFPingPayload *) rfData.buffer;
+    // special ping packet, we need to answer back
+    if ( cmd==RF_PL_PING ) {
+      RFPingPayload * ppl = (RFPingPayload *) rfData.buffer;
 
-     // prepare send back response
-     ppl->command = RF_PL_PINGBACK;
-     ppl->vbat = 0;
-     ppl->rssi = rfData.rssi; // RSSI of node
-     ppl->status = 0;
+      // prepare send back response
+      ppl->command = RF_PL_PINGBACK;
+      ppl->vbat = 0;
+      ppl->rssi = rfData.rssi; // RSSI of node
+      ppl->status = 0;
+ 
+      driver.setHeaderId(rfData.seqid);
+      driver.setHeaderFlags(RH_FLAGS_NONE);
+ 
+      // We're on a fast gateway, let node some time
+      // To node to set to receive mode before sending response
+      delay(2);
+      driver.setHeaderTo(rfData.nodeid);
+      driver.send((uint8_t *) ppl, (uint8_t) sizeof(RFPingPayload)) ;
+      driver.waitPacketSent();
+ 
+      // Start line with a # (comment)
+      // indicate external parser that it's just debug information
+      Log.verbose(F("\r\n# -> %d PINGBACK (%ddB)"), rfData.nodeid, ppl->rssi);
+    }
 
-     driver.setHeaderId(rfData.seqid);
-     driver.setHeaderFlags(RH_FLAGS_NONE);
+    // Start blue led
+    LedRGBON(COLOR_BLUE);
+    rf_rgb_led_timer=millis();
 
-     // We're on a fast gateway, let node some time
-     // To node to set to receive mode before sending response
-     delay(2);
-     driver.setHeaderTo(rfData.nodeid);
-     driver.send((uint8_t *) ppl, (uint8_t) sizeof(RFPingPayload)) ;
-     driver.waitPacketSent();
-
-     // Start line with a # (comment)
-     // indicate external parser that it's just debug information
-     DebugF("\r\n# -> ");
-     DEBUG_SERIAL.print(rfData.nodeid,DEC);
-     DebugF(" PINGBACK (");
-     DEBUG_SERIAL.print(ppl->rssi,DEC);
-     DebuglnF("dB)");
-   }
-
-   // Start blue led
-   LedRGBON(COLOR_BLUE);
-   rf_rgb_led_timer=millis();
-
-   // known Payload ? send frame to serial
-   if (cmd) {
-     Debugln(json_str);
-   }
+    // known Payload ? send frame to serial
+    #ifdef DEBUG
+      if (cmd) {
+        Debugln(json_str);
+      }
+    #endif
 
 
-   // Display Results only if something new received
-   // As display on OLED is quite long, this avoid time out
-   // on ack of RF module because if we are in display, we can't
-   // ACK quickly and may be delayed by 100ms, but if we are
-   // there this is because we received a command and treated ACK
-   //#ifdef MOD_LCD
-  //   screen_state = screen_rf;
-  //   doDisplay();
-  // #endif
-
+    // Display Results only if something new received
+    // As display on OLED is quite long, this avoid time out
+    // on ack of RF module because if we are in display, we can't
+    // ACK quickly and may be delayed by 100ms, but if we are
+    // there this is because we received a command and treated ACK
+    //#ifdef MOD_LCD
+    //  screen_state = screen_rf;
+    //  doDisplay();
+    //#endif
   }
 
   // Do we have led timer expiration ?
   if (rf_rgb_led_timer && (millis()-rf_rgb_led_timer >= RF_LED_BLINK_MS)) {
-   LedRGBOFF();     // Light Off the LED
-   rf_rgb_led_timer=0; // Stop virtual timer
+    LedRGBOFF();     // Light Off the LED
+    rf_rgb_led_timer=0; // Stop virtual timer
   }
 }
+
+#endif // MOD_RF69

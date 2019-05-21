@@ -13,7 +13,7 @@
       Timer_tinfo,
       elapsed = 0,
       ledBrightSlider,
-      debug = false;
+      debug = true;
 
   function Notify(mydelay, myicon, mytype, mytitle, mymsg) {
     $('body').addClass('loaded');
@@ -240,6 +240,26 @@
     $icon.append('<i class="icon ' + img + '"></i>');
   }
 
+  function responseHanlder(res, dom) {
+    var data = [];
+    $.getJSON(res)
+      .done(function( json ) {
+         $.each( json, function( key, val ) {
+           data.push({
+             na: key,
+             va: val
+           });
+         });
+        console.log(data);
+        $(dom).bootstrapTable('load', data, {silent:true, showLoading:true});
+      })
+      .fail(function(jqxhr, textStatus, error) {
+        var err = textStatus + ", " + error;
+        console.error( "error while requestiong configuration data: " + err );
+      });
+  }
+
+
   $(function() {
 
     $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
@@ -257,13 +277,15 @@
       if (target == '#tab_tinfo') {
         $('#tab_tinfo_data').bootstrapTable('refresh',{silent:true, url:'/tinfo.json'});
       } else if (target == '#tab_sys') {
-        $('#tab_sys_data').bootstrapTable('refresh',{silent:true, url:'/system.json'});
+//        $('#tab_sys_data').bootstrapTable('refresh',{silent:true, url:'/system.json'});
+        responseHanlder('/system.json', '#tab_sys_data');
       } else if (target == '#tab_fs') {
         $.getJSON( "/spiffs.json", function(spiffs_data) {
           var pb, pe, cl;
           total= spiffs_data.spiffs[0].Total;
           used = spiffs_data.spiffs[0].Used;
           freeram = spiffs_data.spiffs[0].Ram;
+          console.log(JSON.stringify(spiffs_data.files));
 
           $('#tab_fs_data').bootstrapTable('load', spiffs_data.files, {silent:true, showLoading:true});
 
@@ -358,7 +380,7 @@
                 $("#mqtt_password").prop('disabled', true);
               }
             }
-            
+
             if (form_data.hasOwnProperty('mqtt_host')) {
               $('#pan_mqtt').show();
             } else {
@@ -443,12 +465,21 @@
         if (status === 404 && res.hasOwnProperty('responseJSON') && res.responseJSON.hasOwnProperty('result')) {
           $('#tab_tinfo_data .no-records-found td').html("Télé-information désactivée");
         }
+      }).on('all.bs.table', function (e, name, args) {
+        console.log(name, ' : ', args);
       });
-    $('#tab_sys_data').on('load-success.bs.table', function (e, data) {
+    $('#tab_sys_data').on('post-body.bs.table', function (e, data) {
       if (debug) console.log('#tab_sys_data loaded');
-      if ($('.nav-tabs .active > a').attr('href')=='#tab_sys')
-      Timer_sys=setTimeout(function(){$('#tab_sys_data').bootstrapTable('refresh',{silent: true})},1000);
-    })
+      console.log($('.nav-tabs .active > a'));
+      if ($('.nav-tabs .active > a').attr('href')=='#tab_sys') {
+         console.log("On load");
+
+         Timer_sys=setTimeout(function() {responseHanlder('/system.json', '#tab_sys_data');},1000);
+//       Timer_sys=setTimeout(function(){$('#tab_sys_data').bootstrapTable('refresh',{silent:true})},1000);
+      }
+    }).on('all.bs.table', function (e, name, args) {
+      console.log(name, ' : ', args);
+    });
     $('#tab_fs_data')
       .on('load-success.bs.table', function (e, data) {
         if (debug) console.log('#tab_fs_data loaded');
@@ -456,6 +487,8 @@
       .on('load-error.bs.table', function (e, status, res) {
         if (debug) console.log('Event: load-error.bs.table on tab_fs_data', e, status, res);
           // myTimer=setInterval(function(){myRefresh()},5000);
+      }).on('all.bs.table', function (e, name, args) {
+        console.log(name, ' : ', args);
       });
     $('#tab_scan_data').on('load-success.bs.table', function (e, data) {
       if (debug) console.log('#tab_scan_data data loaded', data);
@@ -463,7 +496,9 @@
       if (data.status == 'OK') {
         $('#tab_scan_data').bootstrapTable('load', data.result);
       }
-    });
+      }).on('all.bs.table', function (e, name, args) {
+        console.log(name, ' : ', args);
+      });
     $('#tab_scan').on('click-row.bs.table', function (e, name, args) {
       var $form = $('#tab_cfg');
       $('#ssid').val(name.ssid);
@@ -647,7 +682,7 @@
         $("[id^='mqtt_'").each(function() {
           if ($(this).attr('name') != 'mqtt_isActivated') {
             if ($(this).attr('name') == 'mqtt_user' || $(this).attr('name') == 'mqtt_password')
-              if ($('#mqtt_hasAuth').prop("checked")) 
+              if ($('#mqtt_hasAuth').prop("checked"))
                 $(this).prop('disabled', false);
               else
                 $(this).prop('disabled', true);

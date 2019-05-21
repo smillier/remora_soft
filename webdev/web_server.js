@@ -122,34 +122,34 @@ var wifiscan = [
 
 
 function system() {
-return[
-    {"na":"Uptime","va":((Date.now()-startTime)/1000).toFixed(0)},
-    {"na":"Firmware Version","va":"1.0"},
-    {"na":"Compile le","va":"Feb 28 2016 04:35:12"},
-    {"na":"Installed Modules","va":"TELEINFO MQTT"},
-    {"na":"SDK Version","va":"1.5.1(e67da894)"},
-    {"na":"Chip ID","va":"0x115F0B"},
-    {"na":"Boot Version","va":"0x1F"},
-    {"na":"Reset cause","va":"External System"},
-    {"na":"Flash Real Size","va":"4.00 MB"},
-    {"na":"Flash IDE Speed","va":"40MHz"},
-    {"na":"Flash IDE Mode","va":"QIO"},
-    {"na":"Firmware Size","va":"373.69 KB"},
-    {"na":"Free Size","va":"2.63 MB"},
-    {"na":"Analog","va":"6 mV"},
-    {"na":"Wifi Mode","va":"STA"},
-    {"na":"Wifi Mode","va":"N"},
-    {"na":"Wifi Channel","va":"9"},
-    {"na":"Wifi AP ID","va":"0"},
-    {"na":"Wifi Status","va":"5"},
-    {"na":"Wifi Autoconnect","va":"1"},
-    {"na":"Etat Relais", "va":"Fermé"},
-    {"na":"Fnct Relais", "va":"Auto"},
-    {"na":"SPIFFS Total","va":"934.88 KB"},
-    {"na":"SPIFFS Used","va":"159.82 KB"},
-    {"na":"SPIFFS Occupation","va":"17%"},
-    {"na":"Free Ram","va":humanSize(os.freemem())}
-    ]
+return  {
+  "Uptime":((Date.now()-startTime)/1000).toFixed(0),
+  "Firmware Version":"1.0",
+  "Compile le":"Feb 28 2016 04:35:12",
+  "Installed Modules":"TELEINFO MQTT",
+  "SDK Version":"1.5.1(e67da894)",
+  "Chip ID":"0x115F0B",
+  "Boot Version":"0x1F",
+  "Reset cause":"External System",
+  "Flash Real Size":"4.00 MB",
+  "Flash IDE Speed":"40MHz",
+  "Flash IDE Mode":"QIO",
+  "Firmware Size":"373.69 KB",
+  "Free Size":"2.63 MB",
+  "Analog":"6 mV",
+  "Wifi Mode":"STA",
+  "Wifi Mode":"N",
+  "Wifi Channel":"9",
+  "Wifi AP ID":"0",
+  "Wifi Status":"5",
+  "Wifi Autoconnect":"1",
+  "Etat Relais":"Fermé",
+  "Fnct Relais":"Auto",
+  "SPIFFS Total":"934.88 KB",
+  "SPIFFS Used":"159.82 KB",
+  "SPIFFS Occupation":"17%",
+  "Free Ram":humanSize(os.freemem()),
+  }
 }
 
 

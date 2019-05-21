@@ -23,6 +23,8 @@
 
 #include "remora.h"
 
+#ifdef MOD_RF69
+
 // Linked list structure containing all nodes seen
 typedef struct _NodeList NodeList;
 struct _NodeList
@@ -44,4 +46,5 @@ boolean    ll_Delete(NodeList * me);
 NodeList * ll_Add(NodeList * me, uint8_t nodeid, uint8_t groupid, int8_t rssi, unsigned long * sec);
 uint8_t    ll_Dump(NodeList * me, unsigned long sec);
 
-#endif
+#endif // MOD_RF69
+#endif // LINKED_LIST_H

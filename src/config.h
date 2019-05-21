@@ -23,33 +23,35 @@
 // Include main project include file
 #include "remora.h"
 
-#ifdef ESP8266
-
 #define CFG_SSID_SIZE 		32
 #define CFG_PSK_SIZE  		64
 #define CFG_HOSTNAME_SIZE 16
 
 #define CFG_COMPTEUR_MODELE_SIZE 12
 #define CFG_COMPTEUR_TIC_SIZE    10
-#define CFG_COMPTEUR_DEFAULT_MODELE "electronique"
-#define CFG_COMPTEUR_DEFAULT_TIC    "historique"
+#define CFG_COMPTEUR_DEFAULT_MODELE PSTR("electronique")
+#define CFG_COMPTEUR_DEFAULT_TIC    PSTR("historique")
 
-#define CFG_EMON_HOST_SIZE 		32
-#define CFG_EMON_APIKEY_SIZE 	32
-#define CFG_EMON_URL_SIZE 		32
-#define CFG_EMON_DEFAULT_PORT 80
-#define CFG_EMON_DEFAULT_HOST "emoncms.org"
-#define CFG_EMON_DEFAULT_URL  "/input/post.json"
+#ifdef MOD_EMONCMS
+  #define CFG_EMON_HOST_SIZE 		32
+  #define CFG_EMON_APIKEY_SIZE 	32
+  #define CFG_EMON_URL_SIZE 		32
+  #define CFG_EMON_DEFAULT_PORT 80
+  #define CFG_EMON_DEFAULT_HOST PSTR("emoncms.org")
+  #define CFG_EMON_DEFAULT_URL  PSTR("/input/post.json")
+#endif
 
-#define CFG_JDOM_HOST_SIZE         32
-#define CFG_JDOM_APIKEY_SIZE       48
-#define CFG_JDOM_URL_SIZE          64
-#define CFG_JDOM_ADCO_SIZE         12
-#define CFG_JDOM_FINGER_PRINT_SIZE 20
-#define CFG_JDOM_DEFAULT_PORT      80
-#define CFG_JDOM_DEFAULT_HOST      "jeedom.local"
-#define CFG_JDOM_DEFAULT_URL       "/jeedom/plugins/teleinfo/core/php/jeeTeleinfo.php"
-#define CFG_JDOM_DEFAULT_ADCO      "000011112222"
+#ifdef MOD_JEEDOM
+  #define CFG_JDOM_HOST_SIZE         32
+  #define CFG_JDOM_APIKEY_SIZE       48
+  #define CFG_JDOM_URL_SIZE          64
+  #define CFG_JDOM_ADCO_SIZE         12
+  #define CFG_JDOM_FINGER_PRINT_SIZE 20
+  #define CFG_JDOM_DEFAULT_PORT      80
+  #define CFG_JDOM_DEFAULT_HOST      PSTR("jeedom.local")
+  #define CFG_JDOM_DEFAULT_URL       PSTR("/jeedom/plugins/teleinfo/core/php/jeeTeleinfo.php")
+  #define CFG_JDOM_DEFAULT_ADCO      PSTR("000011112222")
+#endif
 
 #ifdef MOD_MQTT
   #define CFG_MQTT_PROTOCOL_SIZE     5
@@ -57,9 +59,9 @@
   #define CFG_MQTT_USER_SIZE         32
   #define CFG_MQTT_PASSWORD_SIZE     32
   #define CFG_MQTT_DEFAULT_ACTIVATED false
-  #define CFG_MQTT_DEFAULT_PROTOCOL  "mqtt"
+  #define CFG_MQTT_DEFAULT_PROTOCOL  PSTR("mqtt")
   #define CFG_MQTT_DEFAULT_AUTH      false
-  #define CFG_MQTT_DEFAULT_HOST      "mqtt.local"
+  #define CFG_MQTT_DEFAULT_HOST      PSTR("mqtt.local")
   #define CFG_MQTT_DEFAULT_PORT      1883
 #endif
 
@@ -67,7 +69,7 @@
 
 // Port pour l'OTA
 #define DEFAULT_OTA_PORT     8266
-#define DEFAULT_OTA_AUTH     "OTA_Remora"
+#define DEFAULT_OTA_AUTH     PSTR("OTA_Remora")
 //#define DEFAULT_OTA_AUTH     ""
 
 // Bit definition for different configuration modes
@@ -82,79 +84,87 @@
 #define CFG_BAD_CRC     0x8000  // Bad CRC when reading configuration
 
 // Web Interface Configuration Form field names
-#define CFG_FORM_SSID     FPSTR("ssid")
-#define CFG_FORM_PSK      FPSTR("psk")
-#define CFG_FORM_HOST     FPSTR("host")
-#define CFG_FORM_AP_PSK   FPSTR("ap_psk")
-#define CFG_FORM_OTA_AUTH FPSTR("ota_auth")
-#define CFG_FORM_OTA_PORT FPSTR("ota_port")
+#define CFG_FORM_SSID     PSTR("ssid")
+#define CFG_FORM_PSK      PSTR("psk")
+#define CFG_FORM_HOST     PSTR("host")
+#define CFG_FORM_AP_PSK   PSTR("ap_psk")
+#define CFG_FORM_OTA_AUTH PSTR("ota_auth")
+#define CFG_FORM_OTA_PORT PSTR("ota_port")
 
-#define CFG_FORM_COMPTEUR_MODELE FPSTR("compteur_modele")
-#define CFG_FORM_COMPTEUR_TIC    FPSTR("compteur_tic")
+#define CFG_FORM_COMPTEUR_MODELE PSTR("compteur_modele")
+#define CFG_FORM_COMPTEUR_TIC    PSTR("compteur_tic")
 
-#define CFG_FORM_EMON_HOST  FPSTR("emon_host")
-#define CFG_FORM_EMON_PORT  FPSTR("emon_port")
-#define CFG_FORM_EMON_URL   FPSTR("emon_url")
-#define CFG_FORM_EMON_KEY   FPSTR("emon_apikey")
-#define CFG_FORM_EMON_NODE  FPSTR("emon_node")
-#define CFG_FORM_EMON_FREQ  FPSTR("emon_freq")
-
-#define CFG_FORM_JDOM_HOST  FPSTR("jdom_host")
-#define CFG_FORM_JDOM_PORT  FPSTR("jdom_port")
-#define CFG_FORM_JDOM_URL   FPSTR("jdom_url")
-#define CFG_FORM_JDOM_KEY   FPSTR("jdom_apikey")
-#define CFG_FORM_JDOM_ADCO  FPSTR("jdom_adco")
-#define CFG_FORM_JDOM_FREQ  FPSTR("jdom_freq")
-#define CFG_FORM_JDOM_FING  FPSTR("jdom_finger")
-
-#ifdef MOD_MQTT
-  #define CFG_FORM_MQTT_ACTIVATED FPSTR("mqtt_isActivated")
-  #define CFG_FORM_MQTT_PROTO     FPSTR("mqtt_protocol")
-  #define CFG_FORM_MQTT_HOST      FPSTR("mqtt_host")
-  #define CFG_FORM_MQTT_PORT      FPSTR("mqtt_port")
-  #define CFG_FORM_MQTT_AUTH      FPSTR("mqtt_hasAuth")
-  #define CFG_FORM_MQTT_USER      FPSTR("mqtt_user")
-  #define CFG_FORM_MQTT_PASS      FPSTR("mqtt_password")
+#ifdef MOD_EMONCMS
+  #define CFG_FORM_EMON_HOST  PSTR("emon_host")
+  #define CFG_FORM_EMON_PORT  PSTR("emon_port")
+  #define CFG_FORM_EMON_URL   PSTR("emon_url")
+  #define CFG_FORM_EMON_KEY   PSTR("emon_apikey")
+  #define CFG_FORM_EMON_NODE  PSTR("emon_node")
+  #define CFG_FORM_EMON_FREQ  PSTR("emon_freq")
 #endif
 
-#define CFG_FORM_LED_BRIGHT FPSTR("cfg_led_bright");
+#ifdef MOD_JEEDOM
+  #define CFG_FORM_JDOM_HOST  PSTR("jdom_host")
+  #define CFG_FORM_JDOM_PORT  PSTR("jdom_port")
+  #define CFG_FORM_JDOM_URL   PSTR("jdom_url")
+  #define CFG_FORM_JDOM_KEY   PSTR("jdom_apikey")
+  #define CFG_FORM_JDOM_ADCO  PSTR("jdom_adco")
+  #define CFG_FORM_JDOM_FREQ  PSTR("jdom_freq")
+  #define CFG_FORM_JDOM_FING  PSTR("jdom_finger")
+#endif
 
-#define CFG_FORM_IP  FPSTR("wifi_ip");
-#define CFG_FORM_GW  FPSTR("wifi_gw");
-#define CFG_FORM_MSK FPSTR("wifi_msk");
+#ifdef MOD_MQTT
+  #define CFG_FORM_MQTT_ACTIVATED PSTR("mqtt_isActivated")
+  #define CFG_FORM_MQTT_PROTO     PSTR("mqtt_protocol")
+  #define CFG_FORM_MQTT_HOST      PSTR("mqtt_host")
+  #define CFG_FORM_MQTT_PORT      PSTR("mqtt_port")
+  #define CFG_FORM_MQTT_AUTH      PSTR("mqtt_hasAuth")
+  #define CFG_FORM_MQTT_USER      PSTR("mqtt_user")
+  #define CFG_FORM_MQTT_PASS      PSTR("mqtt_password")
+#endif
+
+#define CFG_FORM_LED_BRIGHT PSTR("cfg_led_bright");
+
+#define CFG_FORM_IP  PSTR("wifi_ip");
+#define CFG_FORM_GW  PSTR("wifi_gw");
+#define CFG_FORM_MSK PSTR("wifi_msk");
 
 #pragma pack(push)  // push current alignment to stack
 #pragma pack(1)     // set alignment to 1 byte boundary
 
 // Config for emoncms
 // 128 Bytes
-typedef struct
-{
-  char  host[CFG_EMON_HOST_SIZE+1]; 		// FQDN
-  char  apikey[CFG_EMON_APIKEY_SIZE+1]; // Secret
-  char  url[CFG_EMON_URL_SIZE+1];  			// Post URL
-  uint16_t port;    								    // Protocol port (HTTP/HTTPS)
-  uint16_t node;     									  // optional node
-  uint32_t freq;                        // refresh rate
-  uint8_t filler[21];									  // in case adding data in config avoiding loosing current conf by bad crc*/
-} _emoncms;
+#ifdef MOD_EMONCMS
+  typedef struct
+  {
+    char  host[CFG_EMON_HOST_SIZE+1]; 		// FQDN
+    char  apikey[CFG_EMON_APIKEY_SIZE+1]; // Secret
+    char  url[CFG_EMON_URL_SIZE+1];  			// Post URL
+    uint16_t port;    								    // Protocol port (HTTP/HTTPS)
+    uint16_t node;     									  // optional node
+    uint32_t freq;                        // refresh rate
+    uint8_t filler[21];									  // in case adding data in config avoiding loosing current conf by bad crc*/
+  } _emoncms;
+#endif
 
 // Config for jeedom
 // 256 Bytes
-typedef struct
-{
-  char     host[CFG_JDOM_HOST_SIZE+1];              // FQDN
-  char     apikey[CFG_JDOM_APIKEY_SIZE+1];          // Secret
-  char     url[CFG_JDOM_URL_SIZE+1];                // Post URI
-  char     adco[CFG_JDOM_ADCO_SIZE+1];              // Identifiant compteur
-  uint8_t  fingerprint[CFG_JDOM_FINGER_PRINT_SIZE]; // Finger print SHA1 SSL
-  uint16_t port;                                    // Protocol port (HTTP/HTTPS)
-  uint32_t freq;                                    // refresh rate
-  uint8_t  filler[70];                              // in case adding data in config avoiding loosing current conf by bad crc*/
-} _jeedom;
+#ifdef MOD_JEEDOM
+  typedef struct
+  {
+    char     host[CFG_JDOM_HOST_SIZE+1];              // FQDN
+    char     apikey[CFG_JDOM_APIKEY_SIZE+1];          // Secret
+    char     url[CFG_JDOM_URL_SIZE+1];                // Post URI
+    char     adco[CFG_JDOM_ADCO_SIZE+1];              // Identifiant compteur
+    uint8_t  fingerprint[CFG_JDOM_FINGER_PRINT_SIZE]; // Finger print SHA1 SSL
+    uint16_t port;                                    // Protocol port (HTTP/HTTPS)
+    uint32_t freq;                                    // refresh rate
+    uint8_t  filler[70];                              // in case adding data in config avoiding loosing current conf by bad crc*/
+  } _jeedom;
+#endif
 
 // Config for MQTT
-//
+// 128 Bytes
 #ifdef MOD_MQTT
   typedef struct
   {
@@ -186,14 +196,22 @@ typedef struct
   char compteur_modele[CFG_COMPTEUR_MODELE_SIZE+1]; // Modele de compteur
   char compteur_tic[CFG_COMPTEUR_TIC_SIZE+1];       // TIC mode
   uint8_t  filler[104];      		                    // in case adding data in config avoiding loosing current conf by bad crc
+  #ifdef MOD_EMONCMS
   _emoncms emoncms;                                 // Emoncms configuration
+  #else
+  uint8_t  filler_emoncms[128];
+  #endif
+  #ifdef MOD_JEEDOM
   _jeedom  jeedom;                                  // jeedom configuration
+  #else
+  uint8_t  filler_jeedom[256];
+  #endif
   #ifdef MOD_MQTT
     _mqtt    mqtt;                                  // MQTT configuration
-    uint8_t  filler1[128];                          // Another filler in case we need more
   #else
-    uint8_t  filler1[256];                          // Another filler in case we need more
+    uint8_t  filler_mqtt[128];
   #endif
+  uint8_t  filler1[128];                            //Another filler in case we need more
   uint16_t crc;
 } _Config;
 
@@ -208,9 +226,10 @@ extern _Config config;
 // ===================================================
 bool readConfig(bool clear_on_error=true);
 bool saveConfig(void);
-void showConfig(void);
 void resetConfig(void);
-String getFingerPrint(void);
+void showConfig(void);
+#ifdef MOD_JEEDOM
+  String getFingerPrint(void);
+#endif
 
-#endif // ESP8266
 #endif // CONFIG_h

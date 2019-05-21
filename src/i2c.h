@@ -12,8 +12,8 @@
 // All text above must be included in any redistribution.
 //
 // **********************************************************************************
-#ifndef I2C_h
-#define I2C_h
+#ifndef __I2C_h__
+#define __I2C_h__
 
 #include "remora.h"
 
@@ -27,4 +27,4 @@ void i2c_init(void);
 bool i2c_detect(uint8_t);
 uint8_t i2c_scan(void);
 
-#endif
+#endif // I2C_H

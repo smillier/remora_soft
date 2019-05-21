@@ -19,8 +19,8 @@
 //
 // **********************************************************************************
 
-#ifndef ROUTE_H
-#define ROUTE_H
+#ifndef __WEBSERVER_H__
+#define __WEBSERVER_H__
 
 // Include main project include file
 #include "remora.h"
@@ -32,6 +32,7 @@ extern uint16_t response_idx;
 
 // declared exported function from webserver.cpp
 // ===================================================
+void getSysJSONData(String & response);
 void handleFormConfig(AsyncWebServerRequest *request);
 void handleFactoryReset(AsyncWebServerRequest *request);
 void handleReset(AsyncWebServerRequest *request);
@@ -44,4 +45,4 @@ void wifiScanJSON(AsyncWebServerRequest *request);
 void handleNotFound(AsyncWebServerRequest *request);
 void handle_fw_upload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
 
-#endif
+#endif // WEBSERVER_H

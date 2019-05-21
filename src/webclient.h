@@ -18,11 +18,13 @@
 // **********************************************************************************
 
 
-#ifndef WEBCLIENT_H
-#define WEBCLIENT_H
+#ifndef __WEBCLIENT_H__
+#define __WEBCLIENT_H__
 
 // Include main project include file
 #include "remora.h"
+
+#if defined(MOD_EMONCMS) || defined(MOD_JEEDOM)
 
 // Exported variables/object instancied in main sketch
 // ===================================================
@@ -33,4 +35,5 @@ boolean httpPost(const char * host, const uint16_t port, const char * url, const
 boolean emoncmsPost(void);
 boolean jeedomPost(void);
 
-#endif
+#endif // MOD_EMONCMS || MOD_JEEDOM
+#endif // WEBCLIENT_H
