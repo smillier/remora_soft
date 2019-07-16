@@ -230,3 +230,10 @@ pip-log.txt
 .gcc-flags.json
 logs
 espminiterm.py
+
+###############
+## Platform IO
+###############
+
+.pio/
+
