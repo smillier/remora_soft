@@ -78,13 +78,13 @@ bool initDisplay(void) {
     Log.verbose(F(" ... Display found\r\n"));
 
     // Instantiate the display
-    if (config.oled_type == 1306) {
-      ssd1306 = new SSD1306Wire(oled_addr, SDA, SCL);
-      display = ssd1306;
-    } else if (config.oled_type == 1106) {
+    //if (config.oled_type == 1306) {
+      //ssd1306 = new SSD1306Wire(oled_addr, SDA, SCL);
+      //display = ssd1306;
+    //} else if (config.oled_type == 1106) {
       sh1106 = new SH1106Wire(oled_addr, SDA, SCL);
       display = sh1106;
-    }
+    //}
 
     // We got all fine
     if (display) {
@@ -123,9 +123,9 @@ void initDisplayUI(void) {
     ui->setFrames(frames, DISPLAY_FRAME_COUNT);
     ui->disableAllIndicators();
     ui->init();
-    /*if (config.config & CFG_FLIP_LCD) {
-      //display->flipScreenVertically();
-    }*/
+    //if (config.config & CFG_FLIP_LCD) {
+    display->flipScreenVertically();
+    //}
   }
 }
 

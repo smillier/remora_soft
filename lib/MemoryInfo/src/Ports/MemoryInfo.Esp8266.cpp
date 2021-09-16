@@ -12,11 +12,14 @@ const size_t block_size = 8;
 
 size_t getTotalAvailableMemory() {
   umm_info(0, 0);
-  return ummHeapInfo.freeBlocks * block_size;
+  return umm_free_heap_size();
+  //return ummHeapInfo.freeBlocks * block_size;
+
 }
 
 size_t getLargestAvailableBlock() {
   umm_info(0, 0);
-  return ummHeapInfo.maxFreeContiguousBlocks * block_size;
+  return umm_max_block_size();
+  //return ummHeapInfo.maxFreeContiguousBlocks * block_size;
 }
 #endif

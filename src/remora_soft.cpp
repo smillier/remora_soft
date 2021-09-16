@@ -424,14 +424,14 @@ void mysetup()
 
 
   // Check File system init
-  if (SPIFFS.begin()) {
+  if (LittleFS.begin()) {
       // Serious problem
       Log.error(F("SPIFFS Mount failed\r\n"));
   }
   else {
     Log.notice(F("SPIFFS Mount succesfull\r\n"));
 
-    Dir dir = SPIFFS.openDir("/");
+    Dir dir = LittleFS.openDir("/");
     while (dir.next()) {
       String fileName = dir.fileName();
       size_t fileSize = dir.fileSize();
@@ -477,7 +477,7 @@ void mysetup()
   #ifdef MOD_TELEINFO
     if (strcmp_P(config.compteur_tic, PSTR("standard")) == 0) {
       Log.verbose(F("TIC standard : Serial 9600 bps\r\n"));
-      Serial.begin(9600, SERIAL_7E1);
+      Serial.begin(1200, SERIAL_7E1);
     }
     else {
       Log.verbose(F("Tic historique : Serial 1200 bps\r\n"));
@@ -491,9 +491,9 @@ void mysetup()
 
   // OTA callbacks
   ArduinoOTA.onStart([]() {
-    if (ArduinoOTA.getCommand() == U_SPIFFS) {
+    if (ArduinoOTA.getCommand() == U_FLASH) {
       Log.verbose(F("OTA : upload SPIFFS\r\n"));
-      SPIFFS.end(); // Arret du SPIFFS, sinon plantage de la mise à jour
+      LittleFS.end(); // Arret du SPIFFS, sinon plantage de la mise à jour
     }
     LedRGBON(COLOR_MAGENTA);
 
@@ -624,9 +624,9 @@ void mysetup()
 
   // serves all SPIFFS Web file with 24hr max-age control
   // to avoid multiple requests to ESP
-  server.serveStatic(PSTR("/font"), SPIFFS, PSTR("/font"), PSTR("max-age=86400"));
-  server.serveStatic(PSTR("/js"),   SPIFFS, PSTR("/js")  , PSTR("max-age=86400"));
-  server.serveStatic(PSTR("/css"),  SPIFFS, PSTR("/css") , PSTR("max-age=86400"));
+  server.serveStatic(PSTR("/font"), LittleFS, PSTR("/font"), PSTR("max-age=86400"));
+  server.serveStatic(PSTR("/js"),   LittleFS, PSTR("/js")  , PSTR("max-age=86400"));
+  server.serveStatic(PSTR("/css"),  LittleFS, PSTR("/css") , PSTR("max-age=86400"));
   server.begin();
 
   Log.notice(F("HTTP server started\r\n"));
@@ -781,6 +781,7 @@ void loop()
         // Don't do stuff if you are below your
         // time budget.
         // delay(remainingTimeBudget);
+        
       }
     }
   #endif

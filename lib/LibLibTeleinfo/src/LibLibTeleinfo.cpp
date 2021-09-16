@@ -129,6 +129,7 @@ uint8_t TInfo::clearBuffer()
   // Clear our buffer, set index to 0
   memset(_recv_buff, 0, TINFO_BUFSIZE);
   _recv_idx = 0;
+  return 0;
 }
 
 
@@ -832,6 +833,7 @@ _State_e TInfo::process(char c)
     }
     break;
   }
+  return _state;
 }
 
 

@@ -582,6 +582,7 @@ bool RH_RF69::waitPacketSent()
     // A transmitter message has been fully sent
     setModeIdle(); // Clears FIFO
     _txGood++;
+    return false;
 }
 #endif
 

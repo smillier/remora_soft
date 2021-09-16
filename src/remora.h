@@ -17,8 +17,8 @@
 
 // Définir ici le type de carte utilisé
 //#define REMORA_BOARD_V12 "Remora v1.2" // Version 1.2
-//#define REMORA_BOARD_V13 "Remora v1.3"  // Version 1.3
-#define REMORA_BOARD_V14 "Remora v1.4" // Version 1.4
+#define REMORA_BOARD_V13 "Remora v1.3"  // Version 1.3
+//#define REMORA_BOARD_V14 "Remora v1.4" // Version 1.4
 //#define REMORA_BOARD_V15 "Remora v1.5 // Version 1.5
 
 #if defined(REMORA_BOARD_V12)
@@ -38,7 +38,7 @@
 #define MOD_OLED         /* Afficheur  */
 #define MOD_TELEINFO     /* Teleinfo   */
 //#define MOD_RF_OREGON    /* Reception des sondes orégon */
-#define MOD_ADPS         /* Délestage */
+//#define MOD_ADPS         /* Délestage */
 #define MOD_MQTT         /* MQTT */
 //#define MOD_EMONCMS      /* Emoncms.org */
 //#define MOD_JEEDOM       /* Jeedom */
@@ -76,6 +76,7 @@
 #include "MemoryInfo.h"
 #include <EEPROM.h>
 #include <FS.h>
+#include <LittleFS.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
 #include <ESP8266HTTPClient.h>
@@ -85,7 +86,7 @@
 #ifdef MOD_MQTT
   #include <AsyncMqttClient.h>
 #endif
-#include <WiFiUdp.h>
+#include <WiFiUdp.h> 
 #include <Ticker.h>
 #include <NeoPixelBus.h>
 #include <ArduinoOTA.h>

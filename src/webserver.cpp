@@ -101,8 +101,8 @@ bool handleFileRead(String path, AsyncWebServerRequest *request) {
   Log.verbose(F("handleFileRead "));
   Log.verbose(path.c_str());
 
-  if (SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)) {
-    if (SPIFFS.exists(pathWithGz)){
+  if (LittleFS.exists(pathWithGz) || LittleFS.exists(path)) {
+    if (LittleFS.exists(pathWithGz)){
       path += F(".gz");
       Log.verbose(F(".gz"));
       gzip = true;
@@ -112,7 +112,7 @@ bool handleFileRead(String path, AsyncWebServerRequest *request) {
     Log.verbose(contentType.c_str());
     Log.verbose("\r\n");
 
-    AsyncWebServerResponse *response = request->beginResponse(SPIFFS, path, contentType);
+    AsyncWebServerResponse *response = request->beginResponse(LittleFS, path, contentType);
     if (gzip) {
       Log.verbose(F("Add header content-encoding: gzip\r\n"));
       response->addHeader("Content-Encoding", "gzip");
@@ -313,7 +313,7 @@ void getSysJSONData(String & response)
   doc["rssi"] = WiFi.RSSI();
 
   FSInfo info;
-  SPIFFS.info(info);
+  LittleFS.info(info);
   doc["spiffs_total"] = info.totalBytes;
   doc["spiffs_used"] = info.usedBytes;
   sprintf_P(buffer, PSTR("%d"), 100 * info.usedBytes / info.totalBytes);
@@ -442,7 +442,7 @@ void getSpiffsJSONData(String & response)
   response += F("\"files\":[\r\n");
 
   // Loop trough all files
-  Dir dir = SPIFFS.openDir("/");
+  Dir dir = LittleFS.openDir("/");
   while (dir.next()) {
     String fileName = dir.fileName();
     size_t fileSize = dir.fileSize();
@@ -465,7 +465,7 @@ void getSpiffsJSONData(String & response)
 
   // Get SPIFFS File system informations
   FSInfo info;
-  SPIFFS.info(info);
+  LittleFS.info(info);
   response += F("\"Total\":");
   response += info.totalBytes ;
   response += F(", \"Used\":");
@@ -920,11 +920,11 @@ void handle_fw_upload(AsyncWebServerRequest *request, String filename, size_t in
 
     LedRGBON(COLOR_MAGENTA);
     ota_blink = true;
-    int command = U_FLASH;
+    int command = U_FS;
     Log.verbose(F("Magic Byte: %02X\n"), data[0]);
     if (data[0] != 0xE9) {
-      command = U_SPIFFS;
-      SPIFFS.end();
+      command = U_FS;
+      LittleFS.end();
       Log.verbose(F(" Command U_SPIFFS "));
     }
     if (!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000, command)) {
