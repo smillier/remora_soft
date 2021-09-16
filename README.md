@@ -44,12 +44,10 @@ Elle est compatible avec les cartes à base d'ESP8266 via un [adaptateur][5]
 
 ### Environnement de compilation et d'upload
 
-- Installer l'environnement [Platformio](http://platformio.org/), au choix:
-  - La version [IDE](http://platformio.org/platformio-ide)
-  - Ou la version [Core](http://docs.platformio.org/en/latest/installation.html)
-- Installer les plateformes suivantes:
-  - **espressif8266**: `platformio platform install espressif8266 --with-package=tool-mkspiffs`
-  - **espressif8266_stage**: `platformio platform install https://github.com/platformio/platform-espressif8266.git#feature/stage`
+- Installer l'environnement [VSCode](https://code.visualstudio.com/download).
+- Installer l'extension [PlatformIO] https://platformio.org/install/ide?install=vscode
+- Installer la plateforme **espressif8266**: `platformio platform install espressif8266 --with-package=tool-mkspiffs`
+ 
 
 ## Compilation et upload
 
